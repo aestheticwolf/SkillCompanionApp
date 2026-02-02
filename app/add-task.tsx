@@ -1,6 +1,15 @@
-import {View, Text, TextInput, Button, StyleSheet,} from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Pressable,
+} from "react-native";
+
 import { useState, useContext } from "react";
+
 import { TaskContext } from "../src/context/TaskContext";
+import { COLORS } from "../src/constants/theme";
 
 export default function AddTask() {
   const [task, setTask] = useState("");
@@ -15,21 +24,29 @@ export default function AddTask() {
 
     addTask(task);
     setTask("");
-    alert("Task Added");
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Task</Text>
+      <Text style={styles.title}>
+        New Task
+      </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Enter task"
+        placeholder="What will you learn today?"
         value={task}
         onChangeText={setTask}
       />
 
-      <Button title="Save" onPress={handleAdd} />
+      <Pressable
+        style={styles.btn}
+        onPress={handleAdd}
+      >
+        <Text style={styles.btnText}>
+          Save Task
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -37,17 +54,37 @@ export default function AddTask() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
   },
+
   title: {
-    fontSize: 22,
+    fontSize: 26,
+    fontWeight: "bold",
     textAlign: "center",
+    marginBottom: 30,
+  },
+
+  input: {
+    backgroundColor: "white",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
     marginBottom: 20,
   },
-  input: {
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 15,
+
+  btn: {
+    backgroundColor: COLORS.primary,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  btnText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
