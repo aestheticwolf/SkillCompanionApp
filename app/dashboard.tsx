@@ -1,8 +1,22 @@
-import { View, Text, Button, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { useContext } from "react";
+import { TaskContext } from "../src/context/TaskContext";
 
 export default function Dashboard() {
   const router = useRouter();
+  const taskContext = useContext(TaskContext);
+
+  if (!taskContext) return null;
+
+  const { tasks, toggleTask } = taskContext;
 
   return (
     <View style={styles.container}>
@@ -11,6 +25,25 @@ export default function Dashboard() {
       <Button
         title="Add Task"
         onPress={() => router.push("/add-task")}
+      />
+
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => toggleTask(item.id)}
+          >
+            <Text
+              style={[
+                styles.task,
+                item.completed && styles.done,
+              ]}
+            >
+              {item.title}
+            </Text>
+          </TouchableOpacity>
+        )}
       />
 
       <Button
@@ -24,11 +57,19 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    padding: 20,
   },
   title: {
     fontSize: 22,
-    marginBottom: 20,
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  task: {
+    padding: 10,
+    borderBottomWidth: 1,
+  },
+  done: {
+    textDecorationLine: "line-through",
+    color: "gray",
   },
 });

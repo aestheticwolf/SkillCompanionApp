@@ -1,13 +1,21 @@
-import { View, Text, TextInput, Button, StyleSheet } from "react-native";
-import { useState } from "react";
+import {View, Text, TextInput, Button, StyleSheet,} from "react-native";
+import { useState, useContext } from "react";
+import { TaskContext } from "../src/context/TaskContext";
 
 export default function AddTask() {
   const [task, setTask] = useState("");
+  const taskContext = useContext(TaskContext);
+
+  if (!taskContext) return null;
+
+  const { addTask } = taskContext;
 
   const handleAdd = () => {
-    console.log("Task:", task);
-    alert("Task Added");
+    if (!task.trim()) return;
+
+    addTask(task);
     setTask("");
+    alert("Task Added");
   };
 
   return (
@@ -34,8 +42,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    marginBottom: 20,
     textAlign: "center",
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
