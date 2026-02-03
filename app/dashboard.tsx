@@ -6,7 +6,10 @@ import {
 } from "react-native";
 
 import { useRouter } from "expo-router";
+import { AuthContext } from "../src/context/AuthContext";
 import { useContext } from "react";
+import { useEffect } from "react";
+
 
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
@@ -14,11 +17,27 @@ import { scheduleReminder } from "../src/services/notifications";
 
 export default function Dashboard() {
   const router = useRouter();
-  const ctx = useContext(TaskContext);
 
-  if (!ctx) return null;
+  const ctx = useContext(TaskContext);
+  const authCtx = useContext(AuthContext);
+
+  /* Protect Route */
+  useEffect(() => {
+    if (!authCtx?.user) {
+      router.replace("/login");
+    }
+  }, [authCtx?.user]);
+
+  if (!authCtx?.user) {
+    return null;
+  }
+
+  if (!ctx) {
+    return null;
+  }
 
   const { goals, toggleTask } = ctx;
+
 
   /* Reminder */
 

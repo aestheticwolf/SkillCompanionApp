@@ -10,13 +10,13 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 
 import {
-  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 
 import { auth } from "../src/services/firebase";
 import { COLORS } from "../src/constants/theme";
 
-export default function Login() {
+export default function Signup() {
   const router = useRouter();
 
   const [email, setEmail] =
@@ -24,30 +24,30 @@ export default function Login() {
   const [password, setPassword] =
     useState("");
 
-  const handleLogin = async () => {
+  const handleSignup = async () => {
     if (!email || !password) {
       alert("Fill all fields");
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(
+      await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
 
-      alert("Login success");
+      alert("Account created");
       router.replace("/dashboard");
     } catch (e: any) {
-      alert("Invalid login");
+      alert(e.message);
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        Login
+        Create Account
       </Text>
 
       <TextInput
@@ -67,20 +67,20 @@ export default function Login() {
 
       <Pressable
         style={styles.btn}
-        onPress={handleLogin}
+        onPress={handleSignup}
       >
         <Text style={styles.btnText}>
-          Login
+          Sign Up
         </Text>
       </Pressable>
 
       <Pressable
         onPress={() =>
-         router.push({ pathname: "/signup" })
+          router.push("/login")
         }
       >
         <Text style={styles.link}>
-          New user? Sign up
+          Already have account? Login
         </Text>
       </Pressable>
     </View>
