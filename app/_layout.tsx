@@ -1,17 +1,14 @@
 import { Stack } from "expo-router";
-import { useEffect } from "react";
 
 import { TaskProvider } from "../src/context/TaskContext";
-import { requestPermission } from "../src/services/notifications";
+import { AuthProvider } from "../src/context/AuthContext";
 
 export default function Layout() {
-  useEffect(() => {
-    requestPermission();
-  }, []);
-
   return (
-    <TaskProvider>
-      <Stack />
-    </TaskProvider>
+    <AuthProvider>
+      <TaskProvider>
+        <Stack />
+      </TaskProvider>
+    </AuthProvider>
   );
 }
