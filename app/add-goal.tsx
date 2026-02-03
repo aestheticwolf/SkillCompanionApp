@@ -7,51 +7,41 @@ import {
 } from "react-native";
 
 import { useState, useContext } from "react";
+import { useRouter } from "expo-router";
 
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
-import { useLocalSearchParams } from "expo-router";
 
-
-export default function AddTask() {
-  const [task, setTask] = useState("");
-  const params = useLocalSearchParams();
-const goalId = params.goalId as string;
-
+export default function AddGoal() {
+  const [goal, setGoal] = useState("");
   const ctx = useContext(TaskContext);
+  const router = useRouter();
 
   if (!ctx) return null;
 
-  const { goals, addTask } = ctx;
+  const { addGoal } = ctx;
 
   const handleAdd = () => {
-   if (!task.trim()) {
-  alert("Enter task name");
-  return;
-}
+    if (!goal.trim()) return;
 
-if (!goalId) {
-  alert("Invalid goal");
-  return;
-}
+    addGoal(goal);
+    setGoal("");
+    alert("Goal Added");
 
-
-    addTask(goalId, task);
-    setTask("");
-    alert("Task Added");
+    router.back();
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        Add Task
+        Add Learning Goal
       </Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Task name"
-        value={task}
-        onChangeText={setTask}
+        placeholder="Ex: Learn Java"
+        value={goal}
+        onChangeText={setGoal}
       />
 
       <Pressable
@@ -59,7 +49,7 @@ if (!goalId) {
         onPress={handleAdd}
       >
         <Text style={styles.btnText}>
-          Save Task
+          Save Goal
         </Text>
       </Pressable>
     </View>
@@ -71,29 +61,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     padding: 20,
+    justifyContent: "center",
   },
 
   title: {
     fontSize: 22,
     textAlign: "center",
     marginBottom: 20,
-  },
-
-  selectBox: {
-    marginBottom: 15,
-  },
-
-  goalBtn: {
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-  },
-
-  selected: {
-    backgroundColor: "#DBEAFE",
   },
 
   input: {
