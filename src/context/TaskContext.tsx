@@ -7,95 +7,175 @@ import React, {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* Task Type */
-type Task = {
+/* Types */
+
+export type Task = {
   id: string;
   title: string;
   completed: boolean;
 };
 
-/* Context Type */
-type TaskContextType = {
+export type Goal = {
+  id: string;
+  name: string;
   tasks: Task[];
-  addTask: (title: string) => void;
-  toggleTask: (id: string) => void;
 };
 
-/* Create Context */
-export const TaskContext =
-  createContext<TaskContextType | null>(null);
+type TaskContextType = {
+  goals: Goal[];
 
-/* Storage Key */
-const STORAGE_KEY = "SKILL_TASKS";
+  addGoal: (name: string) => void;
+
+  addTask: (
+    goalId: string,
+    title: string
+  ) => void;
+
+  toggleTask: (
+    goalId: string,
+    taskId: string
+  ) => void;
+};
+
+/* Context */
+
+export const TaskContext =
+  createContext<TaskContextType | null>(
+    null
+  );
+
+/* Storage */
+
+const STORAGE_KEY = "SKILL_GOALS";
 
 /* Provider */
+
 export function TaskProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-
-  /* Load Tasks on App Start */
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  /* Save Tasks when Changed */
-  useEffect(() => {
-    saveTasks();
-  }, [tasks]);
+  const [goals, setGoals] = useState<
+    Goal[]
+  >([]);
 
   /* Load */
-  const loadTasks = async () => {
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  /* Save */
+
+  useEffect(() => {
+    saveData();
+  }, [goals]);
+
+  /* Load from storage */
+
+  const loadData = async () => {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
+      const data =
+        await AsyncStorage.getItem(
+          STORAGE_KEY
+        );
 
       if (data) {
-        setTasks(JSON.parse(data));
+        setGoals(JSON.parse(data));
       }
-    } catch (error) {
-      console.log("Load Error:", error);
+    } catch (e) {
+      console.log(e);
     }
   };
 
-  /* Save */
-  const saveTasks = async () => {
+  /* Save to storage */
+
+  const saveData = async () => {
     try {
       await AsyncStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify(tasks)
+        JSON.stringify(goals)
       );
-    } catch (error) {
-      console.log("Save Error:", error);
+    } catch (e) {
+      console.log(e);
     }
   };
 
-  /* Add Task */
-  const addTask = (title: string) => {
-    const newTask: Task = {
+  /* Add Goal */
+
+  const addGoal = (name: string) => {
+    const newGoal: Goal = {
       id: Date.now().toString(),
-      title,
-      completed: false,
+      name,
+      tasks: [],
     };
 
-    setTasks((prev) => [...prev, newTask]);
+    setGoals((prev) => [
+      ...prev,
+      newGoal,
+    ]);
   };
 
-  /* Toggle Complete */
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
+  /* Add Task */
+
+  const addTask = (
+    goalId: string,
+    title: string
+  ) => {
+    setGoals((prev) =>
+      prev.map((g) =>
+        g.id === goalId
+          ? {
+              ...g,
+              tasks: [
+                ...g.tasks,
+                {
+                  id: Date.now().toString(),
+                  title,
+                  completed: false,
+                },
+              ],
+            }
+          : g
+      )
+    );
+  };
+
+  /* Toggle */
+
+  const toggleTask = (
+    goalId: string,
+    taskId: string
+  ) => {
+    setGoals((prev) =>
+      prev.map((g) =>
+        g.id === goalId
+          ? {
+              ...g,
+              tasks: g.tasks.map(
+                (t) =>
+                  t.id === taskId
+                    ? {
+                        ...t,
+                        completed:
+                          !t.completed,
+                      }
+                    : t
+              ),
+            }
+          : g
       )
     );
   };
 
   return (
     <TaskContext.Provider
-      value={{ tasks, addTask, toggleTask }}
+      value={{
+        goals,
+        addGoal,
+        addTask,
+        toggleTask,
+      }}
     >
       {children}
     </TaskContext.Provider>

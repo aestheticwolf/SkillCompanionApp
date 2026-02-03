@@ -1,48 +1,60 @@
 import { View, Text, StyleSheet } from "react-native";
 import { useContext } from "react";
 
-import Animated, {
-  FadeInUp,
-} from "react-native-reanimated";
-
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
 
 export default function Progress() {
-  const taskContext = useContext(TaskContext);
+  const ctx = useContext(TaskContext);
 
-  if (!taskContext) return null;
+  if (!ctx) return null;
 
-  const { tasks } = taskContext;
+  const { goals } = ctx;
 
-  const completed = tasks.filter(
-    (t) => t.completed
-  ).length;
+  let totalTasks = 0;
+  let completedTasks = 0;
 
-  const pending = tasks.length - completed;
+  goals.forEach((g) => {
+    totalTasks += g.tasks.length;
+
+    completedTasks += g.tasks.filter(
+      (t) => t.completed
+    ).length;
+  });
+
+  const pending = totalTasks - completedTasks;
 
   return (
     <View style={styles.container}>
-      <Animated.View
-        entering={FadeInUp.delay(200)}
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <Text style={styles.title}>
           Progress Summary
         </Text>
 
-        <Text style={styles.text}>
-          Total: {tasks.length}
+        <Text>Total Tasks: {totalTasks}</Text>
+        <Text>Completed: {completedTasks}</Text>
+        <Text>Pending: {pending}</Text>
+
+        <Text style={{ marginTop: 15 }}>
+          Recommended Focus:
         </Text>
 
-        <Text style={styles.text}>
-          Completed: {completed}
-        </Text>
+        {goals.map((g) => {
+          const done = g.tasks.filter(
+            (t) => t.completed
+          ).length;
 
-        <Text style={styles.text}>
-          Pending: {pending}
-        </Text>
-      </Animated.View>
+          if (done < g.tasks.length / 2) {
+            return (
+              <Text key={g.id}>
+                👉 {g.name}
+              </Text>
+            );
+          }
+
+          return null;
+        })}
+      </View>
     </View>
   );
 }
@@ -66,10 +78,5 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 15,
-  },
-
-  text: {
-    fontSize: 16,
-    marginBottom: 6,
   },
 });

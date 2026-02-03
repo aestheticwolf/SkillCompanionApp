@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Pressable,
 } from "react-native";
 
@@ -10,58 +9,135 @@ import { useRouter } from "expo-router";
 import { useContext } from "react";
 
 import { TaskContext } from "../src/context/TaskContext";
-import TaskCard from "../src/components/TaskCard";
 import { COLORS } from "../src/constants/theme";
+import { scheduleReminder } from "../src/services/notifications";
 
 export default function Dashboard() {
   const router = useRouter();
-  const taskContext = useContext(TaskContext);
+  const ctx = useContext(TaskContext);
 
-  if (!taskContext) return null;
+  if (!ctx) return null;
 
-  const { tasks, toggleTask } = taskContext;
+  const { goals, toggleTask } = ctx;
+
+  /* Reminder */
+
+  const setReminder = async () => {
+    await scheduleReminder(
+      "Skill Companion Reminder",
+      "Complete your pending tasks today!",
+      20
+    );
+
+    alert("Daily reminder set for 8 PM");
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
+
       <View style={styles.header}>
-        <Text style={styles.title}>My Tasks</Text>
+        <Text style={styles.title}>
+          My Learning Goals
+        </Text>
 
         <Pressable
           style={styles.addBtn}
-          onPress={() => router.push("/add-task")}
+          onPress={() =>
+            router.push("/add-goal")
+          }
         >
-          <Text style={styles.addText}>＋</Text>
+          <Text style={styles.addText}>
+            ＋
+          </Text>
         </Pressable>
       </View>
 
-      {/* Task List */}
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        renderItem={({ item }) => (
-          <TaskCard
-            title={item.title}
-            completed={item.completed}
-            onPress={() => toggleTask(item.id)}
-          />
-        )}
-      />
+      {/* No Goals */}
 
-      {/* Progress Button */}
+      {goals.length === 0 && (
+        <Text style={styles.empty}>
+          No goals yet. Add one!
+        </Text>
+      )}
+
+      {/* Goals & Tasks */}
+
+      {goals.map((g) => (
+        <View
+          key={g.id}
+          style={styles.goalBox}
+        >
+          <Text style={styles.goalTitle}>
+            {g.name}
+          </Text>
+
+          {/* Tasks */}
+
+          {g.tasks.map((t) => (
+            <Pressable
+              key={t.id}
+              style={styles.taskRow}
+              onPress={() =>
+                toggleTask(g.id, t.id)
+              }
+            >
+              <Text>
+                {t.completed
+                  ? "✅"
+                  : "⬜"}{" "}
+                {t.title}
+              </Text>
+            </Pressable>
+          ))}
+
+          {/* Add Task */}
+
+          <Pressable
+            style={styles.addTaskBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/add-task",
+                params: { goalId: g.id },
+              })
+            }
+          >
+            <Text>Add Task</Text>
+          </Pressable>
+        </View>
+      ))}
+
+      {/* Reminder */}
+
       <Pressable
-        style={styles.progressBtn}
-        onPress={() => router.push("/progress")}
+        style={[
+          styles.bottomBtn,
+          { backgroundColor: "#16A34A" },
+        ]}
+        onPress={setReminder}
       >
-        <Text style={styles.progressText}>
+        <Text style={styles.btnText}>
+          Set Daily Reminder
+        </Text>
+      </Pressable>
+
+      {/* Progress */}
+
+      <Pressable
+        style={styles.bottomBtn}
+        onPress={() =>
+          router.push("/progress")
+        }
+      >
+        <Text style={styles.btnText}>
           View Progress
         </Text>
       </Pressable>
     </View>
   );
 }
+
+/* Styles */
 
 const styles = StyleSheet.create({
   container: {
@@ -97,7 +173,39 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
 
-  progressBtn: {
+  empty: {
+    textAlign: "center",
+    marginTop: 30,
+    color: "#64748B",
+  },
+
+  goalBox: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+
+  goalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  taskRow: {
+    marginLeft: 10,
+    marginBottom: 5,
+  },
+
+  addTaskBtn: {
+    backgroundColor: "#DBEAFE",
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    alignItems: "center",
+  },
+
+  bottomBtn: {
     backgroundColor: COLORS.primary,
     padding: 14,
     borderRadius: 12,
@@ -105,7 +213,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  progressText: {
+  btnText: {
     color: "white",
     fontWeight: "600",
   },
