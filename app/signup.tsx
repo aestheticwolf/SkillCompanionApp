@@ -13,7 +13,7 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 
-import { auth } from "../src/services/firebase";
+import { auth } from "@/src/services/firebase";
 import { COLORS } from "../src/constants/theme";
 
 export default function Signup() {

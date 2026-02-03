@@ -13,8 +13,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
-import { auth } from "../src/services/firebase";
-import { COLORS } from "../src/constants/theme";
+import { auth } from "@/src/services/firebase";import { COLORS } from "../src/constants/theme";
 
 export default function Login() {
   const router = useRouter();

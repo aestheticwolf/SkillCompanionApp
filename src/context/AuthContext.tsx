@@ -10,7 +10,7 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 
-import { auth } from "../services/firebase";
+import { auth } from "@/src/services/firebase";
 
 type AuthContextType = {
   user: User | null;
