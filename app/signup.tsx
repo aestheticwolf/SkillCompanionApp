@@ -1,23 +1,24 @@
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
-import { useState } from "react";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { auth } from "@/src/services/firebase";
 import Loader from "@/src/components/Loader";
 import { COLORS } from "@/src/constants/theme";
+import { auth } from "@/src/services/firebase";
 
-import { showSuccess, showError } from "../src/services/toast";
+import { showError, showSuccess } from "../src/services/toast";
 
 export default function Signup() {
   const router = useRouter();
@@ -42,8 +43,7 @@ export default function Signup() {
 
       await createUserWithEmailAndPassword(auth, email, password);
 
-      showSuccess("Account created");
-
+      showSuccess("Account created!");
       router.replace("/dashboard");
     } catch (e: any) {
       showError(e.message);
@@ -57,13 +57,18 @@ export default function Signup() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.container}>
-
+      <LinearGradient
+        colors={["#2563EB", "#60A5FA"]}
+        style={styles.container}
+      >
         {loading && <Loader />}
 
         {/* Header */}
         <View style={styles.header}>
+          <Text style={styles.icon}>✨</Text>
+
           <Text style={styles.appName}>Skill Companion</Text>
+
           <Text style={styles.subtitle}>
             Create your account
           </Text>
@@ -71,7 +76,6 @@ export default function Signup() {
 
         {/* Card */}
         <View style={styles.card}>
-
           <Text style={styles.title}>Sign Up</Text>
 
           <TextInput
@@ -106,9 +110,8 @@ export default function Signup() {
               Already have an account? Login
             </Text>
           </Pressable>
-
         </View>
-      </View>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -116,37 +119,41 @@ export default function Signup() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: "center",
     padding: 20,
   },
 
   header: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 25,
+  },
+
+  icon: {
+    fontSize: 60,
+    marginBottom: 8,
   },
 
   appName: {
     fontSize: 32,
     fontWeight: "800",
-    color: COLORS.primary,
+    color: "white",
   },
 
   subtitle: {
-    marginTop: 5,
-    color: COLORS.gray,
+    marginTop: 4,
+    color: "#E0F2FE",
   },
 
   card: {
     backgroundColor: "white",
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 25,
 
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
 
   title: {
@@ -159,8 +166,8 @@ const styles = StyleSheet.create({
 
   input: {
     backgroundColor: "#F8FAFC",
-    padding: 14,
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     marginBottom: 15,
@@ -170,7 +177,7 @@ const styles = StyleSheet.create({
   btn: {
     backgroundColor: COLORS.primary,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     marginTop: 5,
   },
