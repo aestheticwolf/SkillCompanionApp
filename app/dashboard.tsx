@@ -3,23 +3,29 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  FlatList,
+  Animated,
 } from "react-native";
 
 import { useRouter } from "expo-router";
+import { useContext, useEffect, useRef } from "react";
+
 import { AuthContext } from "../src/context/AuthContext";
-import { useContext } from "react";
-import { useEffect } from "react";
-
-
 import { TaskContext } from "../src/context/TaskContext";
+
 import { COLORS } from "../src/constants/theme";
 import { scheduleReminder } from "../src/services/notifications";
+
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function Dashboard() {
   const router = useRouter();
 
   const ctx = useContext(TaskContext);
   const authCtx = useContext(AuthContext);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   /* Protect Route */
   useEffect(() => {
@@ -28,16 +34,26 @@ export default function Dashboard() {
     }
   }, [authCtx?.user]);
 
-  if (!authCtx?.user) {
-    return null;
-  }
+  /* Entry Animation */
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
 
-  if (!ctx) {
-    return null;
-  }
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  if (!authCtx?.user || !ctx) return null;
 
   const { goals, toggleTask } = ctx;
-
 
   /* Reminder */
 
@@ -51,107 +67,171 @@ export default function Dashboard() {
     alert("Daily reminder set for 8 PM");
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Header */}
+  /* Progress % */
 
-      <View style={styles.header}>
-        <Text style={styles.title}>
-          My Learning Goals
-        </Text>
+  const getProgress = (tasks: any[]) => {
+    if (!tasks.length) return 0;
 
-        <Pressable
-          style={styles.addBtn}
-          onPress={() =>
-            router.push("/add-goal")
-          }
-        >
-          <Text style={styles.addText}>
-            ＋
-          </Text>
-        </Pressable>
-      </View>
+    const done = tasks.filter(t => t.completed).length;
 
-      {/* No Goals */}
+    return Math.round((done / tasks.length) * 100);
+  };
 
-      {goals.length === 0 && (
-        <Text style={styles.empty}>
-          No goals yet. Add one!
-        </Text>
-      )}
+  /* Render Goal */
 
-      {/* Goals & Tasks */}
+  const renderGoal = ({ item }: any) => {
+    const progress = getProgress(item.tasks);
 
-      {goals.map((g) => (
-        <View
-          key={g.id}
-          style={styles.goalBox}
-        >
+    return (
+      <Animated.View
+        style={[
+          styles.goalCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        {/* Title + Progress */}
+
+        <View style={styles.goalHeader}>
           <Text style={styles.goalTitle}>
-            {g.name}
+            {item.name}
           </Text>
 
-          {/* Tasks */}
+          <Text style={styles.progressText}>
+            {progress}%
+          </Text>
+        </View>
 
-          {g.tasks.map((t) => (
-            <Pressable
-              key={t.id}
-              style={styles.taskRow}
-              onPress={() =>
-                toggleTask(g.id, t.id)
-              }
-            >
-              <Text>
-                {t.completed
-                  ? "✅"
-                  : "⬜"}{" "}
-                {t.title}
-              </Text>
-            </Pressable>
-          ))}
+        {/* Progress Bar */}
 
-          {/* Add Task */}
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progress}%` },
+            ]}
+          />
+        </View>
 
+        {/* Tasks */}
+
+        {item.tasks.map((t: any) => (
           <Pressable
-            style={styles.addTaskBtn}
+            key={t.id}
+            style={[
+              styles.taskPill,
+              t.completed && styles.taskDone,
+            ]}
             onPress={() =>
-              router.push({
-                pathname: "/add-task",
-                params: { goalId: g.id },
-              })
+              toggleTask(item.id, t.id)
             }
           >
-            <Text>Add Task</Text>
+            <Text
+              style={[
+                styles.taskText,
+                t.completed && styles.taskTextDone,
+              ]}
+            >
+              {t.title}
+            </Text>
           </Pressable>
+        ))}
+
+        {/* Add Task */}
+
+        <Pressable
+          style={styles.addTaskBtn}
+          onPress={() =>
+            router.push({
+              pathname: "/add-task",
+              params: { goalId: item.id },
+            })
+          }
+        >
+          <Text style={styles.addTaskText}>
+            + Add Task
+          </Text>
+        </Pressable>
+      </Animated.View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+
+      {/* Header */}
+
+      <LinearGradient
+        colors={["#2563EB", "#60A5FA"]}
+        style={styles.header}
+      >
+        <View>
+          <Text style={styles.welcome}>
+            Welcome 👋
+          </Text>
+
+          <Text style={styles.username}>
+            {authCtx.user.email}
+          </Text>
         </View>
-      ))}
 
-      {/* Reminder */}
+        <Pressable
+          style={styles.fab}
+          onPress={() => router.push("/add-goal")}
+        >
+          <Text style={styles.fabText}>＋</Text>
+        </Pressable>
+      </LinearGradient>
 
-      <Pressable
-        style={[
-          styles.bottomBtn,
-          { backgroundColor: "#16A34A" },
-        ]}
-        onPress={setReminder}
-      >
-        <Text style={styles.btnText}>
-          Set Daily Reminder
+      {/* Goals */}
+
+      {goals.length === 0 ? (
+        <Text style={styles.empty}>
+          No goals yet. Start your journey 🚀
         </Text>
-      </Pressable>
+      ) : (
+        <FlatList
+          data={goals}
+          renderItem={renderGoal}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={{
+            paddingBottom: 140,
+          }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
-      {/* Progress */}
+      {/* Bottom Buttons */}
 
-      <Pressable
-        style={styles.bottomBtn}
-        onPress={() =>
-          router.push("/progress")
-        }
-      >
-        <Text style={styles.btnText}>
-          View Progress
-        </Text>
-      </Pressable>
+      <View style={styles.bottomBar}>
+
+        <Pressable
+          style={[
+            styles.bottomBtn,
+            { backgroundColor: COLORS.success },
+          ]}
+          onPress={setReminder}
+        >
+          <Text style={styles.bottomText}>
+            🔔 Reminder
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.bottomBtn}
+          onPress={() =>
+            router.push("/progress")
+          }
+        >
+          <Text style={styles.bottomText}>
+            📊 Progress
+          </Text>
+        </Pressable>
+
+      </View>
+
     </View>
   );
 }
@@ -162,78 +242,154 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
   },
 
+  /* Header */
+
   header: {
+    padding: 25,
+    paddingTop: 45,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
   },
 
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: COLORS.secondary,
+  welcome: {
+    color: "#E0F2FE",
+    fontSize: 14,
   },
 
-  addBtn: {
-    backgroundColor: COLORS.primary,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  username: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+
+  fab: {
+    backgroundColor: "white",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  addText: {
-    color: "white",
+  fabText: {
     fontSize: 26,
+    color: COLORS.primary,
+    fontWeight: "700",
   },
 
-  empty: {
-    textAlign: "center",
-    marginTop: 30,
-    color: "#64748B",
-  },
+  /* Cards */
 
-  goalBox: {
+  goalCard: {
     backgroundColor: "white",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
+    marginHorizontal: 20,
+    marginTop: 18,
+    padding: 18,
+    borderRadius: 16,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  goalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
 
   goalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.secondary,
   },
 
-  taskRow: {
-    marginLeft: 10,
-    marginBottom: 5,
+  progressText: {
+    color: COLORS.primary,
+    fontWeight: "600",
+  },
+
+  progressBar: {
+    height: 6,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+
+  progressFill: {
+    height: "100%",
+    backgroundColor: COLORS.primary,
+  },
+
+  /* Tasks */
+
+  taskPill: {
+    backgroundColor: "#F1F5F9",
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+
+  taskDone: {
+    backgroundColor: "#DCFCE7",
+  },
+
+  taskText: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+
+  taskTextDone: {
+    textDecorationLine: "line-through",
+    color: COLORS.gray,
   },
 
   addTaskBtn: {
-    backgroundColor: "#DBEAFE",
-    padding: 8,
-    borderRadius: 6,
     marginTop: 8,
     alignItems: "center",
   },
 
-  bottomBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
+  addTaskText: {
+    color: COLORS.primary,
+    fontWeight: "600",
   },
 
-  btnText: {
+  /* Empty */
+
+  empty: {
+    textAlign: "center",
+    marginTop: 60,
+    color: COLORS.gray,
+    fontSize: 15,
+  },
+
+  /* Bottom */
+
+  bottomBar: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  bottomBtn: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    padding: 14,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+
+  bottomText: {
     color: "white",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

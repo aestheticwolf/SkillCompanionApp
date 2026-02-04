@@ -53,29 +53,34 @@ export default function Login() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <LinearGradient
-        colors={["#2563EB", "#60A5FA"]}
+        colors={["#1E3A8A", "#3B82F6", "#60A5FA"]}
         style={styles.container}
       >
         {loading && <Loader />}
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.icon}>🚀</Text>
+          <View style={styles.logoCircle}>
+            <Text style={styles.icon}>🚀</Text>
+          </View>
 
           <Text style={styles.appName}>Skill Companion</Text>
 
           <Text style={styles.subtitle}>
-            Login to continue learning
+            Grow your skills every day
           </Text>
         </View>
 
         {/* Card */}
         <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>Sign In</Text>
+
+          <View style={styles.divider} />
 
           <TextInput
             style={styles.input}
             placeholder="Email address"
+            placeholderTextColor="#94A3B8"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -85,13 +90,17 @@ export default function Login() {
           <TextInput
             style={styles.input}
             placeholder="Password"
+            placeholderTextColor="#94A3B8"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
 
           <Pressable
-            style={styles.btn}
+            style={({ pressed }) => [
+              styles.btn,
+              pressed && { opacity: 0.8 },
+            ]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -111,81 +120,105 @@ export default function Login() {
   );
 }
 
+/* Styles */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: 22,
   },
+
+  /* Header */
 
   header: {
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: 35,
+  },
+
+  logoCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
   },
 
   icon: {
-    fontSize: 60,
-    marginBottom: 8,
+    fontSize: 36,
   },
 
   appName: {
     fontSize: 32,
-    fontWeight: "800",
+    fontWeight: "900",
     color: "white",
+    letterSpacing: 0.5,
   },
 
   subtitle: {
     marginTop: 4,
-    color: "#E0F2FE",
+    color: "#DBEAFE",
+    fontSize: 14,
   },
+
+  /* Card */
 
   card: {
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 25,
+    borderRadius: 22,
+    padding: 26,
 
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
   },
 
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 20,
     color: COLORS.secondary,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 18,
   },
 
   input: {
     backgroundColor: "#F8FAFC",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
     marginBottom: 15,
     fontSize: 15,
+    color: COLORS.text,
   },
 
   btn: {
     backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: 14,
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
-    marginTop: 5,
+    marginTop: 8,
   },
 
   btnText: {
     color: "white",
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 16,
+    letterSpacing: 0.4,
   },
 
   link: {
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 22,
     color: COLORS.primary,
     fontWeight: "600",
   },
