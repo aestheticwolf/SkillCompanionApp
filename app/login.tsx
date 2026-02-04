@@ -4,85 +4,107 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 
 import { useState } from "react";
 import { useRouter } from "expo-router";
 
-import {
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
-import { auth } from "@/src/services/firebase";import { COLORS } from "../src/constants/theme";
+import { auth } from "@/src/services/firebase";
+import Loader from "@/src/components/Loader";
+import { COLORS } from "@/src/constants/theme";
+
+import { showSuccess, showError } from "../src/services/toast";
 
 export default function Login() {
   const router = useRouter();
 
-  const [email, setEmail] =
-    useState("");
-  const [password, setPassword] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Fill all fields");
+      showError("Please fill all fields");
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      setLoading(true);
 
-      alert("Login success");
+      await signInWithEmailAndPassword(auth, email, password);
+
+      showSuccess("Login successful");
+
       router.replace("/dashboard");
-    } catch (e: any) {
-      alert("Invalid login");
+    } catch {
+      showError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Login
-      </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={styles.container}>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-      />
+        {loading && <Loader />}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        {/* Logo / App Name */}
+        <View style={styles.header}>
+          <Text style={styles.appName}>Skill Companion</Text>
+          <Text style={styles.subtitle}>
+            Login to continue learning
+          </Text>
+        </View>
 
-      <Pressable
-        style={styles.btn}
-        onPress={handleLogin}
-      >
-        <Text style={styles.btnText}>
-          Login
-        </Text>
-      </Pressable>
+        {/* Card */}
+        <View style={styles.card}>
 
-      <Pressable
-        onPress={() =>
-         router.push({ pathname: "/signup" })
-        }
-      >
-        <Text style={styles.link}>
-          New user? Sign up
-        </Text>
-      </Pressable>
-    </View>
+          <Text style={styles.title}>Login</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          <Pressable
+            style={styles.btn}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.btnText}>
+              {loading ? "Signing in..." : "Login"}
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={() => router.push("/signup")}>
+            <Text style={styles.link}>
+              Don’t have an account? Sign up
+            </Text>
+          </Pressable>
+
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -90,39 +112,74 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
     justifyContent: "center",
+    padding: 20,
+  },
+
+  header: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+
+  appName: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: COLORS.primary,
+  },
+
+  subtitle: {
+    marginTop: 5,
+    color: COLORS.gray,
+  },
+
+  card: {
+    backgroundColor: "white",
+    borderRadius: 18,
+    padding: 25,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
   },
 
   title: {
     fontSize: 24,
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 20,
+    color: COLORS.secondary,
   },
 
   input: {
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    padding: 14,
+    borderRadius: 10,
     borderWidth: 1,
+    borderColor: "#E2E8F0",
     marginBottom: 15,
+    fontSize: 15,
   },
 
   btn: {
     backgroundColor: COLORS.primary,
-    padding: 14,
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 12,
     alignItems: "center",
+    marginTop: 5,
   },
 
   btnText: {
     color: "white",
-    fontWeight: "600",
+    fontWeight: "700",
+    fontSize: 16,
   },
 
   link: {
     textAlign: "center",
-    marginTop: 15,
+    marginTop: 20,
     color: COLORS.primary,
+    fontWeight: "600",
   },
 });
