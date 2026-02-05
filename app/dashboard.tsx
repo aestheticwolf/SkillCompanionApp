@@ -3,20 +3,22 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  FlatList,
+  ScrollView,
   Animated,
+  Switch,
+  Platform,
 } from "react-native";
 
 import { useRouter } from "expo-router";
-import { useContext, useEffect, useRef } from "react";
-
 import { AuthContext } from "../src/context/AuthContext";
-import { TaskContext } from "../src/context/TaskContext";
+import { useContext, useEffect, useRef, useState } from "react";
 
+import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
 import { scheduleReminder } from "../src/services/notifications";
 
-import { LinearGradient } from "expo-linear-gradient";
+import { signOut } from "firebase/auth";
+import { auth } from "../src/services/firebase";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -24,39 +26,66 @@ export default function Dashboard() {
   const ctx = useContext(TaskContext);
   const authCtx = useContext(AuthContext);
 
+  const [darkMode, setDarkMode] = useState(false);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
 
-  /* Protect Route */
+  /* Animation */
   useEffect(() => {
-    if (!authCtx?.user) {
-      router.replace("/login");
-    }
-  }, [authCtx?.user]);
-
-  /* Entry Animation */
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   if (!authCtx?.user || !ctx) return null;
 
   const { goals, toggleTask } = ctx;
 
-  /* Reminder */
+  /* Recommendation System */
 
+let totalTasks = 0;
+let completedTasks = 0;
+
+goals.forEach((g) => {
+  totalTasks += g.tasks.length;
+  completedTasks += g.tasks.filter(
+    (t) => t.completed
+  ).length;
+});
+
+const progressPercent =
+  totalTasks === 0
+    ? 0
+    : Math.round(
+        (completedTasks / totalTasks) * 100
+      );
+
+let recommendation = "";
+
+if (progressPercent < 30) {
+  recommendation =
+    "Start small. Complete at least 1 task today.";
+} else if (progressPercent < 60) {
+  recommendation =
+    "Good progress. Stay consistent.";
+} else if (progressPercent < 90) {
+  recommendation =
+    "Almost there. Push harder!";
+} else {
+  recommendation =
+    "Excellent! Try advanced topics next.";
+}
+
+
+  /* Logout */
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.replace("/login");
+  };
+
+  /* Reminder */
   const setReminder = async () => {
     await scheduleReminder(
       "Skill Companion Reminder",
@@ -64,174 +93,200 @@ export default function Dashboard() {
       20
     );
 
-    alert("Daily reminder set for 8 PM");
+    alert("Daily reminder set");
   };
 
-  /* Progress % */
+  /* Theme */
 
-  const getProgress = (tasks: any[]) => {
-    if (!tasks.length) return 0;
+  const bg = darkMode ? "#020617" : "#F8FAFC";
+  const card = darkMode ? "#020617" : "#FFFFFF";
 
-    const done = tasks.filter(t => t.completed).length;
+  const textPrimary = darkMode ? "#FFFFFF" : "#0F172A";
+  const textSecondary = darkMode ? "#CBD5F5" : "#475569";
 
-    return Math.round((done / tasks.length) * 100);
-  };
-
-  /* Render Goal */
-
-  const renderGoal = ({ item }: any) => {
-    const progress = getProgress(item.tasks);
-
-    return (
-      <Animated.View
-        style={[
-          styles.goalCard,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Title + Progress */}
-
-        <View style={styles.goalHeader}>
-          <Text style={styles.goalTitle}>
-            {item.name}
-          </Text>
-
-          <Text style={styles.progressText}>
-            {progress}%
-          </Text>
-        </View>
-
-        {/* Progress Bar */}
-
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progress}%` },
-            ]}
-          />
-        </View>
-
-        {/* Tasks */}
-
-        {item.tasks.map((t: any) => (
-          <Pressable
-            key={t.id}
-            style={[
-              styles.taskPill,
-              t.completed && styles.taskDone,
-            ]}
-            onPress={() =>
-              toggleTask(item.id, t.id)
-            }
-          >
-            <Text
-              style={[
-                styles.taskText,
-                t.completed && styles.taskTextDone,
-              ]}
-            >
-              {t.title}
-            </Text>
-          </Pressable>
-        ))}
-
-        {/* Add Task */}
-
-        <Pressable
-          style={styles.addTaskBtn}
-          onPress={() =>
-            router.push({
-              pathname: "/add-task",
-              params: { goalId: item.id },
-            })
-          }
-        >
-          <Text style={styles.addTaskText}>
-            + Add Task
-          </Text>
-        </Pressable>
-      </Animated.View>
-    );
-  };
+  const headerBg = darkMode ? "#020617" : "#2563EB";
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.screen, { backgroundColor: bg }]}>
 
-      {/* Header */}
+      {/* Web Center Wrapper */}
+      <View style={styles.wrapper}>
 
-      <LinearGradient
-        colors={["#2563EB", "#60A5FA"]}
-        style={styles.header}
-      >
-        <View>
-          <Text style={styles.welcome}>
-            Welcome 👋
-          </Text>
+        {/* Header */}
 
-          <Text style={styles.username}>
-            {authCtx.user.email}
-          </Text>
+        <View style={[styles.header, { backgroundColor: headerBg }]}>
+
+          {/* Left */}
+
+          <Text style={styles.sync}>☁ Synced</Text>
+
+          {/* Center */}
+
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.welcome}>Welcome 👋</Text>
+
+            <Text style={styles.email}>
+              {authCtx.user.email}
+            </Text>
+          </View>
+
+          {/* Right */}
+
+          <View style={styles.headerRight}>
+
+            <Switch
+              value={darkMode}
+              onValueChange={setDarkMode}
+            />
+
+            <Pressable
+              style={styles.avatar}
+              onPress={() => router.push("/profile")}
+            >
+              <Text style={styles.avatarText}>
+                {authCtx.user.email?.[0].toUpperCase()}
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={handleLogout}>
+              <Text style={styles.logout}>⎋</Text>
+            </Pressable>
+
+          </View>
         </View>
 
+        {/* Recommendation Card */}
+
+<View style={styles.recommendBox}>
+  <Text style={styles.recommendTitle}>
+    📌 Your Recommendation
+  </Text>
+
+  <Text style={styles.recommendText}>
+    {recommendation}
+  </Text>
+
+  <Text style={styles.progressText}>
+    Progress: {progressPercent}%
+  </Text>
+</View>
+
+
+        {/* Add Goal */}
+
         <Pressable
-          style={styles.fab}
+          style={styles.addBtn}
           onPress={() => router.push("/add-goal")}
         >
-          <Text style={styles.fabText}>＋</Text>
-        </Pressable>
-      </LinearGradient>
-
-      {/* Goals */}
-
-      {goals.length === 0 ? (
-        <Text style={styles.empty}>
-          No goals yet. Start your journey 🚀
-        </Text>
-      ) : (
-        <FlatList
-          data={goals}
-          renderItem={renderGoal}
-          keyExtractor={(i) => i.id}
-          contentContainerStyle={{
-            paddingBottom: 140,
-          }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* Bottom Buttons */}
-
-      <View style={styles.bottomBar}>
-
-        <Pressable
-          style={[
-            styles.bottomBtn,
-            { backgroundColor: COLORS.success },
-          ]}
-          onPress={setReminder}
-        >
-          <Text style={styles.bottomText}>
-            🔔 Reminder
-          </Text>
+          <Text style={styles.addText}>＋</Text>
         </Pressable>
 
-        <Pressable
-          style={styles.bottomBtn}
-          onPress={() =>
-            router.push("/progress")
-          }
-        >
-          <Text style={styles.bottomText}>
-            📊 Progress
-          </Text>
-        </Pressable>
+        {/* Goals */}
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+
+          {goals.length === 0 && (
+            <Text style={styles.empty}>
+              No goals yet. Start today 🚀
+            </Text>
+          )}
+
+          {goals.map((g) => (
+
+            <Animated.View
+              key={g.id}
+              style={[
+                styles.goalBox,
+                {
+                  backgroundColor: card,
+                  opacity: fadeAnim,
+                },
+              ]}
+            >
+
+              {/* Goal Header */}
+
+              <View style={styles.goalHeader}>
+
+                <Text
+                  style={[
+                    styles.goalTitle,
+                    { color: textPrimary },
+                  ]}
+                >
+                  {g.name}
+                </Text>
+
+                <Text style={styles.progress}>
+                  {Math.round(
+                    (g.tasks.filter(t => t.completed).length /
+                      (g.tasks.length || 1)) * 100
+                  )}%
+                </Text>
+
+              </View>
+
+              {/* Tasks */}
+
+              {g.tasks.map((t) => (
+
+                <Pressable
+                  key={t.id}
+                  style={styles.taskRow}
+                  onPress={() =>
+                    toggleTask(g.id, t.id)
+                  }
+                >
+                  <Text style={{ color: textSecondary }}>
+                    {t.completed ? "✅" : "⬜"} {t.title}
+                  </Text>
+                </Pressable>
+
+              ))}
+
+              {/* Add Task */}
+
+              <Pressable
+                style={styles.addTaskBtn}
+                onPress={() =>
+                  router.push({
+                    pathname: "/add-task",
+                    params: { goalId: g.id },
+                  })
+                }
+              >
+                <Text style={styles.addTaskText}>
+                  + Add Task
+                </Text>
+              </Pressable>
+
+            </Animated.View>
+
+          ))}
+
+        </ScrollView>
+
+        {/* Bottom Bar */}
+
+        <View style={styles.bottomBar}>
+
+          <Pressable
+            style={[styles.bottomBtn, { backgroundColor: "#16A34A" }]}
+            onPress={setReminder}
+          >
+            <Text style={styles.btnText}>🔔 Reminder</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.bottomBtn}
+            onPress={() => router.push("/analytics")}
+          >
+            <Text style={styles.btnText}>📊 Analytics</Text>
+          </Pressable>
+
+        </View>
 
       </View>
-
     </View>
   );
 }
@@ -239,119 +294,138 @@ export default function Dashboard() {
 /* Styles */
 
 const styles = StyleSheet.create({
-  container: {
+
+  /* Main */
+
+  screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    alignItems: "center",
+  },
+
+  /* Web Width */
+
+  wrapper: {
+    width: "100%",
+    maxWidth: 900,     // 👈 Professional width
+    padding: 16,
+    flex: 1,
   },
 
   /* Header */
 
   header: {
-    padding: 25,
-    paddingTop: 45,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
+    padding: 14,
+    borderRadius: 14,
+
+    marginBottom: 15,
+  },
+
+  sync: {
+    color: "#22C55E",
+    fontWeight: "600",
   },
 
   welcome: {
-    color: "#E0F2FE",
+    color: "white",
     fontSize: 14,
   },
 
-  username: {
+  email: {
     color: "white",
-    fontSize: 18,
     fontWeight: "700",
-    marginTop: 2,
   },
 
-  fab: {
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  avatar: {
     backgroundColor: "white",
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  fabText: {
-    fontSize: 26,
-    color: COLORS.primary,
+  avatarText: {
     fontWeight: "700",
+    color: COLORS.primary,
   },
 
-  /* Cards */
+  logout: {
+    fontSize: 20,
+    color: "white",
+  },
 
-  goalCard: {
-    backgroundColor: "white",
-    marginHorizontal: 20,
-    marginTop: 18,
-    padding: 18,
-    borderRadius: 16,
+  /* Add */
+
+  addBtn: {
+    backgroundColor: COLORS.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    alignSelf: "flex-end",
+    marginBottom: 10,
+  },
+
+  addText: {
+    color: "white",
+    fontSize: 28,
+  },
+
+  /* Goals */
+
+  empty: {
+    textAlign: "center",
+    marginTop: 40,
+    color: "#64748B",
+  },
+
+  goalBox: {
+    padding: 15,
+    borderRadius: 14,
+    marginBottom: 15,
 
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 3,
   },
 
   goalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 8,
   },
 
   goalTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
-    color: COLORS.secondary,
   },
 
-  progressText: {
+  progress: {
     color: COLORS.primary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
-  progressBar: {
-    height: 6,
-    backgroundColor: "#E2E8F0",
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: COLORS.primary,
-  },
-
-  /* Tasks */
-
-  taskPill: {
-    backgroundColor: "#F1F5F9",
-    padding: 8,
-    borderRadius: 8,
+  taskRow: {
+    marginLeft: 8,
     marginBottom: 6,
   },
 
-  taskDone: {
-    backgroundColor: "#DCFCE7",
-  },
-
-  taskText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-
-  taskTextDone: {
-    textDecorationLine: "line-through",
-    color: COLORS.gray,
-  },
-
   addTaskBtn: {
-    marginTop: 8,
+    marginTop: 10,
     alignItems: "center",
   },
 
@@ -360,36 +434,56 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Empty */
-
-  empty: {
-    textAlign: "center",
-    marginTop: 60,
-    color: COLORS.gray,
-    fontSize: 15,
-  },
-
   /* Bottom */
 
   bottomBar: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
+    marginTop: 5,
+    marginBottom: 10,
   },
 
   bottomBtn: {
     flex: 1,
     backgroundColor: COLORS.primary,
+
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 12,
+
     alignItems: "center",
   },
 
-  bottomText: {
+  btnText: {
     color: "white",
-    fontWeight: "700",
+    fontWeight: "600",
   },
+
+  /* Recommendation */
+
+recommendBox: {
+  backgroundColor: "#EFF6FF",
+  padding: 15,
+  borderRadius: 14,
+  marginBottom: 15,
+  borderLeftWidth: 4,
+  borderLeftColor: COLORS.primary,
+},
+
+recommendTitle: {
+  fontWeight: "700",
+  fontSize: 16,
+  marginBottom: 6,
+  color: COLORS.secondary,
+},
+
+recommendText: {
+  color: "#334155",
+  marginBottom: 4,
+},
+
+progressText: {
+  fontSize: 13,
+  color: "#64748B",
+},
+
 });
