@@ -6,7 +6,6 @@ import {
   ScrollView,
   Animated,
   Switch,
-  Platform,
 } from "react-native";
 
 import { useRouter } from "expo-router";
@@ -29,14 +28,23 @@ export default function Dashboard() {
   const [darkMode, setDarkMode] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
 
   /* Animation */
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   if (!authCtx?.user || !ctx) return null;
@@ -45,39 +53,36 @@ export default function Dashboard() {
 
   /* Recommendation System */
 
-let totalTasks = 0;
-let completedTasks = 0;
+  let totalTasks = 0;
+  let completedTasks = 0;
 
-goals.forEach((g) => {
-  totalTasks += g.tasks.length;
-  completedTasks += g.tasks.filter(
-    (t) => t.completed
-  ).length;
-});
+  goals.forEach((g) => {
+    totalTasks += g.tasks.length;
+    completedTasks += g.tasks.filter((t) => t.completed).length;
+  });
 
-const progressPercent =
-  totalTasks === 0
-    ? 0
-    : Math.round(
-        (completedTasks / totalTasks) * 100
-      );
+  const progressPercent =
+    totalTasks === 0
+      ? 0
+      : Math.round((completedTasks / totalTasks) * 100);
 
-let recommendation = "";
+  let recommendation = "";
 
-if (progressPercent < 30) {
-  recommendation =
-    "Start small. Complete at least 1 task today.";
-} else if (progressPercent < 60) {
-  recommendation =
-    "Good progress. Stay consistent.";
-} else if (progressPercent < 90) {
-  recommendation =
-    "Almost there. Push harder!";
-} else {
-  recommendation =
-    "Excellent! Try advanced topics next.";
-}
-
+  if (totalTasks === 0) {
+    recommendation = "Start by creating your first learning goal.";
+  } else if (completedTasks === 0) {
+    recommendation = "Begin with one small task today.";
+  } else if (progressPercent < 30) {
+    recommendation = "Try completing 2 tasks daily for faster growth.";
+  } else if (progressPercent < 60) {
+    recommendation = "Good consistency. Maintain your routine.";
+  } else if (progressPercent < 80) {
+    recommendation = "Great work. Focus on difficult topics now.";
+  } else if (progressPercent < 100) {
+    recommendation = "Almost complete. Finish remaining tasks.";
+  } else {
+    recommendation = "Excellent. Start a new advanced skill.";
+  }
 
   /* Logout */
   const handleLogout = async () => {
@@ -98,6 +103,10 @@ if (progressPercent < 30) {
 
   /* Theme */
 
+  const recommendBg = darkMode ? "#020617" : "#EFF6FF";
+  const recommendTextColor = darkMode ? "#CBD5F5" : "#334155";
+  const recommendBorder = darkMode ? "#38BDF8" : COLORS.primary;
+
   const bg = darkMode ? "#020617" : "#F8FAFC";
   const card = darkMode ? "#020617" : "#FFFFFF";
 
@@ -108,19 +117,12 @@ if (progressPercent < 30) {
 
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
-
-      {/* Web Center Wrapper */}
       <View style={styles.wrapper}>
 
         {/* Header */}
-
         <View style={[styles.header, { backgroundColor: headerBg }]}>
 
-          {/* Left */}
-
           <Text style={styles.sync}>☁ Synced</Text>
-
-          {/* Center */}
 
           <View style={{ alignItems: "center" }}>
             <Text style={styles.welcome}>Welcome 👋</Text>
@@ -129,8 +131,6 @@ if (progressPercent < 30) {
               {authCtx.user.email}
             </Text>
           </View>
-
-          {/* Right */}
 
           <View style={styles.headerRight}>
 
@@ -157,20 +157,44 @@ if (progressPercent < 30) {
 
         {/* Recommendation Card */}
 
-<View style={styles.recommendBox}>
-  <Text style={styles.recommendTitle}>
-    📌 Your Recommendation
-  </Text>
+        <Animated.View
+          style={[
+            styles.recommendBox,
+            {
+              backgroundColor: recommendBg,
+              borderLeftColor: recommendBorder,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.recommendTitle,
+              { color: darkMode ? "#FFFFFF" : COLORS.secondary },
+            ]}
+          >
+            📌 Your Recommendation
+          </Text>
 
-  <Text style={styles.recommendText}>
-    {recommendation}
-  </Text>
+          <Text
+            style={[
+              styles.recommendText,
+              { color: recommendTextColor },
+            ]}
+          >
+            {recommendation}
+          </Text>
 
-  <Text style={styles.progressText}>
-    Progress: {progressPercent}%
-  </Text>
-</View>
-
+          <Text
+            style={[
+              styles.progressText,
+              { color: recommendTextColor },
+            ]}
+          >
+            Progress: {progressPercent}%
+          </Text>
+        </Animated.View>
 
         {/* Add Goal */}
 
@@ -204,8 +228,6 @@ if (progressPercent < 30) {
               ]}
             >
 
-              {/* Goal Header */}
-
               <View style={styles.goalHeader}>
 
                 <Text
@@ -226,8 +248,6 @@ if (progressPercent < 30) {
 
               </View>
 
-              {/* Tasks */}
-
               {g.tasks.map((t) => (
 
                 <Pressable
@@ -243,8 +263,6 @@ if (progressPercent < 30) {
                 </Pressable>
 
               ))}
-
-              {/* Add Task */}
 
               <Pressable
                 style={styles.addTaskBtn}
@@ -295,32 +313,24 @@ if (progressPercent < 30) {
 
 const styles = StyleSheet.create({
 
-  /* Main */
-
   screen: {
     flex: 1,
     alignItems: "center",
   },
 
-  /* Web Width */
-
   wrapper: {
     width: "100%",
-    maxWidth: 900,     // 👈 Professional width
+    maxWidth: 900,
     padding: 16,
     flex: 1,
   },
-
-  /* Header */
 
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     padding: 14,
     borderRadius: 14,
-
     marginBottom: 15,
   },
 
@@ -364,17 +374,13 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  /* Add */
-
   addBtn: {
     backgroundColor: COLORS.primary,
     width: 48,
     height: 48,
     borderRadius: 24,
-
     justifyContent: "center",
     alignItems: "center",
-
     alignSelf: "flex-end",
     marginBottom: 10,
   },
@@ -383,8 +389,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 28,
   },
-
-  /* Goals */
 
   empty: {
     textAlign: "center",
@@ -396,7 +400,6 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 14,
     marginBottom: 15,
-
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -434,8 +437,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Bottom */
-
   bottomBar: {
     flexDirection: "row",
     gap: 10,
@@ -446,10 +447,8 @@ const styles = StyleSheet.create({
   bottomBtn: {
     flex: 1,
     backgroundColor: COLORS.primary,
-
     padding: 14,
     borderRadius: 12,
-
     alignItems: "center",
   },
 
@@ -460,30 +459,24 @@ const styles = StyleSheet.create({
 
   /* Recommendation */
 
-recommendBox: {
-  backgroundColor: "#EFF6FF",
-  padding: 15,
-  borderRadius: 14,
-  marginBottom: 15,
-  borderLeftWidth: 4,
-  borderLeftColor: COLORS.primary,
-},
+  recommendBox: {
+    padding: 15,
+    borderRadius: 14,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+  },
 
-recommendTitle: {
-  fontWeight: "700",
-  fontSize: 16,
-  marginBottom: 6,
-  color: COLORS.secondary,
-},
+  recommendTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    marginBottom: 6,
+  },
 
-recommendText: {
-  color: "#334155",
-  marginBottom: 4,
-},
+  recommendText: {
+    marginBottom: 4,
+  },
 
-progressText: {
-  fontSize: 13,
-  color: "#64748B",
-},
-
+  progressText: {
+    fontSize: 13,
+  },
 });
