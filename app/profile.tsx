@@ -61,9 +61,10 @@ export default function Profile() {
       </View>
 
       {/* Email */}
-      <Text style={styles.email}>
-        {user.email}
-      </Text>
+     <Text style={styles.email}>
+  {user.displayName || user.email}
+</Text>
+
 
       {/* Buttons */}
       <Pressable style={styles.btn} onPress={resetPassword}>

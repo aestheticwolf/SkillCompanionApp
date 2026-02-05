@@ -20,11 +20,16 @@ import { auth } from "@/src/services/firebase";
 
 import { showError, showSuccess } from "../src/services/toast";
 
+import { updateProfile } from "firebase/auth";
+
+
 export default function Signup() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+ const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -41,8 +46,15 @@ export default function Signup() {
     try {
       setLoading(true);
 
-      await createUserWithEmailAndPassword(auth, email, password);
+      const res = await createUserWithEmailAndPassword(
+  auth,
+  email,
+  password
+);
 
+await updateProfile(res.user, {
+  displayName: name,
+});
       showSuccess("Account created!");
       router.replace("/dashboard");
     } catch (e: any) {
@@ -81,6 +93,15 @@ export default function Signup() {
           <Text style={styles.title}>Create Account</Text>
 
           <View style={styles.divider} />
+
+
+    <TextInput
+  style={styles.input}
+  placeholder="Full Name"
+  value={name}
+  onChangeText={setName}
+/>
+
 
           <TextInput
             style={styles.input}

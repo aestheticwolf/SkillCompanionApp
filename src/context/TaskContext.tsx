@@ -7,6 +7,8 @@ import React, {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { auth } from "@/src/services/firebase";
+
 /* Types */
 
 export type Task = {
@@ -44,9 +46,13 @@ export const TaskContext =
     null
   );
 
-/* Storage */
+/* Storage firebase */
 
-const STORAGE_KEY = "SKILL_GOALS";
+const getStorageKey = () => {
+  const uid = auth.currentUser?.uid;
+  return uid ? `SKILL_GOALS_${uid}` : "SKILL_GOALS_GUEST";
+};
+
 
 /* Provider */
 
@@ -61,9 +67,9 @@ export function TaskProvider({
 
   /* Load */
 
-  useEffect(() => {
-    loadData();
-  }, []);
+useEffect(() => {
+  loadData();
+}, [auth.currentUser]);
 
   /* Save */
 
@@ -76,9 +82,8 @@ export function TaskProvider({
   const loadData = async () => {
     try {
       const data =
-        await AsyncStorage.getItem(
-          STORAGE_KEY
-        );
+        await AsyncStorage.getItem(getStorageKey());
+
 
       if (data) {
         setGoals(JSON.parse(data));
@@ -93,9 +98,10 @@ export function TaskProvider({
   const saveData = async () => {
     try {
       await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(goals)
-      );
+  getStorageKey(),
+  JSON.stringify(goals)
+);
+
     } catch (e) {
       console.log(e);
     }

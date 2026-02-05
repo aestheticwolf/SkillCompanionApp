@@ -18,6 +18,8 @@ import { scheduleReminder } from "../src/services/notifications";
 
 import { signOut } from "firebase/auth";
 import { auth } from "../src/services/firebase";
+import { listenToSyncStatus } from "../src/services/syncStatus";
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -26,6 +28,8 @@ export default function Dashboard() {
   const authCtx = useContext(AuthContext);
 
   const [darkMode, setDarkMode] = useState(false);
+  const [isSynced, setIsSynced] = useState(false);
+
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -47,7 +51,17 @@ export default function Dashboard() {
     ]).start();
   }, []);
 
+  useEffect(() => {
+  const unsub = listenToSyncStatus(setIsSynced);
+
+  return () => unsub();
+}, []);
+
+
   if (!authCtx?.user || !ctx) return null;
+
+  const user = authCtx.user;
+
 
   const { goals, toggleTask } = ctx;
 
@@ -122,38 +136,48 @@ export default function Dashboard() {
         {/* Header */}
         <View style={[styles.header, { backgroundColor: headerBg }]}>
 
-          <Text style={styles.sync}>☁ Synced</Text>
+  <Text
+    style={[
+      styles.sync,
+      { color: isSynced ? "#22C55E" : "#EF4444" },
+    ]}
+  >
+    ☁ {isSynced ? "Synced" : "Offline"}
+  </Text>
 
-          <View style={{ alignItems: "center" }}>
-            <Text style={styles.welcome}>Welcome 👋</Text>
+  <View style={{ alignItems: "center" }}>
+    <Text style={styles.welcome}>Welcome 👋</Text>
 
-            <Text style={styles.email}>
-              {authCtx.user.email}
-            </Text>
-          </View>
+    <Text style={styles.email}>
+      {user.displayName || user.email}
+    </Text>
+  </View>
 
-          <View style={styles.headerRight}>
+  <View style={styles.headerRight}>
 
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-            />
+    <Switch
+      value={darkMode}
+      onValueChange={setDarkMode}
+    />
 
-            <Pressable
-              style={styles.avatar}
-              onPress={() => router.push("/profile")}
-            >
-              <Text style={styles.avatarText}>
-                {authCtx.user.email?.[0].toUpperCase()}
-              </Text>
-            </Pressable>
+    <Pressable
+      style={styles.avatar}
+      onPress={() => router.push("/profile")}
+    >
+      <Text style={styles.avatarText}>
+        {(user.displayName || user.email)
+          ?.charAt(0)
+          .toUpperCase()}
+      </Text>
+    </Pressable>
 
-            <Pressable onPress={handleLogout}>
-              <Text style={styles.logout}>⎋</Text>
-            </Pressable>
+    <Pressable onPress={handleLogout}>
+      <Text style={styles.logout}>⎋</Text>
+    </Pressable>
 
-          </View>
-        </View>
+  </View>
+</View>
+
 
         {/* Recommendation Card */}
 
