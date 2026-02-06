@@ -1,12 +1,19 @@
-import { ref, onValue } from "firebase/database";
-import { database } from "./firebase";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "./firebase";
+import { auth } from "./firebase";
 
-export function listenToSyncStatus(
-  callback: (status: boolean) => void
-) {
-  const connectedRef = ref(database, ".info/connected");
+export const listenToSyncStatus = (
+  setStatus: (v: boolean) => void
+) => {
+  const user = auth.currentUser;
 
-  return onValue(connectedRef, (snap) => {
-    callback(!!snap.val());
-  });
-}
+  if (!user) return () => {};
+
+  const ref = doc(db, "users", user.uid);
+
+  return onSnapshot(
+    ref,
+    () => setStatus(true),
+    () => setStatus(false)
+  );
+};

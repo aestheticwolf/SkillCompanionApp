@@ -3,11 +3,18 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useContext,
 } from "react";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AuthContext } from "./AuthContext";
 
-import { auth } from "@/src/services/firebase";
+import {
+  getUserGoals,
+  addUserGoal,
+  updateGoal,
+} from "../services/firestoreTasks";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /* Types */
 
@@ -26,33 +33,23 @@ export type Goal = {
 type TaskContextType = {
   goals: Goal[];
 
-  addGoal: (name: string) => void;
+  addGoal: (name: string) => Promise<void>;
 
   addTask: (
     goalId: string,
     title: string
-  ) => void;
+  ) => Promise<void>;
 
   toggleTask: (
     goalId: string,
     taskId: string
-  ) => void;
+  ) => Promise<void>;
 };
 
 /* Context */
 
 export const TaskContext =
-  createContext<TaskContextType | null>(
-    null
-  );
-
-/* Storage firebase */
-
-const getStorageKey = () => {
-  const uid = auth.currentUser?.uid;
-  return uid ? `SKILL_GOALS_${uid}` : "SKILL_GOALS_GUEST";
-};
-
+  createContext<TaskContextType | null>(null);
 
 /* Provider */
 
@@ -61,117 +58,113 @@ export function TaskProvider({
 }: {
   children: ReactNode;
 }) {
-  const [goals, setGoals] = useState<
-    Goal[]
-  >([]);
+  const authCtx = useContext(AuthContext);
 
-  /* Load */
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  loadData();
-}, [auth.currentUser]);
-
-  /* Save */
+  /* Load from Firestore */
 
   useEffect(() => {
-    saveData();
-  }, [goals]);
-
-  /* Load from storage */
-
-  const loadData = async () => {
-    try {
-      const data =
-        await AsyncStorage.getItem(getStorageKey());
-
-
-      if (data) {
-        setGoals(JSON.parse(data));
-      }
-    } catch (e) {
-      console.log(e);
+    if (!authCtx?.user) {
+      setGoals([]);
+      return;
     }
-  };
 
-  /* Save to storage */
+    loadGoals();
+  }, [authCtx?.user]);
 
-  const saveData = async () => {
+  const loadGoals = async () => {
+    if (!authCtx?.user) return;
+
     try {
-      await AsyncStorage.setItem(
-  getStorageKey(),
-  JSON.stringify(goals)
-);
+      setLoading(true);
 
-    } catch (e) {
-      console.log(e);
+      /* Load cache first (offline support) */
+      const cache = await AsyncStorage.getItem("CACHE_GOALS");
+
+      if (cache) {
+        setGoals(JSON.parse(cache));
+      }
+
+      /* Load from Firestore */
+      const data = await getUserGoals(authCtx.user.uid);
+
+      if (!data) return;
+
+      setGoals(data as Goal[]);
+
+      /* Save cache */
+      await AsyncStorage.setItem(
+        "CACHE_GOALS",
+        JSON.stringify(data)
+      );
+    } catch (err) {
+      console.log("Load error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   /* Add Goal */
 
-  const addGoal = (name: string) => {
-    const newGoal: Goal = {
-      id: Date.now().toString(),
-      name,
-      tasks: [],
-    };
+  const addGoal = async (name: string) => {
+    if (!authCtx?.user) return;
 
-    setGoals((prev) => [
-      ...prev,
-      newGoal,
-    ]);
+    await addUserGoal(authCtx.user.uid, name);
+
+    await loadGoals();
   };
 
   /* Add Task */
 
-  const addTask = (
+  const addTask = async (
     goalId: string,
     title: string
   ) => {
-    setGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId
-          ? {
-              ...g,
-              tasks: [
-                ...g.tasks,
-                {
-                  id: Date.now().toString(),
-                  title,
-                  completed: false,
-                },
-              ],
-            }
-          : g
-      )
-    );
+    if (!authCtx?.user) return;
+
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
+
+    const updatedTasks = [
+      ...goal.tasks,
+      {
+        id: Date.now().toString(),
+        title,
+        completed: false,
+      },
+    ];
+
+    await updateGoal(authCtx.user.uid, goalId, {
+      tasks: updatedTasks,
+    });
+
+    await loadGoals();
   };
 
-  /* Toggle */
+  /* Toggle Task */
 
-  const toggleTask = (
+  const toggleTask = async (
     goalId: string,
     taskId: string
   ) => {
-    setGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId
-          ? {
-              ...g,
-              tasks: g.tasks.map(
-                (t) =>
-                  t.id === taskId
-                    ? {
-                        ...t,
-                        completed:
-                          !t.completed,
-                      }
-                    : t
-              ),
-            }
-          : g
-      )
+    if (!authCtx?.user) return;
+
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
+
+    const updatedTasks = goal.tasks.map((t) =>
+      t.id === taskId
+        ? { ...t, completed: !t.completed }
+        : t
     );
+
+    await updateGoal(authCtx.user.uid, goalId, {
+      tasks: updatedTasks,
+    });
+
+    await loadGoals();
   };
 
   return (

@@ -18,7 +18,9 @@ import { scheduleReminder } from "../src/services/notifications";
 
 import { signOut } from "firebase/auth";
 import { auth } from "../src/services/firebase";
-import { listenToSyncStatus } from "../src/services/syncStatus";
+import { listenToNetwork } from "../src/services/network";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 
 export default function Dashboard() {
@@ -27,7 +29,7 @@ export default function Dashboard() {
   const ctx = useContext(TaskContext);
   const authCtx = useContext(AuthContext);
 
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean | null>(null);
   const [isSynced, setIsSynced] = useState(false);
 
 
@@ -52,10 +54,26 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-  const unsub = listenToSyncStatus(setIsSynced);
+  loadTheme();
+}, []);
+
+const loadTheme = async () => {
+  const saved = await AsyncStorage.getItem("DARK_MODE");
+
+  if (saved !== null) {
+    setDarkMode(saved === "true");
+  } else {
+    setDarkMode(false);
+  }
+};
+
+
+useEffect(() => {
+  const unsub = listenToNetwork(setIsSynced);
 
   return () => unsub();
 }, []);
+
 
 
   if (!authCtx?.user || !ctx) return null;
@@ -155,10 +173,14 @@ export default function Dashboard() {
 
   <View style={styles.headerRight}>
 
-    <Switch
-      value={darkMode}
-      onValueChange={setDarkMode}
-    />
+  <Switch
+  value={!!darkMode}
+  onValueChange={async (v) => {
+    setDarkMode(v);
+    await AsyncStorage.setItem("DARK_MODE", v.toString());
+  }}
+/>
+
 
     <Pressable
       style={styles.avatar}
