@@ -8,11 +8,9 @@ import {
 
 import { db } from "./firebase";
 
-/* Get Goals */
-
+/* Get all goals */
 export const getUserGoals = async (uid: string) => {
   const ref = collection(db, "users", uid, "goals");
-
   const snap = await getDocs(ref);
 
   return snap.docs.map((d) => ({
@@ -21,8 +19,7 @@ export const getUserGoals = async (uid: string) => {
   }));
 };
 
-/* Add Goal */
-
+/* Add new goal */
 export const addUserGoal = async (
   uid: string,
   name: string
@@ -36,8 +33,7 @@ export const addUserGoal = async (
   });
 };
 
-/* Update Goal */
-
+/* Update single goal */
 export const updateGoal = async (
   uid: string,
   goalId: string,

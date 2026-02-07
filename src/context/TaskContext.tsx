@@ -65,46 +65,51 @@ export function TaskProvider({
 
   /* Load from Firestore */
 
-  useEffect(() => {
-    if (!authCtx?.user) {
-      setGoals([]);
-      return;
+useEffect(() => {
+  if (!authCtx?.user) {
+    setGoals([]);
+    return;
+  }
+
+  loadGoals();
+}, [authCtx?.user]);
+
+
+
+const loadGoals = async () => {
+  if (!authCtx?.user) return;
+
+  const cacheKey = `CACHE_GOALS_${authCtx.user.uid}`;
+
+  try {
+    setLoading(true);
+
+    /* Load cache first */
+    const cache = await AsyncStorage.getItem(cacheKey);
+
+    if (cache) {
+      setGoals(JSON.parse(cache));
     }
 
-    loadGoals();
-  }, [authCtx?.user]);
+    /* Load from Firestore */
+    const data = await getUserGoals(authCtx.user.uid);
 
-  const loadGoals = async () => {
-    if (!authCtx?.user) return;
-
-    try {
-      setLoading(true);
-
-      /* Load cache first (offline support) */
-      const cache = await AsyncStorage.getItem("CACHE_GOALS");
-
-      if (cache) {
-        setGoals(JSON.parse(cache));
-      }
-
-      /* Load from Firestore */
-      const data = await getUserGoals(authCtx.user.uid);
-
-      if (!data) return;
-
+    if (data && data.length >= 0) {
       setGoals(data as Goal[]);
 
       /* Save cache */
       await AsyncStorage.setItem(
-        "CACHE_GOALS",
+        cacheKey,
         JSON.stringify(data)
       );
-    } catch (err) {
-      console.log("Load error:", err);
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (err) {
+    console.log("Load error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* Add Goal */
 
