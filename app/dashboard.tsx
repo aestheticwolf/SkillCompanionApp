@@ -14,7 +14,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
-import { scheduleReminder } from "../src/services/notifications";
+
 
 import { signOut } from "firebase/auth";
 import { auth } from "../src/services/firebase";
@@ -123,15 +123,16 @@ useEffect(() => {
   };
 
   /* Reminder */
-  const setReminder = async () => {
-    await scheduleReminder(
-      "Skill Companion Reminder",
-      "Complete your pending tasks today!",
-      20
-    );
+// const setReminder = async () => {
+//   await scheduleReminder(
+//     "Skill Companion Reminder",
+//     "Complete your pending tasks today!",
+//     20
+//   );
+//   alert("Daily reminder set");
+// };
 
-    alert("Daily reminder set");
-  };
+
 
   /* Theme */
 
@@ -330,25 +331,28 @@ useEffect(() => {
 
         </ScrollView>
 
-        {/* Bottom Bar */}
+{/* Bottom Bar */}
 
-        <View style={styles.bottomBar}>
+<View style={styles.bottomBar}>
 
-          <Pressable
-            style={[styles.bottomBtn, { backgroundColor: "#16A34A" }]}
-            onPress={setReminder}
-          >
-            <Text style={styles.btnText}>🔔 Reminder</Text>
-          </Pressable>
+  <Pressable
+    style={[styles.bottomBtn, { backgroundColor: "#94A3B8" }]}
+    disabled
+  >
+    <Text style={styles.btnText}>
+      🔔 Reminder (Coming soon)
+    </Text>
+  </Pressable>
 
-          <Pressable
-            style={styles.bottomBtn}
-            onPress={() => router.push("/analytics")}
-          >
-            <Text style={styles.btnText}>📊 Analytics</Text>
-          </Pressable>
+  <Pressable
+    style={styles.bottomBtn}
+    onPress={() => router.push("/analytics")}
+  >
+    <Text style={styles.btnText}>📊 Analytics</Text>
+  </Pressable>
 
-        </View>
+</View>
+
 
       </View>
     </View>
