@@ -34,17 +34,13 @@ type TaskContextType = {
   goals: Goal[];
 
   addGoal: (name: string) => Promise<void>;
+  addTask: (goalId: string, title: string) => Promise<void>;
+  toggleTask: (goalId: string, taskId: string) => Promise<void>;
 
-  addTask: (
-    goalId: string,
-    title: string
-  ) => Promise<void>;
-
-  toggleTask: (
-    goalId: string,
-    taskId: string
-  ) => Promise<void>;
+  getOverallProgress: () => number;
+  getGoalProgress: (goalId: string) => number;
 };
+
 
 /* Context */
 
@@ -172,16 +168,43 @@ const loadGoals = async () => {
     await loadGoals();
   };
 
+  const getOverallProgress = () => {
+  let total = 0;
+  let completed = 0;
+
+  goals.forEach((g) => {
+    total += g.tasks.length;
+    completed += g.tasks.filter((t) => t.completed).length;
+  });
+
+  if (total === 0) return 0;
+  return Math.round((completed / total) * 100);
+};
+
+const getGoalProgress = (goalId: string) => {
+  const goal = goals.find((g) => g.id === goalId);
+  if (!goal || goal.tasks.length === 0) return 0;
+
+  const completed = goal.tasks.filter((t) => t.completed).length;
+  return Math.round((completed / goal.tasks.length) * 100);
+};
+
+
   return (
-    <TaskContext.Provider
-      value={{
-        goals,
-        addGoal,
-        addTask,
-        toggleTask,
-      }}
-    >
+  <TaskContext.Provider
+  value={{
+    goals,
+    addGoal,
+    addTask,
+    toggleTask,
+    getOverallProgress,
+    getGoalProgress,
+  }}
+>
+
       {children}
     </TaskContext.Provider>
   );
+
+
 }
