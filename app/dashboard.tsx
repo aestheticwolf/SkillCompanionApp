@@ -19,7 +19,7 @@ import { COLORS } from "../src/constants/theme";
 import { signOut } from "firebase/auth";
 import { auth } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
 
 
@@ -53,19 +53,10 @@ export default function Dashboard() {
     ]).start();
   }, []);
 
-  useEffect(() => {
-  loadTheme();
+ useEffect(() => {
+  loadTheme().then(setDarkMode);
 }, []);
 
-const loadTheme = async () => {
-  const saved = await AsyncStorage.getItem("DARK_MODE");
-
-  if (saved !== null) {
-    setDarkMode(saved === "true");
-  } else {
-    setDarkMode(false);
-  }
-};
 
 
 useEffect(() => {
@@ -129,6 +120,15 @@ const {
         {/* Header */}
         <View style={[styles.header, { backgroundColor: headerBg }]}>
 
+        {!isSynced && (
+  <View style={styles.offlineBanner}>
+    <Text style={styles.offlineText}>
+      You are offline. Changes will sync when online.
+    </Text>
+  </View>
+)}
+        
+
   <Text
     style={[
       styles.sync,
@@ -148,11 +148,11 @@ const {
 
   <View style={styles.headerRight}>
 
-  <Switch
+<Switch
   value={!!darkMode}
   onValueChange={async (v) => {
     setDarkMode(v);
-    await AsyncStorage.setItem("DARK_MODE", v.toString());
+    await saveTheme(v);
   }}
 />
 
@@ -216,9 +216,13 @@ const {
         {/* Add Goal */}
 
         <Pressable
-          style={styles.addBtn}
-          onPress={() => router.push("/add-goal")}
-        >
+  style={[
+    styles.addBtn,
+    !isSynced && { opacity: 0.6 },
+  ]}
+  disabled={!isSynced}
+  onPress={() => router.push("/add-goal")}
+>
           <Text style={styles.addText}>＋</Text>
         </Pressable>
 
@@ -265,29 +269,35 @@ const {
 
               {g.tasks.map((t) => (
 
-                <Pressable
-                  key={t.id}
-                  style={styles.taskRow}
-                  onPress={() =>
-                    toggleTask(g.id, t.id)
-                  }
-                >
-                  <Text style={{ color: textSecondary }}>
-                    {t.completed ? "✅" : "⬜"} {t.title}
-                  </Text>
-                </Pressable>
+<Pressable
+  key={t.id}
+  style={[
+    styles.taskRow,
+    !isSynced && { opacity: 0.5 },
+  ]}
+  disabled={!isSynced}
+  onPress={() => toggleTask(g.id, t.id)}
+>
+  <Text style={{ color: textSecondary }}>
+    {t.completed ? "✅" : "⬜"} {t.title}
+  </Text>
+</Pressable>
 
               ))}
 
-              <Pressable
-                style={styles.addTaskBtn}
-                onPress={() =>
-                  router.push({
-                    pathname: "/add-task",
-                    params: { goalId: g.id },
-                  })
-                }
-              >
+            <Pressable
+  style={[
+    styles.addTaskBtn,
+    !isSynced && { opacity: 0.5 },
+  ]}
+  disabled={!isSynced}
+  onPress={() =>
+    router.push({
+      pathname: "/add-task",
+      params: { goalId: g.id },
+    })
+  }
+>
                 <Text style={styles.addTaskText}>
                   + Add Task
                 </Text>
@@ -440,10 +450,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  taskRow: {
-    marginLeft: 8,
-    marginBottom: 6,
-  },
+ taskRow: {
+  marginLeft: 8,
+  marginBottom: 8,
+  paddingVertical: 6,
+  borderRadius: 6,
+},
 
   addTaskBtn: {
     marginTop: 10,
@@ -497,4 +509,19 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 13,
   },
+
+
+  offlineBanner: {
+  backgroundColor: "#FEF3C7",
+  padding: 10,
+  borderRadius: 10,
+  marginBottom: 12,
+},
+
+offlineText: {
+  color: "#92400E",
+  fontSize: 13,
+  textAlign: "center",
+  fontWeight: "600",
+},
 });
