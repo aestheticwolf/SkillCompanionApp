@@ -90,9 +90,6 @@ const {
 } = ctx;
 
 
-const progressPercent = getOverallProgress();
-
-
   /* Logout */
   const handleLogout = async () => {
     await signOut(auth);

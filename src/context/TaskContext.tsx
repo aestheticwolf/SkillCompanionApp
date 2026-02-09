@@ -40,6 +40,13 @@ type TaskContextType = {
   getOverallProgress: () => number;
   getGoalProgress: (goalId: string) => number;
   getRecommendation: () => string;
+
+  getStats: () => {
+  totalGoals: number;
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+};
 };
 
 
@@ -221,6 +228,24 @@ const getGoalProgress = (goalId: string) => {
   return Math.round((completed / goal.tasks.length) * 100);
 };
 
+const getStats = () => {
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  goals.forEach((g) => {
+    totalTasks += g.tasks.length;
+    completedTasks += g.tasks.filter(t => t.completed).length;
+  });
+
+  return {
+    totalGoals: goals.length,
+    totalTasks,
+    completedTasks,
+    pendingTasks: totalTasks - completedTasks,
+  };
+};
+
+
 
   return (
 <TaskContext.Provider
@@ -232,6 +257,7 @@ const getGoalProgress = (goalId: string) => {
     getOverallProgress,
     getGoalProgress,
     getRecommendation,
+    getStats,
   }}
 >
 
