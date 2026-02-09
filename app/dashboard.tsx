@@ -81,34 +81,16 @@ useEffect(() => {
   const user = authCtx.user;
 
 
-  const {
+const {
   goals,
   toggleTask,
   getOverallProgress,
   getGoalProgress,
+  getRecommendation,
 } = ctx;
 
+
 const progressPercent = getOverallProgress();
-
-  /* Recommendation System */
-
-let recommendation = "";
-
-if (goals.length === 0) {
-  recommendation = "Start by creating your first learning goal.";
-} else if (progressPercent === 0) {
-  recommendation = "Begin with one small task today.";
-} else if (progressPercent < 30) {
-  recommendation = "Try completing 2 tasks daily for faster growth.";
-} else if (progressPercent < 60) {
-  recommendation = "Good consistency. Maintain your routine.";
-} else if (progressPercent < 80) {
-  recommendation = "Great work. Focus on difficult topics now.";
-} else if (progressPercent < 100) {
-  recommendation = "Almost complete. Finish remaining tasks.";
-} else {
-  recommendation = "Excellent. Start a new advanced skill.";
-}
 
 
   /* Logout */
@@ -225,11 +207,11 @@ if (goals.length === 0) {
               { color: recommendTextColor },
             ]}
           >
-            {recommendation}
+            {getRecommendation()}
           </Text>
 
         <Text style={[styles.progressText, { color: recommendTextColor }]}>
-  Progress: {progressPercent}%
+  Progress: {getOverallProgress()}%
 </Text>
 
         </Animated.View>

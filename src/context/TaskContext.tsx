@@ -39,6 +39,7 @@ type TaskContextType = {
 
   getOverallProgress: () => number;
   getGoalProgress: (goalId: string) => number;
+  getRecommendation: () => string;
 };
 
 
@@ -58,6 +59,37 @@ export function TaskProvider({
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getRecommendation = () => {
+  const overall = getOverallProgress();
+
+  if (goals.length === 0) {
+    return "Start by creating your first learning goal.";
+  }
+
+  if (overall === 0) {
+    return "Begin with one small task today.";
+  }
+
+  if (overall < 30) {
+    return "Try completing 2 tasks daily for faster growth.";
+  }
+
+  if (overall < 60) {
+    return "Good consistency. Maintain your routine.";
+  }
+
+  if (overall < 80) {
+    return "Great work. Focus on difficult topics now.";
+  }
+
+  if (overall < 100) {
+    return "Almost complete. Finish remaining tasks.";
+  }
+
+  return "Excellent. Start a new advanced skill.";
+};
+
 
   /* Load from Firestore */
 
@@ -191,7 +223,7 @@ const getGoalProgress = (goalId: string) => {
 
 
   return (
-  <TaskContext.Provider
+<TaskContext.Provider
   value={{
     goals,
     addGoal,
@@ -199,8 +231,10 @@ const getGoalProgress = (goalId: string) => {
     toggleTask,
     getOverallProgress,
     getGoalProgress,
+    getRecommendation,
   }}
 >
+
 
       {children}
     </TaskContext.Provider>
