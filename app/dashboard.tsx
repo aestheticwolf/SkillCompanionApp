@@ -81,40 +81,35 @@ useEffect(() => {
   const user = authCtx.user;
 
 
-  const { goals, toggleTask } = ctx;
+  const {
+  goals,
+  toggleTask,
+  getOverallProgress,
+  getGoalProgress,
+} = ctx;
+
+const progressPercent = getOverallProgress();
 
   /* Recommendation System */
 
-  let totalTasks = 0;
-  let completedTasks = 0;
+let recommendation = "";
 
-  goals.forEach((g) => {
-    totalTasks += g.tasks.length;
-    completedTasks += g.tasks.filter((t) => t.completed).length;
-  });
+if (goals.length === 0) {
+  recommendation = "Start by creating your first learning goal.";
+} else if (progressPercent === 0) {
+  recommendation = "Begin with one small task today.";
+} else if (progressPercent < 30) {
+  recommendation = "Try completing 2 tasks daily for faster growth.";
+} else if (progressPercent < 60) {
+  recommendation = "Good consistency. Maintain your routine.";
+} else if (progressPercent < 80) {
+  recommendation = "Great work. Focus on difficult topics now.";
+} else if (progressPercent < 100) {
+  recommendation = "Almost complete. Finish remaining tasks.";
+} else {
+  recommendation = "Excellent. Start a new advanced skill.";
+}
 
-  const progressPercent =
-    totalTasks === 0
-      ? 0
-      : Math.round((completedTasks / totalTasks) * 100);
-
-  let recommendation = "";
-
-  if (totalTasks === 0) {
-    recommendation = "Start by creating your first learning goal.";
-  } else if (completedTasks === 0) {
-    recommendation = "Begin with one small task today.";
-  } else if (progressPercent < 30) {
-    recommendation = "Try completing 2 tasks daily for faster growth.";
-  } else if (progressPercent < 60) {
-    recommendation = "Good consistency. Maintain your routine.";
-  } else if (progressPercent < 80) {
-    recommendation = "Great work. Focus on difficult topics now.";
-  } else if (progressPercent < 100) {
-    recommendation = "Almost complete. Finish remaining tasks.";
-  } else {
-    recommendation = "Excellent. Start a new advanced skill.";
-  }
 
   /* Logout */
   const handleLogout = async () => {
@@ -233,14 +228,10 @@ useEffect(() => {
             {recommendation}
           </Text>
 
-          <Text
-            style={[
-              styles.progressText,
-              { color: recommendTextColor },
-            ]}
-          >
-            Progress: {progressPercent}%
-          </Text>
+        <Text style={[styles.progressText, { color: recommendTextColor }]}>
+  Progress: {progressPercent}%
+</Text>
+
         </Animated.View>
 
         {/* Add Goal */}
@@ -286,12 +277,10 @@ useEffect(() => {
                   {g.name}
                 </Text>
 
-                <Text style={styles.progress}>
-                  {Math.round(
-                    (g.tasks.filter(t => t.completed).length /
-                      (g.tasks.length || 1)) * 100
-                  )}%
-                </Text>
+               <Text style={styles.progress}>
+  {getGoalProgress(g.id)}%
+</Text>
+
 
               </View>
 
