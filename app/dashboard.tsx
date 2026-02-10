@@ -21,7 +21,8 @@ import { auth } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
 import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
-import { showSuccess } from "../src/services/toast";
+import { showSuccess, showError } from "../src/services/toast";
+
 
 
 
@@ -84,10 +85,12 @@ const {
 
 
   /* Logout */
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.replace("/login");
-  };
+const handleLogout = async () => {
+  await signOut(auth);
+  showSuccess("Logged out successfully");
+  router.replace("/login");
+};
+
 
   /* Reminder */
 // const setReminder = async () => {
@@ -277,11 +280,18 @@ const {
     styles.taskRow,
     !isSynced && { opacity: 0.5 },
   ]}
-  disabled={!isSynced}
   onPress={() => {
-  toggleTask(g.id, t.id);
-  showSuccess(t.completed ? "Task marked pending" : "Task completed");
-}}
+    if (!isSynced) {
+      showError("You are offline. Changes will sync later.");
+      return;
+    }
+
+    toggleTask(g.id, t.id);
+
+    showSuccess(
+      t.completed ? "Task marked incomplete" : "Task completed 🎉"
+    );
+  }}
 >
   <Text style={{ color: textSecondary }}>
     {t.completed ? "✅" : "⬜"} {t.title}
