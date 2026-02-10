@@ -5,6 +5,8 @@ export const showSuccess = (msg: string) => {
     type: "success",
     text1: "Success",
     text2: msg,
+    position: "bottom",
+    visibilityTime: 2500,
   });
 };
 
@@ -13,5 +15,7 @@ export const showError = (msg: string) => {
     type: "error",
     text1: "Error",
     text2: msg,
+    position: "bottom",
+    visibilityTime: 3000,
   });
 };

@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
 import { loadTheme } from "../src/services/uiPreferences";
+import { showSuccess, showError } from "../src/services/toast";
 
 export default function AddTask() {
   const [task, setTask] = useState("");
@@ -51,12 +52,15 @@ export default function AddTask() {
   }, []);
 
   const handleAdd = () => {
-    if (!task.trim()) return;
+  if (!task.trim()) {
+    showError("Task name cannot be empty");
+    return;
+  }
 
-    addTask(goalId, task);
-    setTask("");
-    router.back();
-  };
+  addTask(goalId, task.trim());
+  showSuccess("Task added");
+  router.back();
+};
 
   /* Theme */
   const bg = darkMode ? "#020617" : "#F8FAFC";

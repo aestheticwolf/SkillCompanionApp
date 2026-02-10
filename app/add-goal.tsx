@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
 import { loadTheme } from "../src/services/uiPreferences";
+import { showSuccess, showError } from "../src/services/toast";
 
 export default function AddGoal() {
   const router = useRouter();
@@ -46,11 +47,16 @@ export default function AddGoal() {
     ]).start();
   }, []);
 
-  const handleSave = async () => {
-    if (!goal.trim()) return;
-    await addGoal(goal.trim());
-    router.back();
-  };
+const handleSave = async () => {
+  if (!goal.trim()) {
+    showError("Goal name cannot be empty");
+    return;
+  }
+
+  await addGoal(goal.trim());
+  showSuccess("Goal added successfully");
+  router.back();
+};
 
   /* Theme colors */
   const bg = darkMode ? "#020617" : "#F8FAFC";

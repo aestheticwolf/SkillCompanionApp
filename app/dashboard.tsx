@@ -21,6 +21,8 @@ import { auth } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
 import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
+import { showSuccess } from "../src/services/toast";
+
 
 
 export default function Dashboard() {
@@ -276,7 +278,10 @@ const {
     !isSynced && { opacity: 0.5 },
   ]}
   disabled={!isSynced}
-  onPress={() => toggleTask(g.id, t.id)}
+  onPress={() => {
+  toggleTask(g.id, t.id);
+  showSuccess(t.completed ? "Task marked pending" : "Task completed");
+}}
 >
   <Text style={{ color: textSecondary }}>
     {t.completed ? "✅" : "⬜"} {t.title}
