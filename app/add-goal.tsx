@@ -53,9 +53,13 @@ const handleSave = async () => {
     return;
   }
 
-  await addGoal(goal.trim());
-  showSuccess("Goal added successfully");
-  router.back();
+  try {
+    await addGoal(goal.trim());
+    showSuccess("Goal added");
+    router.back();
+  } catch {
+    showError("Something went wrong");
+  }
 };
 
   /* Theme colors */

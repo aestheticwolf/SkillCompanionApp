@@ -51,15 +51,19 @@ export default function AddTask() {
     ]).start();
   }, []);
 
-  const handleAdd = () => {
+const handleAdd = () => {
   if (!task.trim()) {
     showError("Task name cannot be empty");
     return;
   }
 
-  addTask(goalId, task.trim());
-  showSuccess("Task added");
-  router.back();
+  try {
+    addTask(goalId, task.trim());
+    showSuccess("Task added");
+    router.back();
+  } catch {
+    showError("Something went wrong");
+  }
 };
 
   /* Theme */
