@@ -98,6 +98,7 @@ await updateProfile(res.user, {
     <TextInput
   style={styles.input}
   placeholder="Full Name"
+  placeholderTextColor="#94A3B8"
   value={name}
   onChangeText={setName}
 />
