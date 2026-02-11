@@ -23,7 +23,10 @@ import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
 import { showSuccess, showError } from "../src/services/toast";
 
-
+import {
+  requestNotificationPermission,
+  scheduleDailyReminder,
+} from "../src/services/notifications";
 
 
 export default function Dashboard() {
@@ -328,14 +331,22 @@ const handleLogout = async () => {
 
 <View style={styles.bottomBar}>
 
-  <Pressable
-    style={[styles.bottomBtn, { backgroundColor: "#94A3B8" }]}
-    disabled
-  >
-    <Text style={styles.btnText}>
-      🔔 Reminder (Coming soon)
-    </Text>
-  </Pressable>
+<Pressable
+  style={styles.bottomBtn}
+  onPress={async () => {
+    const granted = await requestNotificationPermission();
+
+    if (!granted) {
+      showError("Notification permission denied");
+      return;
+    }
+
+    await scheduleDailyReminder(20, 0); // 8:00 PM
+    showSuccess("Daily reminder set for 8:00 PM");
+  }}
+>
+  <Text style={styles.btnText}>🔔 Daily Reminder</Text>
+</Pressable>
 
   <Pressable
     style={styles.bottomBtn}
