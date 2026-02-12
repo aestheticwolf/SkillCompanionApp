@@ -41,12 +41,15 @@ type TaskContextType = {
   getGoalProgress: (goalId: string) => number;
   getRecommendation: () => string;
 
-  getStats: () => {
+getStats: () => {
   totalGoals: number;
   totalTasks: number;
   completedTasks: number;
   pendingTasks: number;
 };
+
+hasPendingTasks: () => boolean;
+
 };
 
 
@@ -243,8 +246,16 @@ const getStats = () => {
     completedTasks,
     pendingTasks: totalTasks - completedTasks,
   };
+
+
 };
 
+
+  const hasPendingTasks = () => {
+  return goals.some((g) =>
+    g.tasks.some((t) => !t.completed)
+  );
+};
 
 
   return (
@@ -258,6 +269,7 @@ const getStats = () => {
     getGoalProgress,
     getRecommendation,
     getStats,
+    hasPendingTasks,
   }}
 >
 

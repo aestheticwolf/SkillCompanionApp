@@ -1,7 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-/* Ask permission */
 export async function requestNotificationPermission() {
   if (Platform.OS === "web") return false;
 
@@ -9,17 +8,18 @@ export async function requestNotificationPermission() {
   return status === "granted";
 }
 
-/* Daily reminder */
-export async function scheduleDailyReminder(
+export async function scheduleSmartReminder(
   hour: number,
   minute: number
 ) {
   if (Platform.OS === "web") return;
 
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Skill Companion Reminder",
-      body: "Complete your pending tasks today 💪",
+      title: "Pending tasks reminder",
+      body: "You still have unfinished tasks today 💪",
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
