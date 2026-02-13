@@ -8,18 +8,13 @@ export async function requestNotificationPermission() {
   return status === "granted";
 }
 
-export async function scheduleSmartReminder(
-  hour: number,
-  minute: number
-) {
+export async function scheduleDailyReminder(hour: number, minute: number) {
   if (Platform.OS === "web") return;
-
-  await Notifications.cancelAllScheduledNotificationsAsync();
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Pending tasks reminder",
-      body: "You still have unfinished tasks today 💪",
+      title: "Skill Companion Reminder",
+      body: "Complete your pending tasks today 💪",
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,

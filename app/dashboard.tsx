@@ -25,8 +25,9 @@ import { showSuccess, showError } from "../src/services/toast";
 
 import {
   requestNotificationPermission,
-  scheduleSmartReminder,
+  scheduleDailyReminder,
 } from "../src/services/notifications";
+
 
 
 export default function Dashboard() {
@@ -343,11 +344,11 @@ const handleLogout = async () => {
     }
 
     if (!hasPendingTasks()) {
-      showSuccess("No pending tasks. Reminder not needed 🎉");
+      showSuccess("No pending tasks. You’re all caught up 🎉");
       return;
     }
 
-    await scheduleSmartReminder(20, 0);
+    await scheduleDailyReminder(20, 0);
     showSuccess("Smart reminder set for 8:00 PM");
   }}
 >
