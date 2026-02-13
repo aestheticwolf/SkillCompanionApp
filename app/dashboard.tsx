@@ -6,6 +6,7 @@ import {
   ScrollView,
   Animated,
   Switch,
+  Platform,
 } from "react-native";
 
 import { useRouter } from "expo-router";
@@ -28,6 +29,9 @@ import {
   scheduleDailyReminder,
 } from "../src/services/notifications";
 
+import DateTimePicker from "@react-native-community/datetimepicker";
+
+
 
 
 export default function Dashboard() {
@@ -42,6 +46,10 @@ export default function Dashboard() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
+
+  const [showPicker, setShowPicker] = useState(false);
+const [reminderTime, setReminderTime] = useState(new Date());
+
 
   /* Animation */
   useEffect(() => {
@@ -335,25 +343,18 @@ const handleLogout = async () => {
 
 <Pressable
   style={styles.bottomBtn}
-  onPress={async () => {
-    const granted = await requestNotificationPermission();
-
-    if (!granted) {
-      showError("Notification permission denied");
+  onPress={() => {
+    if (Platform.OS === "web") {
+      showError("Smart reminders work only on mobile app");
       return;
     }
 
-    if (!hasPendingTasks()) {
-      showSuccess("No pending tasks. You’re all caught up 🎉");
-      return;
-    }
-
-    await scheduleDailyReminder(20, 0);
-    showSuccess("Smart reminder set for 8:00 PM");
+    setShowPicker(true);
   }}
 >
   <Text style={styles.btnText}>🔔 Smart Reminder</Text>
 </Pressable>
+
 
   <Pressable
     style={styles.bottomBtn}
@@ -363,6 +364,43 @@ const handleLogout = async () => {
   </Pressable>
 
 </View>
+
+{showPicker && Platform.OS !== "web" && (
+  <DateTimePicker
+    value={reminderTime}
+    mode="time"
+    is24Hour={true}
+    display="default"
+    onChange={async (_, selectedDate) => {
+      setShowPicker(false);
+      if (!selectedDate) return;
+
+      setReminderTime(selectedDate);
+
+      const hour = selectedDate.getHours();
+      const minute = selectedDate.getMinutes();
+
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        showError("Notification permission denied");
+        return;
+      }
+
+      if (!hasPendingTasks()) {
+        showSuccess("No pending tasks. You’re all caught up 🎉");
+        return;
+      }
+
+      await scheduleDailyReminder(hour, minute);
+     showSuccess(
+  `Reminder set for ${hour % 12 || 12}:${minute
+    .toString()
+    .padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`
+);
+    }}
+  />
+)}
+
 
 
       </View>
