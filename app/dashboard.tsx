@@ -424,14 +424,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 15,
-  },
+ header: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingVertical: 18,
+  paddingHorizontal: 20,
+  borderRadius: 16,
+  marginBottom: 20,
+  boxShadow: Platform.OS === "web"
+    ? "0 10px 30px rgba(0,0,0,0.12)"
+    : undefined,
+  elevation: 6,
+},
 
   sync: {
     color: "#22C55E",
@@ -495,15 +500,15 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
 
-  goalBox: {
-    padding: 15,
-    borderRadius: 14,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
+ goalBox: {
+  padding: 18,
+  borderRadius: 18,
+  marginBottom: 18,
+  boxShadow: Platform.OS === "web"
+    ? "0 10px 20px rgba(0,0,0,0.08)"
+    : undefined,
+  elevation: 4,
+},
 
   goalHeader: {
     flexDirection: "row",
@@ -511,21 +516,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  goalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
+ goalTitle: {
+  fontSize: 19,
+  fontWeight: "800",
+},
 
-  progress: {
-    color: COLORS.primary,
-    fontWeight: "700",
-  },
+progress: {
+  color: COLORS.primary,
+  fontWeight: "800",
+  fontSize: 14,
+},
 
- taskRow: {
-  marginLeft: 8,
+taskRow: {
+  marginLeft: 6,
   marginBottom: 8,
-  paddingVertical: 6,
-  borderRadius: 6,
+  paddingVertical: 8,
+  paddingHorizontal: 10,
+  borderRadius: 8,
+  backgroundColor: Platform.OS === "web" ? "rgba(0,0,0,0.03)" : "transparent",
 },
 
   addTaskBtn: {
@@ -538,20 +546,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  bottomBar: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 5,
-    marginBottom: 10,
-  },
+bottomBar: {
+  flexDirection: "row",
+  gap: 14,
+  marginTop: 10,
+  marginBottom: 20,
+},
 
-  bottomBtn: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
+bottomBtn: {
+  flex: 1,
+  backgroundColor: COLORS.primary,
+  paddingVertical: 16,
+  borderRadius: 14,
+  alignItems: "center",
+  boxShadow: Platform.OS === "web"
+    ? "0 10px 25px rgba(37,99,235,0.35)"
+    : undefined,
+},
 
   btnText: {
     color: "white",
@@ -560,18 +571,22 @@ const styles = StyleSheet.create({
 
   /* Recommendation */
 
-  recommendBox: {
-    padding: 15,
-    borderRadius: 14,
-    marginBottom: 15,
-    borderLeftWidth: 4,
-  },
+recommendBox: {
+  padding: 18,
+  borderRadius: 16,
+  marginBottom: 20,
+  borderLeftWidth: 5,
+  boxShadow: Platform.OS === "web"
+    ? "0 12px 25px rgba(0,0,0,0.08)"
+    : undefined,
+  elevation: 4,
+},
 
-  recommendTitle: {
-    fontWeight: "700",
-    fontSize: 16,
-    marginBottom: 6,
-  },
+recommendTitle: {
+  fontWeight: "800",
+  fontSize: 17,
+  marginBottom: 6,
+},
 
   recommendText: {
     marginBottom: 4,
@@ -596,3 +611,5 @@ offlineText: {
   fontWeight: "600",
 },
 });
+
+
