@@ -49,6 +49,8 @@ export default function Dashboard() {
 
   const [showPicker, setShowPicker] = useState(false);
 const [reminderTime, setReminderTime] = useState(new Date());
+const [hoveredTask, setHoveredTask] = useState<string | null>(null);
+
 
 
   /* Animation */
@@ -56,7 +58,7 @@ const [reminderTime, setReminderTime] = useState(new Date());
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 600,
         useNativeDriver: true,
       }),
 
@@ -289,8 +291,13 @@ const handleLogout = async () => {
 
 <Pressable
   key={t.id}
+  onHoverIn={() => Platform.OS === "web" && setHoveredTask(t.id)}
+  onHoverOut={() => Platform.OS === "web" && setHoveredTask(null)}
   style={[
     styles.taskRow,
+    Platform.OS === "web" && hoveredTask === t.id && {
+      backgroundColor: "rgba(37,99,235,0.08)",
+    },
     !isSynced && { opacity: 0.5 },
   ]}
   onPress={() => {
@@ -343,12 +350,13 @@ const handleLogout = async () => {
 
 <Pressable
   style={styles.bottomBtn}
+  onHoverIn={() => Platform.OS === "web" && setHoveredTask("reminder")}
+  onHoverOut={() => Platform.OS === "web" && setHoveredTask(null)}
   onPress={() => {
     if (Platform.OS === "web") {
       showError("Smart reminders work only on mobile app");
       return;
     }
-
     setShowPicker(true);
   }}
 >
