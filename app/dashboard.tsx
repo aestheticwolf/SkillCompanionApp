@@ -74,14 +74,18 @@ const [hoveredTask, setHoveredTask] = useState<string | null>(null);
   loadTheme().then(setDarkMode);
 }, []);
 
-
-
 useEffect(() => {
   const unsub = listenToNetwork(setIsSynced);
-
   return () => unsub();
 }, []);
 
+useEffect(() => {
+  Animated.timing(progressAnim, {
+    toValue: getOverallProgress(),
+    duration: 800,
+    useNativeDriver: false,
+  }).start();
+}, [goals]);
 
 
   if (!authCtx?.user || !ctx) return null;
@@ -132,6 +136,9 @@ const handleLogout = async () => {
   const textSecondary = darkMode ? "#CBD5F5" : "#475569";
 
   const headerBg = darkMode ? "#020617" : "#2563EB";
+
+  const mutedBg = darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)";
+const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 
   return (
     <View style={[styles.screen, { backgroundColor: bg }]}>
@@ -248,26 +255,32 @@ const handleLogout = async () => {
 
         {/* Goals */}
 
+        <Text style={styles.sectionTitle}>Your Goals</Text>
+
         <ScrollView showsVerticalScrollIndicator={false}>
 
           {goals.length === 0 && (
-            <Text style={styles.empty}>
-              No goals yet. Start today 🚀
-            </Text>
+            <View style={styles.emptyCard}>
+  <Text style={styles.emptyTitle}>No goals yet 🚀</Text>
+  <Text style={styles.emptySub}>
+    Create your first learning goal to get started
+  </Text>
+</View>
           )}
 
-          {goals.map((g) => (
+          {goals.map((g, index) => (
 
-            <Animated.View
-              key={g.id}
-              style={[
-                styles.goalBox,
-                {
-                  backgroundColor: card,
-                  opacity: fadeAnim,
-                },
-              ]}
-            >
+         <Animated.View
+  key={g.id}
+  style={[
+    styles.goalBox,
+    {
+      backgroundColor: card,
+      opacity: fadeAnim,
+      transform: [{ translateY: Animated.add(slideAnim, new Animated.Value(index * 6)) }],
+    },
+  ]}
+>
 
               <View style={styles.goalHeader}>
 
@@ -280,9 +293,19 @@ const handleLogout = async () => {
                   {g.name}
                 </Text>
 
-               <Text style={styles.progress}>
-  {getGoalProgress(g.id)}%
-</Text>
+<View style={styles.progressTrack}>
+  <Animated.View
+    style={[
+      styles.progressFill,
+      {
+        width: progressAnim.interpolate({
+          inputRange: [0, 100],
+          outputRange: ["0%", "100%"],
+        }),
+      },
+    ]}
+  />
+</View>
 
 
               </View>
@@ -541,7 +564,9 @@ taskRow: {
   paddingVertical: 8,
   paddingHorizontal: 10,
   borderRadius: 8,
-  backgroundColor: Platform.OS === "web" ? "rgba(0,0,0,0.03)" : "transparent",
+  backgroundColor: darkMode
+    ? "rgba(255,255,255,0.05)"
+    : "rgba(0,0,0,0.03)",
 },
 
   addTaskBtn: {
@@ -618,6 +643,52 @@ offlineText: {
   textAlign: "center",
   fontWeight: "600",
 },
+
+progressTrack: {
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: darkMode
+    ? "rgba(255,255,255,0.15)"
+    : "rgba(0,0,0,0.08)",
+  marginBottom: 12,
+  overflow: "hidden",
+},
+
+progressFill: {
+  height: "100%",
+  borderRadius: 4,
+  backgroundColor: COLORS.primary,
+},
+
+emptyCard: {
+  padding: 28,
+  borderRadius: 18,
+  alignItems: "center",
+  backgroundColor: darkMode
+    ? "rgba(255,255,255,0.05)"
+    : "rgba(0,0,0,0.03)",
+},
+
+emptyTitle: {
+  fontSize: 16,
+  fontWeight: "800",
+},
+
+emptySub: {
+  marginTop: 6,
+  fontSize: 13,
+  color: "#64748B",
+},
+
+
+sectionTitle: {
+  fontSize: 16,
+  fontWeight: "800",
+  marginBottom: 12,
+  color: darkMode ? "#E5E7EB" : "#334155",
+},
+
+
 });
 
 
