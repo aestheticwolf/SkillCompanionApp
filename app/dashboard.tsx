@@ -45,6 +45,7 @@ export default function Dashboard() {
 
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
   const [showPicker, setShowPicker] = useState(false);
@@ -79,14 +80,6 @@ useEffect(() => {
   return () => unsub();
 }, []);
 
-useEffect(() => {
-  Animated.timing(progressAnim, {
-    toValue: getOverallProgress(),
-    duration: 800,
-    useNativeDriver: false,
-  }).start();
-}, [goals]);
-
 
   if (!authCtx?.user || !ctx) return null;
 
@@ -101,6 +94,14 @@ const {
   getRecommendation,
   hasPendingTasks,
 } = ctx;
+
+useEffect(() => {
+  Animated.timing(progressAnim, {
+    toValue: getOverallProgress(),
+    duration: 800,
+    useNativeDriver: false,
+  }).start();
+}, [goals]);
 
 
   /* Logout */
@@ -255,12 +256,28 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 
         {/* Goals */}
 
-        <Text style={styles.sectionTitle}>Your Goals</Text>
+        <Text
+  style={[
+    styles.sectionTitle,
+    { color: darkMode ? "#E5E7EB" : "#334155" },
+  ]}
+>
+  Your Goals
+</Text>
 
         <ScrollView showsVerticalScrollIndicator={false}>
 
           {goals.length === 0 && (
-            <View style={styles.emptyCard}>
+            <View
+  style={[
+    styles.emptyCard,
+    {
+      backgroundColor: darkMode
+        ? "rgba(255,255,255,0.05)"
+        : "rgba(0,0,0,0.03)",
+    },
+  ]}
+>
   <Text style={styles.emptyTitle}>No goals yet 🚀</Text>
   <Text style={styles.emptySub}>
     Create your first learning goal to get started
@@ -272,43 +289,56 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 
          <Animated.View
   key={g.id}
-  style={[
-    styles.goalBox,
-    {
-      backgroundColor: card,
-      opacity: fadeAnim,
-      transform: [{ translateY: Animated.add(slideAnim, new Animated.Value(index * 6)) }],
-    },
-  ]}
+style={[
+  styles.goalBox,
+  {
+    backgroundColor: card,
+    borderWidth: 1,
+    borderColor: darkMode
+      ? "rgba(255,255,255,0.08)"
+      : "rgba(0,0,0,0.05)",
+    opacity: fadeAnim,
+    transform: [
+      { translateY: Animated.add(slideAnim, new Animated.Value(index * 6)) },
+    ],
+  },
+]}
 >
 
-              <View style={styles.goalHeader}>
-
-                <Text
-                  style={[
-                    styles.goalTitle,
-                    { color: textPrimary },
-                  ]}
-                >
-                  {g.name}
-                </Text>
-
-<View style={styles.progressTrack}>
-  <Animated.View
+           <View style={styles.goalHeader}>
+  <Text
     style={[
-      styles.progressFill,
+      styles.goalTitle,
+      { color: textPrimary },
+    ]}
+  >
+    {g.name}
+  </Text>
+
+  <View
+    style={[
+      styles.progressTrack,
       {
-        width: progressAnim.interpolate({
-          inputRange: [0, 100],
-          outputRange: ["0%", "100%"],
-        }),
+        backgroundColor: darkMode
+          ? "rgba(255,255,255,0.15)"
+          : "rgba(0,0,0,0.08)",
       },
     ]}
-  />
+  >
+    <Animated.View
+      style={[
+        styles.progressFill,
+        {
+          width: progressAnim.interpolate({
+            inputRange: [0, 100],
+            outputRange: ["0%", "100%"],
+          }),
+        },
+      ]}
+    />
+  </View>
 </View>
 
-
-              </View>
 
               {g.tasks.map((t) => (
 
@@ -316,13 +346,20 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   key={t.id}
   onHoverIn={() => Platform.OS === "web" && setHoveredTask(t.id)}
   onHoverOut={() => Platform.OS === "web" && setHoveredTask(null)}
-  style={[
-    styles.taskRow,
-    Platform.OS === "web" && hoveredTask === t.id && {
+ style={[
+  styles.taskRow,
+  {
+    backgroundColor: darkMode
+      ? "rgba(255,255,255,0.05)"
+      : "rgba(0,0,0,0.03)",
+  },
+  Platform.OS === "web" &&
+    hoveredTask === t.id && {
       backgroundColor: "rgba(37,99,235,0.08)",
     },
-    !isSynced && { opacity: 0.5 },
-  ]}
+  !isSynced && { opacity: 0.5 },
+]}
+
   onPress={() => {
     if (!isSynced) {
       showError("You are offline. Changes will sync later.");
@@ -564,9 +601,6 @@ taskRow: {
   paddingVertical: 8,
   paddingHorizontal: 10,
   borderRadius: 8,
-  backgroundColor: darkMode
-    ? "rgba(255,255,255,0.05)"
-    : "rgba(0,0,0,0.03)",
 },
 
   addTaskBtn: {
@@ -647,9 +681,6 @@ offlineText: {
 progressTrack: {
   height: 8,
   borderRadius: 4,
-  backgroundColor: darkMode
-    ? "rgba(255,255,255,0.15)"
-    : "rgba(0,0,0,0.08)",
   marginBottom: 12,
   overflow: "hidden",
 },
@@ -664,9 +695,6 @@ emptyCard: {
   padding: 28,
   borderRadius: 18,
   alignItems: "center",
-  backgroundColor: darkMode
-    ? "rgba(255,255,255,0.05)"
-    : "rgba(0,0,0,0.03)",
 },
 
 emptyTitle: {
@@ -685,7 +713,6 @@ sectionTitle: {
   fontSize: 16,
   fontWeight: "800",
   marginBottom: 12,
-  color: darkMode ? "#E5E7EB" : "#334155",
 },
 
 
