@@ -77,7 +77,10 @@ const handleSave = async () => {
   const border = darkMode ? "#1E293B" : "#E5E7EB";
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]}>
+    <ScrollView
+  style={[styles.container, { backgroundColor: bg }]}
+  keyboardShouldPersistTaps="handled"
+>
       <View style={styles.wrapper}>
 
         {/* Header */}
@@ -171,25 +174,25 @@ const handleSave = async () => {
   />
 </Animated.View>
 
-          <Pressable
+<Pressable
   onPress={handleSave}
   disabled={!goal.trim()}
+  android_ripple={{ color: "rgba(255,255,255,0.2)" }}
   style={({ pressed }) => [
     styles.btn,
     {
-      opacity: pressed ? 0.85 : 1,
-      transform: [{ scale: pressed ? 0.97 : 1 }],
       backgroundColor: goal.trim()
         ? COLORS.primary
         : darkMode
         ? "#334155"
         : "#CBD5E1",
+      opacity: pressed ? 0.9 : 1,
+      transform: [{ scale: pressed ? 0.97 : 1 }],
+      shadowOpacity: goal.trim() ? 0.25 : 0,
     },
   ]}
 >
-  <Text style={styles.btnText}>
-    Save Goal
-  </Text>
+  <Text style={styles.btnText}>Save Goal</Text>
 </Pressable>
         </Animated.View>
 
@@ -240,13 +243,13 @@ const styles = StyleSheet.create({
   },
 
 card: {
-  padding: 22,
-  borderRadius: 18,
+  padding: 24,
+  borderRadius: 20,
   borderWidth: 1,
   shadowColor: "#000",
-  shadowOpacity: 0.1,
-  shadowRadius: 12,
-  elevation: 4,
+  shadowOpacity: 0.08,
+  shadowRadius: 20,
+  elevation: 6,
 },
 
   cardTitle: {
@@ -261,14 +264,20 @@ card: {
   },
 
 input: {
-  padding: 14,
+  paddingVertical: 14,
+  paddingHorizontal: 16,
   fontSize: 15,
+  borderRadius: 12,
 },
 
- btn: {
-  paddingVertical: 14,
-  borderRadius: 14,
+btn: {
+  paddingVertical: 16,
+  borderRadius: 16,
   alignItems: "center",
+  shadowColor: COLORS.primary,
+  shadowOffset: { width: 0, height: 8 },
+  shadowRadius: 16,
+  elevation: 5,
 },
 
   btnText: {
@@ -276,4 +285,10 @@ input: {
     fontWeight: "700",
     fontSize: 15,
   },
+
+//   subtitle: {
+//   fontSize: 13,
+//   marginBottom: 22,
+//   lineHeight: 18,
+// },
 });
