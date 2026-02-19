@@ -29,23 +29,30 @@ export default function AddGoal() {
   /* Animation */
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.96)).current;
+const inputFocusAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    loadTheme().then(setDarkMode);
+useEffect(() => {
+  loadTheme().then(setDarkMode);
 
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  Animated.parallel([
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 450,
+      useNativeDriver: true,
+    }),
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 450,
+      useNativeDriver: true,
+    }),
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 6,
+      useNativeDriver: true,
+    }),
+  ]).start();
+}, []);
 
 const handleSave = async () => {
   if (!goal.trim()) {
@@ -103,16 +110,22 @@ const handleSave = async () => {
         </View>
 
         {/* Card */}
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              backgroundColor: card,
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+    <Animated.View
+  style={[
+    styles.card,
+    {
+      backgroundColor: card,
+      borderColor: darkMode
+        ? "rgba(255,255,255,0.08)"
+        : "rgba(0,0,0,0.06)",
+      opacity: fadeAnim,
+      transform: [
+        { translateY: slideAnim },
+        { scale: scaleAnim },
+      ],
+    },
+  ]}
+>
           <Text style={[styles.cardTitle, { color: textPrimary }]}>
             Add Learning Goal
           </Text>
@@ -121,32 +134,63 @@ const handleSave = async () => {
             Define what you want to achieve next
           </Text>
 
-          <TextInput
-            value={goal}
-            onChangeText={setGoal}
-            placeholder="e.g. Learn Java"
-            placeholderTextColor={textSecondary}
-            style={[
-              styles.input,
-              {
-                color: textPrimary,
-                borderColor: border,
-              },
-            ]}
-          />
+         <Animated.View
+  style={{
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: inputFocusAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [border, COLORS.primary],
+    }),
+    marginBottom: 18,
+  }}
+>
+  <TextInput
+    value={goal}
+    onChangeText={setGoal}
+    placeholder="e.g. Learn Java"
+    placeholderTextColor={textSecondary}
+    onFocus={() =>
+      Animated.timing(inputFocusAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }).start()
+    }
+    onBlur={() =>
+      Animated.timing(inputFocusAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }).start()
+    }
+    style={[
+      styles.input,
+      { color: textPrimary },
+    ]}
+  />
+</Animated.View>
 
           <Pressable
-            onPress={handleSave}
-            disabled={!goal.trim()}
-            style={[
-              styles.btn,
-              !goal.trim() && { opacity: 0.6 },
-            ]}
-          >
-            <Text style={styles.btnText}>
-              Save Goal
-            </Text>
-          </Pressable>
+  onPress={handleSave}
+  disabled={!goal.trim()}
+  style={({ pressed }) => [
+    styles.btn,
+    {
+      opacity: pressed ? 0.85 : 1,
+      transform: [{ scale: pressed ? 0.97 : 1 }],
+      backgroundColor: goal.trim()
+        ? COLORS.primary
+        : darkMode
+        ? "#334155"
+        : "#CBD5E1",
+    },
+  ]}
+>
+  <Text style={styles.btnText}>
+    Save Goal
+  </Text>
+</Pressable>
         </Animated.View>
 
       </View>
@@ -195,14 +239,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  card: {
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
+card: {
+  padding: 22,
+  borderRadius: 18,
+  borderWidth: 1,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 12,
+  elevation: 4,
+},
 
   cardTitle: {
     fontSize: 18,
@@ -215,20 +260,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    marginBottom: 18,
-  },
+input: {
+  padding: 14,
+  fontSize: 15,
+},
 
-  btn: {
-    backgroundColor: COLORS.primary,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
+ btn: {
+  paddingVertical: 14,
+  borderRadius: 14,
+  alignItems: "center",
+},
 
   btnText: {
     color: "white",
