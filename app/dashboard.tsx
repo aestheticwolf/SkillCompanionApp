@@ -37,8 +37,18 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 export default function Dashboard() {
   const router = useRouter();
 
-  const ctx = useContext(TaskContext);
-  const authCtx = useContext(AuthContext);
+  // const ctx = useContext(TaskContext)!;
+  // const taskCtx = ctx!;
+  // const authCtx = useContext(AuthContext);
+
+  const taskCtx = useContext(TaskContext);
+const authCtx = useContext(AuthContext);
+
+if (!taskCtx || !authCtx || !authCtx.user) {
+  return null;
+}
+
+const user = authCtx.user;
 
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
   const [isSynced, setIsSynced] = useState(false);
@@ -81,9 +91,7 @@ useEffect(() => {
 }, []);
 
 
-  if (!authCtx?.user || !ctx) return null;
-
-  const user = authCtx.user;
+  // const user = authCtx!.user!;
 
 
 const {
@@ -93,7 +101,7 @@ const {
   getGoalProgress,
   getRecommendation,
   hasPendingTasks,
-} = ctx;
+} = taskCtx;
 
 useEffect(() => {
   Animated.timing(progressAnim, {
@@ -285,7 +293,7 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 </View>
           )}
 
-          {goals.map((g, index) => (
+          {goals.map((g: any, index: number) => (
 
          <Animated.View
   key={g.id}
@@ -340,7 +348,7 @@ style={[
 </View>
 
 
-              {g.tasks.map((t) => (
+              {g.tasks.map((t: any) => (
 
 <Pressable
   key={t.id}
