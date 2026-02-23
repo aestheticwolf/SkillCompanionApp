@@ -16,7 +16,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { TaskContext } from "../src/context/TaskContext";
 import { COLORS } from "../src/constants/theme";
 
-
 import { signOut } from "firebase/auth";
 import { auth } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
@@ -65,21 +64,37 @@ const [hoveredTask, setHoveredTask] = useState<string | null>(null);
 
 
   /* Animation */
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
+  // useEffect(() => {
+  //   Animated.parallel([
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 1,
+  //       duration: 600,
+  //       useNativeDriver: true,
+  //     }),
 
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  //     Animated.timing(slideAnim, {
+  //       toValue: 0,
+  //       duration: 500,
+  //       useNativeDriver: true,
+  //     }),
+  //   ]).start();
+  // }, []);
+
+
+
+  useEffect(() => {
+  Animated.parallel([
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+    }),
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }),
+  ]).start();
+}, []);
 
  useEffect(() => {
   loadTheme().then(setDarkMode);
@@ -165,6 +180,7 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
 )}
         
 
+<View style={styles.headerLeft}>
   <Text
     style={[
       styles.sync,
@@ -173,42 +189,45 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   >
     ☁ {isSynced ? "Synced" : "Offline"}
   </Text>
+</View>
 
-  <View style={{ alignItems: "center" }}>
-    <Text style={styles.welcome}>Welcome 👋</Text>
+<View style={styles.headerCenter}>
+  <Text style={styles.welcome}>Welcome 👋</Text>
+  <Text style={styles.email}>
+    {user.displayName || user.email}
+  </Text>
+</View>
 
-    <Text style={styles.email}>
-      {user.displayName || user.email}
+<View style={styles.headerRight}>
+  <Switch
+    value={!!darkMode}
+    onValueChange={async (v) => {
+      setDarkMode(v);
+      await saveTheme(v);
+    }}
+  />
+
+  <Pressable
+    style={styles.avatar}
+    onPress={() => router.push("/profile")}
+  >
+    <Text style={styles.avatarText}>
+      {(user.displayName || user.email)
+        ?.charAt(0)
+        .toUpperCase()}
     </Text>
-  </View>
+  </Pressable>
 
-  <View style={styles.headerRight}>
-
-<Switch
-  value={!!darkMode}
-  onValueChange={async (v) => {
-    setDarkMode(v);
-    await saveTheme(v);
-  }}
-/>
-
-
-    <Pressable
-      style={styles.avatar}
-      onPress={() => router.push("/profile")}
-    >
-      <Text style={styles.avatarText}>
-        {(user.displayName || user.email)
-          ?.charAt(0)
-          .toUpperCase()}
-      </Text>
-    </Pressable>
-
-    <Pressable onPress={handleLogout}>
-      <Text style={styles.logout}>⎋</Text>
-    </Pressable>
-
-  </View>
+  <Pressable
+    onPress={handleLogout}
+    style={({ pressed }) => [
+      styles.logoutBtn,
+      pressed && { opacity: 0.7 },
+    ]}
+  >
+    <Text style={styles.logoutText}>Logout</Text>
+  </Pressable>
+</View>
 </View>
 
 
@@ -250,7 +269,7 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
         </Animated.View>
 
         {/* Add Goal */}
-
+{/* 
         <Pressable
   style={[
     styles.addBtn,
@@ -260,20 +279,37 @@ const cardBorder = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
   onPress={() => router.push("/add-goal")}
 >
           <Text style={styles.addText}>＋</Text>
-        </Pressable>
+        </Pressable> */}
 
         {/* Goals */}
 
-        <Text
-  style={[
-    styles.sectionTitle,
-    { color: darkMode ? "#E5E7EB" : "#334155" },
-  ]}
->
-  Your Goals
-</Text>
+<View style={styles.goalsHeader}>
+  <Text
+    style={[
+      styles.sectionTitle,
+      { color: darkMode ? "#E5E7EB" : "#334155" },
+    ]}
+  >
+    Your Goals
+  </Text>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+  <Pressable
+    onPress={() => router.push("/add-goal")}
+    disabled={!isSynced}
+    style={({ pressed }) => [
+      styles.addGoalTopBtn,
+      !isSynced && { opacity: 0.5 },
+      pressed && { opacity: 0.8 },
+    ]}
+  >
+    <Text style={styles.addGoalTopText}>＋ Add Goal</Text>
+  </Pressable>
+</View>
+
+        <ScrollView
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{ paddingBottom: 160 }}
+>
 
           {goals.length === 0 && (
             <View
@@ -333,7 +369,7 @@ style={[
       },
     ]}
   >
-    <Animated.View
+    {/* <Animated.View
       style={[
         styles.progressFill,
         {
@@ -343,7 +379,15 @@ style={[
           }),
         },
       ]}
-    />
+    /> */}
+
+
+    <Animated.View
+  style={[
+    styles.progressFill,
+    { width: `${getGoalProgress(g.id)}%` },
+  ]}
+/>
   </View>
 </View>
 
@@ -498,6 +542,7 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     padding: 16,
     flex: 1,
+    position: "relative",
   },
 
  header: {
@@ -529,11 +574,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+ headerRight: {
+  flex: 1,
+  flexDirection: "row",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: 10,
+},
 
   avatar: {
     backgroundColor: "white",
@@ -554,16 +601,18 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  addBtn: {
-    backgroundColor: COLORS.primary,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    marginBottom: 10,
-  },
+addBtn: {
+  position: "absolute",
+  right: 24,
+  bottom: 110,
+  backgroundColor: COLORS.primary,
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  justifyContent: "center",
+  alignItems: "center",
+  elevation: 8,
+},
 
   addText: {
     color: "white",
@@ -588,8 +637,9 @@ const styles = StyleSheet.create({
 
   goalHeader: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
 
  goalTitle: {
@@ -604,28 +654,29 @@ progress: {
 },
 
 taskRow: {
-  marginLeft: 6,
   marginBottom: 8,
   paddingVertical: 8,
   paddingHorizontal: 10,
   borderRadius: 8,
 },
 
-  addTaskBtn: {
-    marginTop: 10,
-    alignItems: "center",
-  },
+addTaskBtn: {
+  marginTop: 14,
+  paddingVertical: 10,
+  alignItems: "center",
+},
 
   addTaskText: {
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
+  color: COLORS.primary,
+  fontWeight: "700",
+  fontSize: 14,
+},
 
 bottomBar: {
   flexDirection: "row",
   gap: 14,
-  marginTop: 10,
-  marginBottom: 20,
+  marginTop: 16,
+  marginBottom: 10,
 },
 
 bottomBtn: {
@@ -723,6 +774,48 @@ sectionTitle: {
   marginBottom: 12,
 },
 
+
+logoutBtn: {
+  backgroundColor: "rgba(255,255,255,0.2)",
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 20,
+},
+
+logoutText: {
+  color: "white",
+  fontWeight: "600",
+  fontSize: 13,
+},
+
+headerLeft: {
+  flex: 1,
+},
+
+headerCenter: {
+  flex: 2,
+  alignItems: "center",
+},
+
+goalsHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+addGoalTopBtn: {
+  backgroundColor: COLORS.primary,
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 20,
+},
+
+addGoalTopText: {
+  color: "white",
+  fontWeight: "700",
+  fontSize: 13,
+},
 
 });
 
