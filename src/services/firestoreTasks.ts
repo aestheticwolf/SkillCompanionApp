@@ -4,6 +4,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "./firebase";
@@ -42,4 +43,12 @@ export const updateGoal = async (
   const ref = doc(db, "users", uid, "goals", goalId);
 
   await updateDoc(ref, data);
+};
+
+
+export const deleteGoalFirestore = async (
+  userId: string,
+  goalId: string
+) => {
+  await deleteDoc(doc(db, "users", userId, "goals", goalId));
 };

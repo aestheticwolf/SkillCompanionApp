@@ -349,7 +349,7 @@ style={[
 ]}
 >
 
-           <View style={styles.goalHeader}>
+<View style={styles.goalHeader}>
   <Text
     style={[
       styles.goalTitle,
@@ -358,6 +358,13 @@ style={[
   >
     {g.name}
   </Text>
+
+  <Pressable
+    onPress={() => taskCtx.deleteGoal(g.id)}
+    style={styles.deleteGoalBtn}
+  >
+    <Text style={styles.deleteText}>🗑</Text>
+  </Pressable>
 
   <View
     style={[
@@ -425,9 +432,18 @@ style={[
     );
   }}
 >
+
+<View style={styles.taskContent}>
   <Text style={{ color: textSecondary }}>
     {t.completed ? "✅" : "⬜"} {t.title}
   </Text>
+
+  <Pressable
+    onPress={() => taskCtx.deleteTask(g.id, t.id)}
+  >
+    <Text style={styles.deleteText}>✕</Text>
+  </Pressable>
+</View>
 </Pressable>
 
               ))}
@@ -815,6 +831,21 @@ addGoalTopText: {
   color: "white",
   fontWeight: "700",
   fontSize: 13,
+},
+
+deleteGoalBtn: {
+  padding: 4,
+},
+
+deleteText: {
+  color: "#EF4444",
+  fontSize: 16,
+},
+
+taskContent: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
 },
 
 });

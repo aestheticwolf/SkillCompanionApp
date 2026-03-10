@@ -12,9 +12,12 @@ import {
   getUserGoals,
   addUserGoal,
   updateGoal,
+  deleteGoalFirestore
 } from "../services/firestoreTasks";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
 
 /* Types */
 
@@ -36,6 +39,9 @@ type TaskContextType = {
   addGoal: (name: string) => Promise<void>;
   addTask: (goalId: string, title: string) => Promise<void>;
   toggleTask: (goalId: string, taskId: string) => Promise<void>;
+
+  deleteGoal: (goalId: string) => Promise<void>;
+  deleteTask: (goalId: string, taskId: string) => void;
 
   getOverallProgress: () => number;
   getGoalProgress: (goalId: string) => number;
@@ -255,6 +261,30 @@ const hasPendingTasks = () => {
 };
 
 
+const deleteGoal = async (goalId: string) => {
+  if (!authCtx?.user) return;
+
+  await deleteGoalFirestore(authCtx.user.uid, goalId);
+
+  await loadGoals();
+};
+
+const deleteTask = async (goalId: string, taskId: string) => {
+  if (!authCtx?.user) return;
+
+  const goal = goals.find((g) => g.id === goalId);
+  if (!goal) return;
+
+  const updatedTasks = goal.tasks.filter((t) => t.id !== taskId);
+
+  await updateGoal(authCtx.user.uid, goalId, {
+    tasks: updatedTasks,
+  });
+
+  await loadGoals();
+};
+
+
   return (
 <TaskContext.Provider
   value={{
@@ -262,6 +292,8 @@ const hasPendingTasks = () => {
     addGoal,
     addTask,
     toggleTask,
+    deleteGoal,
+    deleteTask,
     getOverallProgress,
     getGoalProgress,
     getRecommendation,
