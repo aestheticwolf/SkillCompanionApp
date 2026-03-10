@@ -7,6 +7,9 @@ import {
   Pressable,
 } from "react-native";
 
+import { PieChart } from "react-native-chart-kit";
+import { Dimensions } from "react-native";
+
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 
@@ -35,6 +38,10 @@ export default function Analytics() {
           (stats.completedTasks / stats.totalTasks) * 100
         );
 
+  const screenWidth = Dimensions.get("window").width;
+
+  
+
   /* Animation */
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,6 +64,24 @@ export default function Analytics() {
   const textPrimary = darkMode ? "#FFFFFF" : "#0F172A";
   const textSecondary = darkMode ? "#CBD5F5" : "#475569";
   const border = darkMode ? "#1E293B" : "#E5E7EB";
+
+  
+  const chartData = [
+  {
+    name: "Completed",
+    population: stats.completedTasks,
+    color: "#22C55E",
+    legendFontColor: textSecondary,
+    legendFontSize: 12,
+  },
+  {
+    name: "Pending",
+    population: stats.pendingTasks,
+    color: "#EF4444",
+    legendFontColor: textSecondary,
+    legendFontSize: 12,
+  },
+];
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: bg }]}>
@@ -143,6 +168,28 @@ export default function Analytics() {
           {percent}% completed
         </Text>
       </View>
+
+
+{/* Task Chart */}
+<View style={[styles.card, { backgroundColor: card }]}>
+  <Text style={[styles.sectionTitle, { color: textPrimary }]}>
+    Task Distribution
+  </Text>
+
+  <PieChart
+    data={chartData}
+    width={screenWidth - 64}
+    height={180}
+    chartConfig={{
+      color: () => COLORS.primary,
+    }}
+    accessor={"population"}
+    backgroundColor={"transparent"}
+    paddingLeft={"15"}
+    absolute
+  />
+</View>
+
 
       {/* Insight */}
       <View style={[styles.card, { backgroundColor: card }]}>
