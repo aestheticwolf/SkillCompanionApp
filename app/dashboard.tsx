@@ -25,12 +25,19 @@ import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
 import { showSuccess, showError } from "../src/services/toast";
 
+import { updateStreak } from "../src/services/streak";
+
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../src/services/firebase";
+
 import {
   requestNotificationPermission,
   scheduleDailyReminder,
 } from "../src/services/notifications";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
+
+
 
 /* ─── accent palette for goal cards ─── */
 const GOAL_COLORS = [
@@ -90,6 +97,8 @@ export default function Dashboard() {
   const [showPicker, setShowPicker] = useState(false);
   const [reminderTime, setReminderTime] = useState(new Date());
   const [hoveredTask, setHoveredTask] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+
 
   /* ── Animations ── */
   const fadeAnim    = useRef(new Animated.Value(0)).current;
@@ -143,6 +152,19 @@ export default function Dashboard() {
     showSuccess("Logged out successfully");
     router.replace("/login");
   };
+
+useEffect(() => {
+  const userRef = doc(db, "users", user.uid);
+
+  const unsubscribe = onSnapshot(userRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      setStreak(data.streak || 0);
+    }
+  });
+
+  return unsubscribe;
+}, []);
 
   /* ── Theme tokens (same logic as original) ── */
   const dark = !!darkMode;
@@ -276,7 +298,7 @@ export default function Dashboard() {
             {[
               { icon: "🎯", val: String(goals.length), lbl: "Goals" },
               { icon: "✅", val: String(goals.reduce((a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length, 0)), lbl: "Done" },
-              { icon: "🔥", val: "7d",  lbl: "Streak" },
+              { icon: "🔥", val: `${streak}d`, lbl: "Streak" },
               { icon: "⭐", val: "842", lbl: "Score"  },
             ].map((s, i) => (
               <Animated.View
@@ -467,12 +489,15 @@ export default function Dashboard() {
                           } as any,
                           !isSynced && { opacity: 0.5 },
                         ]}
-                        onPress={() => {
+                        onPress={async () => {
                           if (!isSynced) {
                             showError("You are offline. Changes will sync later.");
                             return;
                           }
                           toggleTask(g.id, t.id);
+                          if (!t.completed) {
+                            await updateStreak(user.uid);
+                          }
                           showSuccess(t.completed ? "Task marked incomplete" : "Task completed 🎉");
                         }}
                       >
