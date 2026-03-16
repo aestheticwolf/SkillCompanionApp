@@ -56,6 +56,9 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       .sk-hov:hover{transform:translateY(-2px)}
       .sk-btn-hov{transition:transform .15s,opacity .15s}
       .sk-btn-hov:hover{transform:translateY(-1px);opacity:.9}
+      .sk-sidebar{transition:width .28s cubic-bezier(.4,0,.2,1),min-width .28s;overflow:hidden}
+      .sk-hamb{transition:background .15s}
+      .sk-hamb:hover{background:rgba(99,102,241,0.08)!important}
     `;
     document.head.appendChild(s);
   }
@@ -424,7 +427,7 @@ function ProfileDrop({ dark, displayName, overallPct, streak, onClose, onToggleD
 /* ════════════════════════════════
    TOP BAR (web wide)
 ════════════════════════════════ */
-function TopBar({ dark, router, displayName, darkMode, setDarkMode, isSynced, pulseAnim, overallPct, streak }: any) {
+function TopBar({ dark, router, displayName, darkMode, setDarkMode, isSynced, pulseAnim, overallPct, streak, sidebarOpen, setSidebarOpen }: any) {
   const bg     = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
@@ -443,9 +446,28 @@ function TopBar({ dark, router, displayName, darkMode, setDarkMode, isSynced, pu
 
   return (
     <View style={[topBarSt.wrap, { backgroundColor: bg, borderBottomColor: border }]}>
-      <View>
-        <Text style={[topBarSt.title, { color: txtPri }]}>Dashboard</Text>
-        <Text style={[topBarSt.sub,   { color: txtSec }]}>{greet} 🌟 {displayName}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        {/* Sidebar hamburger toggle */}
+        <Pressable
+          className={Platform.OS === "web" ? "sk-hamb" : undefined}
+          onPress={() => setSidebarOpen((s: boolean) => !s)}
+          style={[topBarSt.hambBtn, {
+            backgroundColor: sidebarOpen
+              ? (dark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.08)")
+              : "transparent",
+            borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+          }]}
+        >
+          <View style={{ gap: 4 }}>
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 14 : 18 }]} />
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: 14 }]} />
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 18 : 10 }]} />
+          </View>
+        </Pressable>
+        <View>
+          <Text style={[topBarSt.title, { color: txtPri }]}>Dashboard</Text>
+          <Text style={[topBarSt.sub,   { color: txtSec }]}>{greet} 🌟 {displayName}</Text>
+        </View>
       </View>
       <View style={topBarSt.right}>
         <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
@@ -532,6 +554,10 @@ const topBarSt = StyleSheet.create({
     ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
   },
   avatarTx:   { color: "white", fontWeight: "900", fontSize: 15 },
+  hambBtn:    { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1,
+    ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
+  },
+  hambLine:   { height: 2, borderRadius: 99 },
 });
 
 /* ════════════════════════════════
@@ -867,6 +893,7 @@ export default function Dashboard() {
   const [reminderTime, setReminderTime] = useState(new Date());
   const [hoveredTask,  setHoveredTask]  = useState<string | null>(null);
   const [streak,       setStreak]       = useState(0);
+  const [sidebarOpen,  setSidebarOpen]  = useState(true);
 
   /* Animations */
   const fadeAnim   = useRef(new Animated.Value(0)).current;
@@ -1028,10 +1055,7 @@ export default function Dashboard() {
   );
 
   /* ── Goal list shared ── */
-  /* Track expanded state per goal */
-  const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
-  const toggleExpand = (id: string) => setExpandedGoals(s => ({ ...s, [id]: s[id] === false ? true : false }));
-  const isExpanded = (id: string) => expandedGoals[id] !== false; // default expanded
+  /* Goal cards always expanded — no collapse toggle */
 
   const GoalList = () => (
     <>
@@ -1088,21 +1112,11 @@ export default function Dashboard() {
                   <Pressable onPress={() => taskCtx.deleteGoal(g.id)} style={({ pressed }) => [styles.delGoalBtn, pressed && { opacity: 0.55 }]}>
                     <Text style={styles.delTx}>🗑</Text>
                   </Pressable>
-                  {/* Expand/collapse chevron */}
-                  <Pressable onPress={() => toggleExpand(g.id)} style={[styles.chevBtn,
-                    Platform.OS === "web" ? {
-                      backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                      border: `1px solid ${cardBorder}`,
-                      transition: "transform .2s",
-                      transform: isExpanded(g.id) ? "rotate(180deg)" : "rotate(0deg)",
-                    } as any : {}
-                  ]}>
-                    <Text style={[styles.chevTx, { color: textSecondary }]}>⌄</Text>
-                  </Pressable>
+
                 </View>
 
-                {isExpanded(g.id) && <>
-                <View style={{ marginBottom: 10 }}>
+                {/* Progress bar */}
+                <View style={{ marginBottom: 10, marginTop: 2 }}>
                   {Platform.OS === "web" ? (
                     <View style={{ height: 5, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", borderRadius: 99, overflow: "hidden" } as any}>
                       <View style={{
@@ -1118,20 +1132,18 @@ export default function Dashboard() {
                   )}
                 </View>
 
+                {/* Tasks */}
                 {g.tasks.map((t: any) => (
                   <Pressable
                     key={t.id}
                     onHoverIn={() => Platform.OS === "web" && setHoveredTask(t.id)}
                     onHoverOut={() => Platform.OS === "web" && setHoveredTask(null)}
-                    style={[
-                      styles.taskRow,
-                      {
-                        backgroundColor: t.completed ? accent + "0d" : dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)",
-                        borderColor: t.completed ? accent + "28" : cardBorder,
-                      },
-                      Platform.OS === "web" && hoveredTask === t.id && { backgroundColor: accent + "14" } as any,
-                      !isSynced && { opacity: 0.5 },
-                    ]}
+                    style={[styles.taskRow, {
+                      backgroundColor: t.completed ? accent + "0d" : dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)",
+                      borderColor: t.completed ? accent + "28" : cardBorder,
+                    },
+                    Platform.OS === "web" && hoveredTask === t.id && { backgroundColor: accent + "14" } as any,
+                    !isSynced && { opacity: 0.5 }]}
                     onPress={async () => {
                       if (!isSynced) { showError("You are offline. Changes will sync later."); return; }
                       toggleTask(g.id, t.id);
@@ -1154,6 +1166,7 @@ export default function Dashboard() {
                   </Pressable>
                 ))}
 
+                {/* Add Task button */}
                 <Pressable
                   style={[styles.addTaskBtn, { borderColor: accent + "44" }, !isSynced && { opacity: 0.5 }]}
                   disabled={!isSynced}
@@ -1161,7 +1174,6 @@ export default function Dashboard() {
                 >
                   <Text style={[styles.addTaskTx, { color: accent }]}>+ Add Task</Text>
                 </Pressable>
-                </>}
               </Animated.View>
             );
           })}
@@ -1186,12 +1198,26 @@ export default function Dashboard() {
         /* ══ DESKTOP LAYOUT (960px+) ══ */
         <View style={styles.wideRoot}>
 
-          {/* Sidebar */}
-          <Sidebar
-            dark={dark} router={router} isSynced={isSynced}
-            overallPct={overallPct} displayName={displayName}
-            goals={goals} completedTasks={completedTasks} totalTasks={totalTasks}
-          />
+          {/* Sidebar — collapsible on desktop */}
+          {Platform.OS === "web" ? (
+            <View className="sk-sidebar" style={{
+              width: sidebarOpen ? 260 : 0,
+              minWidth: sidebarOpen ? 260 : 0,
+              overflow: "hidden",
+            } as any}>
+              <Sidebar
+                dark={dark} router={router} isSynced={isSynced}
+                overallPct={overallPct} displayName={displayName}
+                goals={goals} completedTasks={completedTasks} totalTasks={totalTasks}
+              />
+            </View>
+          ) : (
+            <Sidebar
+              dark={dark} router={router} isSynced={isSynced}
+              overallPct={overallPct} displayName={displayName}
+              goals={goals} completedTasks={completedTasks} totalTasks={totalTasks}
+            />
+          )}
 
           {/* Center + Right */}
           <View style={styles.wideCenter}>
@@ -1201,6 +1227,7 @@ export default function Dashboard() {
               dark={dark} router={router} displayName={displayName}
               darkMode={dark} setDarkMode={setDarkMode} isSynced={isSynced}
               pulseAnim={pulseAnim} overallPct={overallPct} streak={streak}
+              sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
             />
 
             <ScrollView
@@ -1438,7 +1465,7 @@ const styles = StyleSheet.create({
   goalBoxFull: { width: "100%" },
   goalBoxWide: { width: "49%", marginHorizontal: "0.5%" },
 
-  goalHeader:  { flexDirection: "row", alignItems: "center", marginBottom: 16, gap: 14 },
+  goalHeader:  { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 14 },
   goalIconWrap:{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   goalTitle:   { fontSize: 17, fontWeight: "800", letterSpacing: -0.4, marginBottom: 3,
     ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
