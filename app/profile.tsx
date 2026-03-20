@@ -16,9 +16,10 @@ import { useWindowDimensions } from "react-native";
 import { AuthContext } from "../src/context/AuthContext";
 import { TaskContext } from "../src/context/TaskContext";
 import { loadTheme } from "../src/services/uiPreferences";
-import { sendPasswordResetEmail, signOut } from "firebase/auth";
+import { showSuccess } from "../src/services/toast";
+import { signOut, updateProfile, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import { auth, db } from "../src/services/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
 /* ════ WEB CSS — same as dashboard ════ */
 if (Platform.OS === "web" && typeof document !== "undefined") {
@@ -42,6 +43,10 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       .sk-hov:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(99,102,241,.14)!important}
       .sk-btn-hov{transition:transform .15s,opacity .15s,box-shadow .15s}
       .sk-btn-hov:hover{transform:translateY(-1px);opacity:.93}
+      .sk-sidebar{transition:width .28s cubic-bezier(.4,0,.2,1),min-width .28s;overflow:hidden;flex-shrink:0}
+      .sk-hamb:hover{background:rgba(99,102,241,0.08)!important}
+      @keyframes sk-fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+      .sk-fadeUp{animation:sk-fadeUp .3s ease both}
       *{box-sizing:border-box;}
       ::-webkit-scrollbar{width:4px}
       ::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.3);border-radius:99px}
@@ -120,9 +125,8 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
   const NAV = [
     { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
     { icon: "📊", label: "Analytics",  route: "/analytics", active: false },
-    { icon: "🎯", label: "Goals",      route: "/add-goal",  active: false },
-    { icon: "🔔", label: "Reminders",  route: null,         active: false, badge: 3 },
-    { icon: "⚙️", label: "Settings",   route: null,         active: false },
+    { icon: "🔔", label: "Reminders",  route: null,         active: false, v2: true },
+    { icon: "⚙️", label: "Settings",   route: null,         active: false, v2: true },
   ];
   return (
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
@@ -136,15 +140,23 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
         </View>
       </View>
       <Text style={[sbSt.navLabel, { color: txtMut }]}>NAVIGATION</Text>
-      {NAV.map((n, i) => (
-        <Pressable key={i} onPress={() => n.route && router.push(n.route)}
+      {NAV.map((n: any, i: number) => (
+        <Pressable key={i} onPress={() => {
+          if (n.v2) { showSuccess("🚀 Coming in v2 — stay tuned!"); return; }
+          n.route && router.push(n.route);
+        }}
           style={({ pressed }) => [sbSt.navItem,
             n.active && { backgroundColor: dark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.08)" },
+            n.v2 && { opacity: 0.55 },
             pressed && { opacity: 0.75 }]}>
           <Text style={{ fontSize: 16 }}>{n.icon}</Text>
-          <Text style={[sbSt.navTx, { color: n.active ? ACCENT : txtPri, fontWeight: n.active ? "700" : "500" }]}>{n.label}</Text>
+          <Text style={[sbSt.navTx, { color: n.active ? ACCENT : n.v2 ? txtMut : txtPri, fontWeight: n.active ? "700" : "500" }]}>{n.label}</Text>
           {n.active && <View style={sbSt.activeBar} />}
-          {!!n.badge && <View style={sbSt.badge}><Text style={sbSt.badgeTx}>{n.badge}</Text></View>}
+          {n.v2 && (
+            <View style={{ backgroundColor: "rgba(99,102,241,0.12)", borderRadius: 99, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 9, fontWeight: "700", color: ACCENT }}>v2</Text>
+            </View>
+          )}
         </Pressable>
       ))}
       <View style={{ flex: 1 }} />
@@ -170,19 +182,18 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
         <ShimmerBar pct={overallPct} color={ACCENT} h={5} />
       </View>
       {/* User row — active on profile */}
-      <Pressable onPress={() => router.push("/profile")}
-        style={[sbSt.userRow, { backgroundColor: dark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.06)", borderColor: ACCENT + "33" }]}>
+      <View style={[sbSt.userRow, { backgroundColor: dark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.06)", borderColor: ACCENT + "33" }]}>
         <View style={[sbSt.userAvatar,
           Platform.OS === "web" ? { background: "linear-gradient(135deg,#f97316,#ef4444)" } as any : { backgroundColor: "#f97316" }]}>
           <Text style={{ color: "white", fontWeight: "800", fontSize: 15 }}>R</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: txtPri }}>Richard</Text>
-          <Text style={{ fontSize: 11, fontWeight: "500", color: ACCENT }}>View Profile →</Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: txtPri }}>My Profile</Text>
+          <Text style={{ fontSize: 11, fontWeight: "500", color: ACCENT }}>Active ✓</Text>
         </View>
         <View style={[sbSt.onlineDot, { backgroundColor: "#34d399" },
           Platform.OS === "web" ? { animation: "sk-pulse 2s infinite" } as any : {}]} />
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -217,7 +228,7 @@ const sbSt = StyleSheet.create({
 });
 
 /* ════ TOP BAR — matches dashboard ════ */
-function TopBar({ dark, router, displayName }: any) {
+function TopBar({ dark, router, displayName, sidebarOpen, setSidebarOpen }: any) {
   const bg     = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
@@ -230,21 +241,28 @@ function TopBar({ dark, router, displayName }: any) {
   const initials = displayName.charAt(0).toUpperCase();
   return (
     <View style={[tbSt.wrap, { backgroundColor: bg, borderBottomColor: border }]}>
-      <View>
-        <Text style={[tbSt.title, { color: txtPri }]}>Profile</Text>
-        <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>Dashboard  ›  My Profile</Text>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
-        <Pressable onPress={() => router.push("/dashboard")}
-          style={({ pressed }) => [tbSt.backBtn, {
-            backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-            borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-            opacity: pressed ? 0.7 : 1,
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        {/* Hamburger */}
+        <Pressable
+          className={Platform.OS === "web" ? "sk-hamb" : undefined}
+          onPress={() => sidebarOpen !== undefined && setSidebarOpen && setSidebarOpen((s: boolean) => !s)}
+          style={[tbSt.hambBtn, {
+            backgroundColor: sidebarOpen
+              ? (dark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.08)") : "transparent",
+            borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
           }]}>
-          <Text style={{ color: txtPri, fontWeight: "600", fontSize: 13 }}>← Back to Dashboard</Text>
+          <View style={{ gap: 4 }}>
+            {[{ w: sidebarOpen ? 14 : 18 }, { w: 14 }, { w: sidebarOpen ? 18 : 10 }].map((line, i) => (
+              <View key={i} style={[tbSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: line.w }]} />
+            ))}
+          </View>
         </Pressable>
+        <View>
+          <Text style={[tbSt.title, { color: txtPri }]}>Profile</Text>
+          <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>Dashboard  ›  My Profile</Text>
+        </View>
       </View>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
     </View>
   );
 }
@@ -253,7 +271,9 @@ const tbSt = StyleSheet.create({
     ...(Platform.OS === "web" ? { position: "sticky", top: 0, zIndex: 200 } as any : {}),
   },
   title:   { fontSize: 20, fontWeight: "900", letterSpacing: -0.4, ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) },
-  backBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12, borderWidth: 1, ...(Platform.OS === "web" ? { cursor: "pointer", transition: "opacity .15s" } as any : {}) },
+  backBtn:  { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12, borderWidth: 1, ...(Platform.OS === "web" ? { cursor: "pointer", transition: "opacity .15s" } as any : {}) },
+  hambBtn:  { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}) },
+  hambLine: { height: 2, borderRadius: 99 },
 });
 
 /* ════════════════════════════════
@@ -264,7 +284,21 @@ export default function Profile() {
   const authCtx = useContext(AuthContext);
   const taskCtx = useContext(TaskContext);
 
-  const [darkMode, setDarkMode] = useState<boolean | null>(null);
+  const [darkMode,    setDarkMode]    = useState<boolean | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [role,        setRole]        = useState("Intern Developer");
+  const [editingRole,  setEditingRole]  = useState(false);
+  const [roleInput,    setRoleInput]    = useState("Intern Developer");
+  const [editingName,  setEditingName]  = useState(false);
+  const [nameInput,    setNameInput]    = useState("");
+  const [savingName,   setSavingName]   = useState(false);
+  const [showPwdForm,  setShowPwdForm]  = useState(false);
+  const [currentPwd,   setCurrentPwd]   = useState("");
+  const [newPwd,       setNewPwd]       = useState("");
+  const [confirmPwd,   setConfirmPwd]   = useState("");
+  const [pwdError,     setPwdError]     = useState("");
+  const [pwdSuccess,   setPwdSuccess]   = useState(false);
+  const [savingPwd,    setSavingPwd]    = useState(false);
   useEffect(() => { loadTheme().then(setDarkMode); }, []);
 
   /* Live streak from Firestore — same as dashboard */
@@ -273,10 +307,23 @@ export default function Profile() {
     if (!authCtx?.user?.uid) return;
     const userRef = doc(db, "users", authCtx.user.uid);
     const unsub   = onSnapshot(userRef, (snap) => {
-      if (snap.exists()) setStreak(snap.data().streak || 0);
+      if (snap.exists()) {
+        setStreak(snap.data().streak || 0);
+        const r = snap.data().role || "Intern Developer";
+        setRole(r);
+        setRoleInput(r);
+      }
     });
     return unsub;
   }, [authCtx?.user?.uid]);
+
+  /* Sync nameInput whenever Firebase Auth displayName changes */
+  useEffect(() => {
+    const dn = authCtx?.user?.displayName || authCtx?.user?.email || "";
+    if (dn && dn !== authCtx?.user?.email) {
+      setNameInput(dn);
+    }
+  }, [authCtx?.user?.displayName]);
 
   /* ── Animations — original preserved ── */
   const fadeAnim    = useRef(new Animated.Value(0)).current;
@@ -298,6 +345,10 @@ export default function Profile() {
     ])).start();
   }, []);
 
+  /* ── ALL hooks must be before any conditional return ── */
+  const { width: screenW } = useWindowDimensions();
+  const isWide = Platform.OS === "web" && screenW >= 960;
+
   const user = authCtx?.user;
   if (!user) {
     return (
@@ -308,18 +359,60 @@ export default function Profile() {
   }
 
   /* ── Handlers — 100% original logic unchanged ── */
-  const resetPassword = async () => {
+  const changePassword = async () => {
+    setPwdError("");
+    if (!currentPwd) { setPwdError("Please enter your current password."); return; }
+    if (newPwd.length < 6) { setPwdError("New password must be at least 6 characters."); return; }
+    if (newPwd !== confirmPwd) { setPwdError("Passwords do not match."); return; }
+    setSavingPwd(true);
     try {
-      await sendPasswordResetEmail(auth, user.email!);
-      Alert.alert("Success", "Reset link sent to " + user.email);
-    } catch {
-      Alert.alert("Error", "Try again later");
+      const credential = EmailAuthProvider.credential(user.email!, currentPwd);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPwd);
+      setPwdSuccess(true);
+      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
+      setTimeout(() => { setPwdSuccess(false); setShowPwdForm(false); }, 3000);
+    } catch (err: any) {
+      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setPwdError("Current password is incorrect.");
+      } else {
+        setPwdError("Failed to update password. Please try again.");
+      }
+    } finally {
+      setSavingPwd(false);
     }
   };
 
   const logout = async () => {
     await signOut(auth);
     router.replace("/login");
+  };
+
+  const saveRole = async () => {
+    const trimmed = roleInput.trim() || "Intern Developer";
+    setRole(trimmed);
+    setEditingRole(false);
+    if (authCtx?.user?.uid) {
+      await setDoc(doc(db, "users", authCtx.user.uid), { role: trimmed }, { merge: true });
+    }
+  };
+
+  const saveName = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) { setEditingName(false); return; }
+    setSavingName(true);
+    try {
+      await updateProfile(user, { displayName: trimmed });
+      /* Also persist to Firestore so it syncs across screens */
+      if (authCtx?.user?.uid) {
+        await setDoc(doc(db, "users", authCtx.user.uid), { displayName: trimmed }, { merge: true });
+      }
+    } catch (e) {
+      Alert.alert("Error", "Could not update name.");
+    } finally {
+      setSavingName(false);
+      setEditingName(false);
+    }
   };
 
   /* ── Derived data — original unchanged ── */
@@ -349,15 +442,12 @@ export default function Profile() {
     ? { boxShadow: dark ? "0 2px 16px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.05)" }
     : { elevation: 3 };
 
-  const { width: screenW } = useWindowDimensions();
-  const isWide = Platform.OS === "web" && screenW >= 960;
-
   /* STATS — streak now live */
   const STATS = [
     { icon: "🎯", val: totalGoals,     lbl: "Goals",      color: ACCENT    },
     { icon: "✅", val: completedTasks, lbl: "Done",       color: "#34d399" },
     { icon: "🔥", val: streak,         lbl: "Day Streak", color: "#f97316" },
-    { icon: "⭐", val: "842",          lbl: "Score",      color: "#fbbf24" },
+    { icon: "⭐", val: Math.min(9999, completedTasks * 50 + totalGoals * 120 + streak * 15), lbl: "Score", color: "#fbbf24" },
   ];
 
   const mainContent = (
@@ -423,7 +513,7 @@ export default function Profile() {
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#34d399",
                 ...(Platform.OS === "web" ? { animation: "sk-pulse 1.5s infinite" } as any : {}),
               }} />
-              <Text style={styles.roleTx}>👨‍💻 Intern Developer</Text>
+              <Text style={styles.roleTx}>👨‍💻 {role}</Text>
             </View>
           </View>
 
@@ -490,11 +580,11 @@ export default function Profile() {
             <View style={{ height: 1, backgroundColor: cardBorder, marginBottom: 4 }} />
 
             {[
-              { icon: "👤", lbl: "Name",   val: displayName, color: ACCENT    },
+              { icon: "👤", lbl: "Name",   val: displayName, color: ACCENT, editable: "name" },
               { icon: "✉️", lbl: "Email",  val: email,       color: "#06b6d4" },
-              { icon: "🏷️", lbl: "Role",   val: "Intern Developer", color: "#a78bfa" },
-              { icon: "📅", lbl: "Member", val: "Since 2025", color: "#34d399" },
-            ].map((row, i) => (
+              { icon: "🏷️", lbl: "Role",   val: role,        color: "#a78bfa", editable: "role" },
+              { icon: "📅", lbl: "Member", val: `Since ${new Date(user.metadata?.creationTime || "2025").getFullYear()}`, color: "#34d399" },
+            ].map((row: any, i: number) => (
               <View key={i} style={[styles.infoRow, { borderColor: cardBorder },
                 i === 3 && { borderBottomWidth: 0 }]}>
                 <View style={[styles.infoIconWrap, { backgroundColor: row.color + "14" }]}>
@@ -502,9 +592,73 @@ export default function Profile() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.infoLbl, { color: textMuted }]}>{row.lbl}</Text>
-                  <Text style={[styles.infoVal, { color: textPrimary }]}>{row.val}</Text>
+                  {row.editable === "name" && editingName ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                      {Platform.OS === "web" ? (
+                        <input
+                          value={nameInput}
+                          onChange={(e: any) => setNameInput(e.target.value)}
+                          onKeyDown={(e: any) => { if (e.key === "Enter") saveName(); if (e.key === "Escape") setEditingName(false); }}
+                          autoFocus
+                          style={{
+                            flex: 1, fontSize: 14, fontWeight: "700", fontFamily: "inherit",
+                            border: "none", borderBottom: `2px solid ${ACCENT}`, outline: "none",
+                            background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                            padding: "2px 0",
+                          } as any}
+                        />
+                      ) : (
+                        <Text style={[styles.infoVal, { color: textPrimary }]}>{nameInput}</Text>
+                      )}
+                      <Pressable onPress={saveName} disabled={savingName}
+                        style={{ backgroundColor: ACCENT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, opacity: savingName ? 0.6 : 1 }}>
+                        <Text style={{ color: "white", fontSize: 11, fontWeight: "800" }}>{savingName ? "..." : "Save"}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => { setEditingName(false); setNameInput(displayName); }}>
+                        <Text style={{ color: textMuted, fontSize: 11, fontWeight: "600" }}>Cancel</Text>
+                      </Pressable>
+                    </View>
+                  ) : row.editable === "role" && editingRole ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                      {Platform.OS === "web" ? (
+                        <input
+                          value={roleInput}
+                          onChange={(e: any) => setRoleInput(e.target.value)}
+                          onKeyDown={(e: any) => { if (e.key === "Enter") saveRole(); if (e.key === "Escape") setEditingRole(false); }}
+                          autoFocus
+                          style={{
+                            flex: 1, fontSize: 14, fontWeight: "700", fontFamily: "inherit",
+                            border: "none", borderBottom: `2px solid #a78bfa`, outline: "none",
+                            background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                            padding: "2px 0",
+                          } as any}
+                        />
+                      ) : (
+                        <Text style={[styles.infoVal, { color: textPrimary }]}>{roleInput}</Text>
+                      )}
+                      <Pressable onPress={saveRole} style={{ backgroundColor: "#a78bfa", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ color: "white", fontSize: 11, fontWeight: "800" }}>Save</Text>
+                      </Pressable>
+                      <Pressable onPress={() => { setEditingRole(false); setRoleInput(role); }}>
+                        <Text style={{ color: textMuted, fontSize: 11, fontWeight: "600" }}>Cancel</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Text style={[styles.infoVal, { color: textPrimary }]}>{row.val}</Text>
+                  )}
                 </View>
-                <Text style={{ fontSize: 13, color: textMuted }}>›</Text>
+                {row.editable ? (
+                  <Pressable onPress={() => {
+                    if (row.editable === "name") { setEditingName(true); setNameInput(displayName); }
+                    else { setEditingRole(true); setRoleInput(role); }
+                  }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                    <Text style={{ fontSize: 12, color: row.editable === "name" ? ACCENT : "#a78bfa", fontWeight: "700",
+                      ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
+                    }}>✏️ Edit</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ fontSize: 13, color: textMuted }}>›</Text>
+                )}
               </View>
             ))}
           </Animated.View>
@@ -554,30 +708,129 @@ export default function Profile() {
             </View>
             <View style={{ height: 1, backgroundColor: cardBorder, marginBottom: 14 }} />
 
-            {/* Reset Password */}
+            {/* Change Password button */}
             <Pressable
               className={Platform.OS === "web" ? "sk-btn-hov" : undefined}
-              onPress={resetPassword}
+              onPress={() => { setShowPwdForm(f => !f); setPwdError(""); setPwdSuccess(false); }}
               style={({ pressed }) => [
                 styles.actionBtn,
                 {
-                  backgroundColor: ACCENT,
-                  ...(Platform.OS === "web"
+                  backgroundColor: showPwdForm ? (dark ? "rgba(99,102,241,0.15)" : "rgba(99,102,241,0.08)") : ACCENT,
+                  borderWidth: showPwdForm ? 1 : 0,
+                  borderColor: ACCENT + "44",
+                  ...(Platform.OS === "web" && !showPwdForm
                     ? { background: "linear-gradient(135deg,#6366f1,#a78bfa)", boxShadow: "0 6px 20px rgba(99,102,241,0.4)" }
-                    : { elevation: 6 }),
+                    : {}),
                 },
-                pressed && { opacity: 0.82, transform: [{ scale: 0.98 }] },
+                pressed && { opacity: 0.82 },
               ]}
             >
               <View style={styles.actionBtnInner}>
                 <Text style={styles.actionIcon}>🔑</Text>
                 <View>
-                  <Text style={styles.actionTitle}>Reset Password</Text>
-                  <Text style={styles.actionSub}>Send a reset link to {email}</Text>
+                  <Text style={[styles.actionTitle, showPwdForm && { color: ACCENT }]}>Change Password</Text>
+                  <Text style={[styles.actionSub, showPwdForm && { color: dark ? "rgba(99,102,241,0.6)" : "rgba(99,102,241,0.5)" }]}>
+                    {showPwdForm ? "Enter details below" : "Update your account password"}
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.actionArrow}>→</Text>
+              <Text style={[styles.actionArrow, showPwdForm && { color: ACCENT }]}>{showPwdForm ? "✕" : "→"}</Text>
             </Pressable>
+
+            {/* Inline change password form */}
+            {showPwdForm && (
+              <View style={{
+                borderRadius: 16, borderWidth: 1,
+                borderColor: ACCENT + "22",
+                backgroundColor: dark ? "rgba(99,102,241,0.06)" : "rgba(99,102,241,0.04)",
+                padding: 16, marginBottom: 10,
+                ...(Platform.OS === "web" ? { animation: "sk-fadeUp .2s ease both" } as any : {}),
+              }}>
+                {pwdSuccess ? (
+                  <View style={{ alignItems: "center", paddingVertical: 12 }}>
+                    <Text style={{ fontSize: 28, marginBottom: 8 }}>✅</Text>
+                    <Text style={{ fontSize: 15, fontWeight: "800", color: "#34d399", marginBottom: 4 }}>Password Updated!</Text>
+                    <Text style={{ fontSize: 12, color: dark ? "rgba(52,211,153,0.7)" : "rgba(5,150,105,0.8)" }}>Your password has been changed successfully.</Text>
+                  </View>
+                ) : (
+                  <>
+                    {/* Error message */}
+                    {!!pwdError && (
+                      <View style={{ backgroundColor: "#ef444418", borderRadius: 10, borderWidth: 1, borderColor: "#ef444433", padding: 10, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={{ fontSize: 14 }}>⚠️</Text>
+                        <Text style={{ fontSize: 12, fontWeight: "600", color: "#ef4444", flex: 1 }}>{pwdError}</Text>
+                      </View>
+                    )}
+                    {/* Current password */}
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>Current Password</Text>
+                    {Platform.OS === "web" ? (
+                      <input type="password" value={currentPwd} onChange={(e: any) => setCurrentPwd(e.target.value)} placeholder="Enter current password"
+                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 12, outline: "none", fontFamily: "inherit" } as any} />
+                    ) : (
+                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 }}>
+                        <Text style={{ color: textSecondary, fontSize: 14 }}>{currentPwd ? "••••••••" : "Enter current password"}</Text>
+                      </View>
+                    )}
+                    {/* New password */}
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>New Password</Text>
+                    {Platform.OS === "web" ? (
+                      <input type="password" value={newPwd} onChange={(e: any) => setNewPwd(e.target.value)} placeholder="Min 6 characters"
+                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 12, outline: "none", fontFamily: "inherit" } as any} />
+                    ) : (
+                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 }}>
+                        <Text style={{ color: textSecondary, fontSize: 14 }}>{newPwd ? "••••••••" : "Min 6 characters"}</Text>
+                      </View>
+                    )}
+                    {/* Confirm password */}
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>Confirm New Password</Text>
+                    {Platform.OS === "web" ? (
+                      <input type="password" value={confirmPwd} onChange={(e: any) => setConfirmPwd(e.target.value)}
+                        onKeyDown={(e: any) => { if (e.key === "Enter") changePassword(); }}
+                        placeholder="Repeat new password"
+                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 16, outline: "none", fontFamily: "inherit" } as any} />
+                    ) : (
+                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}>
+                        <Text style={{ color: textSecondary, fontSize: 14 }}>{confirmPwd ? "••••••••" : "Repeat new password"}</Text>
+                      </View>
+                    )}
+                    {/* Strength indicator */}
+                    {newPwd.length > 0 && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                        {[1,2,3,4].map(lvl => (
+                          <View key={lvl} style={{ flex: 1, height: 4, borderRadius: 99, backgroundColor:
+                            newPwd.length >= lvl * 3
+                              ? (lvl <= 1 ? "#ef4444" : lvl <= 2 ? "#f97316" : lvl <= 3 ? "#fbbf24" : "#34d399")
+                              : (dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)") }} />
+                        ))}
+                        <Text style={{ fontSize: 11, fontWeight: "700", color:
+                          newPwd.length < 4 ? "#ef4444" : newPwd.length < 7 ? "#f97316" : newPwd.length < 10 ? "#fbbf24" : "#34d399" }}>
+                          {newPwd.length < 4 ? "Weak" : newPwd.length < 7 ? "Fair" : newPwd.length < 10 ? "Good" : "Strong"}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Action buttons */}
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <Pressable onPress={changePassword} disabled={savingPwd}
+                        style={({ pressed }) => ({
+                          flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: "center",
+                          backgroundColor: ACCENT, opacity: (savingPwd || pressed) ? 0.75 : 1,
+                          ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,#6366f1,#a78bfa)", boxShadow: "0 4px 16px rgba(99,102,241,0.4)", cursor: "pointer" } as any : {}),
+                        })}>
+                        <Text style={{ color: "white", fontWeight: "800", fontSize: 14 }}>{savingPwd ? "Saving..." : "Update Password"}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => { setShowPwdForm(false); setCurrentPwd(""); setNewPwd(""); setConfirmPwd(""); setPwdError(""); }}
+                        style={({ pressed }) => ({
+                          paddingHorizontal: 18, paddingVertical: 13, borderRadius: 12, borderWidth: 1,
+                          borderColor: dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)",
+                          backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)") : "transparent",
+                        })}>
+                        <Text style={{ color: textSecondary, fontWeight: "700", fontSize: 14 }}>Cancel</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
 
             {/* Logout */}
             <Pressable
@@ -621,10 +874,18 @@ export default function Profile() {
   if (isWide) {
     return (
       <View style={[wSt.root, { backgroundColor: bg }]}>
-        <Sidebar dark={dark} router={router} overallPct={overallPct}
-          completedTasks={completedTasks} totalTasks={totalTasks} />
+        {Platform.OS === "web" ? (
+          <View className="sk-sidebar" style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, overflow: "hidden" } as any}>
+            <Sidebar dark={dark} router={router} overallPct={overallPct}
+              completedTasks={completedTasks} totalTasks={totalTasks} />
+          </View>
+        ) : (
+          <Sidebar dark={dark} router={router} overallPct={overallPct}
+            completedTasks={completedTasks} totalTasks={totalTasks} />
+        )}
         <View style={wSt.center}>
-          <TopBar dark={dark} router={router} displayName={displayName} />
+          <TopBar dark={dark} router={router} displayName={displayName}
+            sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           {mainContent}
         </View>
       </View>
