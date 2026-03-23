@@ -22,10 +22,10 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.richard.skillcompanion"
     },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
+   "web": {
+  "output": "static",
+  "favicon": "./assets/images/favicon.svg"
+},
     "plugins": [
       "expo-router",
       [

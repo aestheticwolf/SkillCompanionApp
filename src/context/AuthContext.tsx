@@ -46,7 +46,7 @@ export function AuthProvider({
     useState<User | null>(null);
 
   const [loading, setLoading] =
-    useState(true);
+    useState(true); 
 
   const [goals, setGoals] =
     useState<Goal[]>([]);

@@ -8,10 +8,12 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Image,
 } from "react-native";
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
+import SkillPathLogo from "../src/components/SkillPathLogo";
 import { useWindowDimensions } from "react-native";
 import { AuthContext } from "../src/context/AuthContext";
 import { TaskContext } from "../src/context/TaskContext";
@@ -132,7 +134,7 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
       <View style={sbSt.logoRow}>
         <View style={[sbSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
-          <Text style={{ fontSize: 18 }}>⚡</Text>
+          <SkillPathLogo size={48} />
         </View>
         <View>
           <Text style={[sbSt.logoName, { color: txtPri }]}>SkillPath</Text>
@@ -201,8 +203,8 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
 const sbSt = StyleSheet.create({
   wrap:       { width: SIDEBAR_W, height: "100%" as any, paddingVertical: 24, paddingHorizontal: 16, borderRightWidth: 1, flexShrink: 0 },
   logoRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 36, paddingHorizontal: 8 },
-  logoIcon:   { width: 38, height: 38, borderRadius: 12, backgroundColor: ACCENT, alignItems: "center", justifyContent: "center",
-    ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,#6366f1,#a78bfa)" } as any : {}),
+  logoIcon:   { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center",
+    ...(Platform.OS === "web" ? { filter: "drop-shadow(0 4px 12px rgba(99,102,241,0.35))", animation: "sk-breathe 3s ease-in-out infinite" } as any : {}),
   },
   logoName:   { fontSize: 16, fontWeight: "900", letterSpacing: -0.5, ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) },
   logoSub:    { fontSize: 11, fontWeight: "500" },

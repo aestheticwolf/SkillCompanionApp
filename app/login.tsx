@@ -7,10 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Image,
 } from "react-native";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "expo-router";
+import SkillPathLogo from "../src/components/SkillPathLogo";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/src/services/firebase";
 import Loader from "@/src/components/Loader";
@@ -168,8 +170,8 @@ export default function Login() {
               Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
               <View style={styles.logoRing}>
                 <View style={[styles.logoCircle,
-                  Platform.OS === "web" ? { background: "linear-gradient(135deg,#6366f1,#a78bfa)", animation: "sk-breathe 3s ease-in-out infinite" } as any : {}]}>
-                  <Text style={{ fontSize: 32 }}>⚡</Text>
+                  Platform.OS === "web" ? { animation: "sk-breathe 3s ease-in-out infinite" } as any : {}]}>
+                  <SkillPathLogo size={80} />
                 </View>
               </View>
             </View>
@@ -335,15 +337,16 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? {} : {}),
   },
   logoRing:   {
-    width: 90, height: 90, borderRadius: 45,
+    width: 120, height: 120, borderRadius: 60,
     backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)",
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.55)",
     alignItems: "center", justifyContent: "center",
   },
   logoCircle: {
-    width: 70, height: 70, borderRadius: 35,
-    backgroundColor: "#6366f1",
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: "transparent",
     alignItems: "center", justifyContent: "center",
+    overflow: "hidden",
   },
   appName: {
     fontSize: 34, fontWeight: "900", color: "white",

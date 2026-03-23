@@ -1,39 +1,288 @@
-import React from "react";
-import { BaseToast, ErrorToast } from "react-native-toast-message";
-import { COLORS } from "../constants/theme";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  Animated,
+  Platform,
+  StyleSheet,
+  Pressable,
+} from "react-native";
 
+/* ─── Inline theme store — exported so dashboard.tsx can sync it ─── */
+let _dark = false;
+export const themeStore = {
+  get dark(): boolean { return _dark; },
+  set dark(value: boolean) { _dark = value; },
+};
+
+/* ─── Inject web CSS once ─── */
+if (Platform.OS === "web" && typeof document !== "undefined") {
+  const id = "sk-toast-css";
+  if (!document.getElementById(id)) {
+    const s = document.createElement("style");
+    s.id = id;
+    s.textContent = `
+      @keyframes sk-toast-in{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+      @keyframes sk-toast-out{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(16px) scale(.94)}}
+      @keyframes sk-toast-shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+      @keyframes sk-toast-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+      .sk-toast-wrap{animation:sk-toast-in .32s cubic-bezier(.34,1.56,.64,1) both}
+    `;
+    document.head.appendChild(s);
+  }
+}
+
+/* ══ Custom Toast Component ══ */
+function SkToast({
+  type,
+  text1,
+  text2,
+  onPress,
+  hide,
+}: {
+  type: "success" | "error" | "info";
+  text1?: string;
+  text2?: string;
+  onPress?: () => void;
+  hide?: () => void;
+}) {
+  const dark = themeStore.dark;
+
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.88)).current;
+  const barAnim   = useRef(new Animated.Value(0)).current;
+
+  const cfg = {
+    success: {
+      icon: "✓",
+      iconBg:    dark ? "rgba(52,211,153,0.15)"  : "rgba(52,211,153,0.12)",
+      iconColor: "#34d399",
+      accent:    "#34d399",
+      barGrad:   "linear-gradient(90deg,#34d399,#6ee7b7)",
+      glow:      dark ? "rgba(52,211,153,0.25)"  : "rgba(52,211,153,0.18)",
+      label:     text1 || "Success",
+    },
+    error: {
+      icon: "✕",
+      iconBg:    dark ? "rgba(239,68,68,0.15)"   : "rgba(239,68,68,0.10)",
+      iconColor: "#ef4444",
+      accent:    "#ef4444",
+      barGrad:   "linear-gradient(90deg,#ef4444,#f87171)",
+      glow:      dark ? "rgba(239,68,68,0.25)"   : "rgba(239,68,68,0.15)",
+      label:     text1 || "Error",
+    },
+    info: {
+      icon: "→",
+      iconBg:    dark ? "rgba(99,102,241,0.15)"  : "rgba(99,102,241,0.10)",
+      iconColor: "#6366f1",
+      accent:    "#6366f1",
+      barGrad:   "linear-gradient(90deg,#6366f1,#a78bfa)",
+      glow:      dark ? "rgba(99,102,241,0.25)"  : "rgba(99,102,241,0.18)",
+      label:     text1 || "Coming Soon",
+    },
+  }[type];
+
+  /* Theme colours */
+  const bgColor      = dark ? "rgba(13,20,36,0.97)"   : "rgba(255,255,255,0.98)";
+  const textColor    = dark ? "#eef2ff"                : "#0f172a";
+  const subColor     = dark ? "rgba(238,242,255,0.50)" : "rgba(15,23,42,0.50)";
+  const dismissBg    = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
+  const dismissColor = dark ? "rgba(238,242,255,0.50)" : "rgba(15,23,42,0.40)";
+  const dismissHover = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)";
+  const timerTrackBg = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+  const boxShadow    = dark
+    ? `0 8px 40px rgba(0,0,0,.55), 0 0 0 1px ${cfg.accent}22, 0 4px 20px ${cfg.glow}`
+    : `0 4px 24px rgba(0,0,0,.10), 0 0 0 1px ${cfg.accent}22, 0 2px 12px ${cfg.glow}`;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 9 }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 9 }),
+    ]).start();
+    Animated.timing(barAnim, {
+      toValue: 1, duration: 3800, useNativeDriver: false,
+    }).start();
+  }, []);
+
+  /* ── Web ── */
+  if (Platform.OS === "web") {
+    return (
+      <div
+        className="sk-toast-wrap"
+        style={{
+          minWidth: 320, maxWidth: 420,
+          background: bgColor,
+          backdropFilter: "blur(20px)",
+          borderRadius: 18,
+          border: `1px solid ${cfg.accent}33`,
+          boxShadow,
+          overflow: "hidden",
+          cursor: "pointer",
+          fontFamily: "Inter,sans-serif",
+        } as React.CSSProperties}
+        onClick={onPress || hide}
+      >
+        {/* Top accent bar */}
+        <div style={{
+          height: 3,
+          background: cfg.barGrad,
+          boxShadow: `0 0 12px ${cfg.glow}`,
+        }} />
+
+        {/* Body */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
+          {/* Icon */}
+          <div style={{
+            width: 40, height: 40, borderRadius: 12,
+            background: cfg.iconBg,
+            border: `1.5px solid ${cfg.accent}44`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+            boxShadow: `0 0 16px ${cfg.glow}`,
+            fontSize: 18, fontWeight: "900", color: cfg.iconColor,
+          }}>
+            {cfg.icon}
+          </div>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 14, fontWeight: "700", color: textColor,
+              marginBottom: text2 ? 3 : 0,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}>
+              {cfg.label}
+            </div>
+            {text2 && (
+              <div style={{
+                fontSize: 12, fontWeight: "500",
+                color: subColor,
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                {text2}
+              </div>
+            )}
+          </div>
+
+          {/* Dismiss X */}
+          <button
+            onClick={(e) => { e.stopPropagation(); hide?.(); }}
+            style={{
+              width: 26, height: 26, borderRadius: 8, border: "none",
+              background: dismissBg,
+              color: dismissColor,
+              fontSize: 14, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, transition: "background .15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = dismissHover)}
+            onMouseLeave={e => (e.currentTarget.style.background = dismissBg)}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Timer progress bar */}
+        <div style={{
+          height: 2,
+          background: timerTrackBg,
+          margin: "0 16px 12px",
+          borderRadius: 99,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            height: "100%",
+            background: cfg.barGrad,
+            borderRadius: 99,
+            width: "100%",
+            animation: "sk-toast-shimmer 3.8s linear forwards",
+            backgroundSize: "200% auto",
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Native (iOS / Android) ── */
+  const nativeBg = dark ? "#0d1424" : "#ffffff";
+  return (
+    <Animated.View style={[
+      nSt.wrap,
+      { backgroundColor: nativeBg, borderColor: cfg.accent + "44" },
+      dark ? nSt.shadowDark : nSt.shadowLight,
+      { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] },
+    ]}>
+      {/* Top accent line */}
+      <View style={[nSt.topBar, { backgroundColor: cfg.accent }]} />
+
+      <Pressable onPress={onPress || hide} style={nSt.body}>
+        {/* Icon */}
+        <View style={[nSt.iconWrap, { backgroundColor: cfg.iconBg, borderColor: cfg.accent + "44" }]}>
+          <Text style={[nSt.iconTx, { color: cfg.iconColor }]}>{cfg.icon}</Text>
+        </View>
+
+        {/* Text */}
+        <View style={{ flex: 1 }}>
+          <Text style={[nSt.title, { color: textColor }]} numberOfLines={1}>{cfg.label}</Text>
+          {!!text2 && <Text style={[nSt.sub, { color: subColor }]} numberOfLines={1}>{text2}</Text>}
+        </View>
+      </Pressable>
+
+      {/* Timer bar */}
+      <View style={[nSt.timerTrack, { backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }]}>
+        <Animated.View style={[nSt.timerBar, {
+          backgroundColor: cfg.accent,
+          width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ["100%", "0%"] }) as any,
+        }]} />
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ── Native styles ── */
+const nSt = StyleSheet.create({
+  wrap: {
+    marginHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
+    minWidth: 280,
+  },
+  shadowDark: {
+    elevation: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  shadowLight: {
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+  },
+  topBar:     { height: 3 },
+  body:       { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, paddingBottom: 12 },
+  iconWrap:   { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1.5, flexShrink: 0 },
+  iconTx:     { fontSize: 16, fontWeight: "900" },
+  title:      { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  sub:        { fontSize: 12, fontWeight: "500" },
+  timerTrack: { height: 2, marginHorizontal: 14, marginBottom: 10, borderRadius: 99, overflow: "hidden" },
+  timerBar:   { height: "100%" as any, borderRadius: 99 },
+});
+
+/* ══ Export toastConfig ══ */
 export const toastConfig = {
-  success: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{
-        borderLeftColor: COLORS.primary,
-        backgroundColor: "#FFFFFF",
-      }}
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-      }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: "700",
-      }}
-      text2Style={{
-        fontSize: 13,
-        color: "#475569",
-      }}
-    />
+  success: ({ text1, text2, onPress, hide }: any) => (
+    <SkToast type="success" text1={text1} text2={text2} onPress={onPress} hide={hide} />
   ),
-
-  error: (props: any) => (
-    <ErrorToast
-      {...props}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: "700",
-      }}
-      text2Style={{
-        fontSize: 13,
-      }}
-    />
+  error: ({ text1, text2, onPress, hide }: any) => (
+    <SkToast type="error" text1={text1} text2={text2} onPress={onPress} hide={hide} />
+  ),
+  info: ({ text1, text2, onPress, hide }: any) => (
+    <SkToast type="info" text1={text1} text2={text2} onPress={onPress} hide={hide} />
   ),
 };

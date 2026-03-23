@@ -21,3 +21,14 @@ export const showError = (message: string) => {
     autoHide: true,
   });
 };
+
+export const showInfo = (message: string) => {
+  Toast.show({
+    type: "info",
+    text1: "Coming Soon",
+    text2: message,
+    position: "bottom",
+    visibilityTime: 3500,
+    autoHide: true,
+  });
+};

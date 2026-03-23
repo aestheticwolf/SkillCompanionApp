@@ -30,13 +30,14 @@ export type Task = {
 export type Goal = {
   id: string;
   name: string;
+  icon?: string;   
   tasks: Task[];
 };
 
 type TaskContextType = {
   goals: Goal[];
 
-  addGoal: (name: string) => Promise<void>;
+  addGoal: (name: string, icon?: string) => Promise<void>;  // ← UPDATED signature
   addTask: (goalId: string, title: string) => Promise<void>;
   toggleTask: (goalId: string, taskId: string) => Promise<void>;
 
@@ -154,12 +155,12 @@ const loadGoals = async () => {
   }
 };
 
-  /* Add Goal */
+  /* Add Goal — UPDATED to accept and store icon */
 
-  const addGoal = async (name: string) => {
+  const addGoal = async (name: string, icon: string = "🎯") => {
     if (!authCtx?.user) return;
 
-    await addUserGoal(authCtx.user.uid, name);
+    await addUserGoal(authCtx.user.uid, name, icon);  
 
     await loadGoals();
   };
@@ -301,11 +302,7 @@ const deleteTask = async (goalId: string, taskId: string) => {
     hasPendingTasks,
   }}
 >
-
-
       {children}
     </TaskContext.Provider>
   );
-
-
 }

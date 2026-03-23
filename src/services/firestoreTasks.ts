@@ -4,7 +4,9 @@ import {
   getDocs,
   addDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  query,       
+  orderBy
 } from "firebase/firestore";
 
 import { db } from "./firebase";
@@ -12,7 +14,8 @@ import { db } from "./firebase";
 /* Get all goals */
 export const getUserGoals = async (uid: string) => {
   const ref = collection(db, "users", uid, "goals");
-  const snap = await getDocs(ref);
+  const q   = query(ref, orderBy("createdAt", "asc"));  
+  const snap = await getDocs(q);                       
 
   return snap.docs.map((d) => ({
     id: d.id,
@@ -21,14 +24,17 @@ export const getUserGoals = async (uid: string) => {
 };
 
 /* Add new goal */
+/* Add new goal */
 export const addUserGoal = async (
   uid: string,
-  name: string
+  name: string,
+  icon: string = "🎯"
 ) => {
   const ref = collection(db, "users", uid, "goals");
 
   await addDoc(ref, {
     name,
+    icon,
     tasks: [],
     createdAt: Date.now(),
   });

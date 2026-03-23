@@ -1,6 +1,7 @@
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   Pressable,
   ScrollView,
@@ -8,9 +9,11 @@ import {
   Switch,
   Platform,
   StatusBar,
+  Image,
 } from "react-native";
 
 import { useRouter } from "expo-router";
+import SkillPathLogo from "../src/components/SkillPathLogo";
 import { AuthContext } from "../src/context/AuthContext";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useWindowDimensions } from "react-native";
@@ -170,7 +173,7 @@ function Sidebar({
       {/* Logo */}
       <View style={sidebarSt.logoRow}>
         <View style={[sidebarSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
-          <Text style={{ fontSize: 18 }}>⚡</Text>
+          <SkillPathLogo size={48} />
         </View>
         <View>
           <Text style={[sidebarSt.logoName, { color: txtPrim }]}>SkillPath</Text>
@@ -263,9 +266,9 @@ const sidebarSt = StyleSheet.create({
     paddingVertical: 24, paddingHorizontal: 16,
     borderRightWidth: 1, flexShrink: 0,
   },
-  logoRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 36, paddingHorizontal: 8 },
-  logoIcon:   { width: 38, height: 38, borderRadius: 12, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center",
-    ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,#6366f1,#a78bfa)", animation: "sk-glow 3s ease-in-out infinite", fontSize: 20 } as any : {}),
+  logoRow:    { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 36, paddingHorizontal: 8 },
+  logoIcon:   { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center",
+    ...(Platform.OS === "web" ? { filter: "drop-shadow(0 4px 12px rgba(99,102,241,0.35))", animation: "sk-breathe 3s ease-in-out infinite" } as any : {}),
   },
   logoName:   { fontSize: 16, fontWeight: "900", letterSpacing: -0.5,
     ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
@@ -1185,6 +1188,517 @@ const rpSt = StyleSheet.create({
   },
 });
 
+
+/* ════════════════════════════════
+   ADD GOAL MODAL — inline on dashboard
+════════════════════════════════ */
+
+const ICON_CATEGORIES = [
+  { label: "Coding",  emoji: "💻", icons: ["⚛️","🐍","☕","🔧","🖥️","💻","🛠️","⚙️","🐞","🔌","📱","🌐","🔐","🗄️","🖱️","⌨️"] },
+  { label: "Study",   emoji: "📚", icons: ["📚","📖","🎓","📝","✏️","📓","🗒️","📄","🔬","🧪","🏫","🔭","📐","📏","🗺️","🧩"] },
+  { label: "Design",  emoji: "🎨", icons: ["🎨","🖌️","🖼️","💎","🎭","🌈","✨","🎯","📐","🎪","💅","🖍️","🎬","📸","🎞️","🎵"] },
+  { label: "Projects",emoji: "🚀", icons: ["🚀","🏗️","🔨","⚡","🌟","💡","🔥","⭐","🏆","🎯","🏅","🌱","💪","🛸","🌌","🎪"] },
+  { label: "Data",    emoji: "📊", icons: ["📊","📈","📉","🗃️","💾","🔢","📋","🗂️","📌","🔍","🧮","🔑","🏷️","📍","🗝️","📡"] },
+  { label: "AI/ML",   emoji: "🤖", icons: ["🤖","🧠","💡","🔮","⚡","🔬","🧬","🛸","🌐","🎲","♟️","🎰","🔐","🌡️","⚗️","🧲"] },
+];
+
+const SUGGESTION_ICON_MAP: Record<string, string> = {
+  "Learn Java": "☕", "React Native": "⚛️", "Firebase": "🔥",
+  "Flutter": "🦋", "Node.js": "🚀", "UI Design": "🎨",
+  "Python": "🐍", "Machine Learning": "🤖",
+};
+
+function AddGoalModal({ dark, onClose, addGoalFn }: {
+  dark: boolean; onClose: () => void; addGoalFn: (name: string, icon: string) => any;
+}) {
+  const [goal,         setGoal]         = useState("");
+  const [saving,       setSaving]       = useState(false);
+  const [focused,      setFocused]      = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState("🎯");
+  const [activeTab,    setActiveTab]    = useState(0);
+  const [showPicker,   setShowPicker]   = useState(false);
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  const slideAnim  = useRef(new Animated.Value(44)).current;
+  const btnScale   = useRef(new Animated.Value(1)).current;
+  const pickerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 68, friction: 10 }),
+    ]).start();
+  }, []);
+
+  const togglePicker = () => {
+    const next = !showPicker;
+    setShowPicker(next);
+    Animated.spring(pickerAnim, {
+      toValue: next ? 1 : 0, useNativeDriver: true, tension: 80, friction: 10,
+    }).start();
+  };
+
+  const SUGGESTIONS = ["Learn Java","React Native","Firebase","Flutter","Node.js","UI Design","Python","Machine Learning"];
+
+  const card    = dark ? "#0d1424" : "#ffffff";
+  const txtPri  = dark ? "#eef2ff" : "#0f172a";
+  const txtSec  = dark ? "rgba(238,242,255,0.55)" : "#475569";
+  const txtMute = dark ? "rgba(238,242,255,0.28)" : "rgba(15,23,42,0.3)";
+  const border  = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const inputBg = dark ? "rgba(255,255,255,0.04)" : "#f8faff";
+  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.22)");
+  const hasText = goal.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!goal.trim()) { showError("Goal name cannot be empty"); return; }
+    setSaving(true);
+    Animated.sequence([
+      Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true, tension: 200, friction: 5 }),
+      Animated.spring(btnScale, { toValue: 1,    useNativeDriver: true, tension: 200, friction: 5 }),
+    ]).start(async () => {
+      try {
+        await addGoalFn(goal.trim(), selectedIcon);
+        showSuccess("Goal created 🎯");
+        onClose();
+      } catch { showError("Something went wrong"); setSaving(false); }
+    });
+  };
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }] as any}>
+      {/* Backdrop */}
+      <Animated.View style={[StyleSheet.absoluteFill, {
+        backgroundColor: dark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.48)", opacity: fadeAnim,
+      }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }} pointerEvents="box-none">
+        <Animated.View style={[
+          { width: "100%", maxWidth: 520, backgroundColor: card, borderRadius: 24, padding: 26, borderWidth: 1, borderColor: border },
+          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.7)" : "0 24px 80px rgba(0,0,0,0.18)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}>
+          {/* ── Header ── */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center",
+                ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,rgba(99,102,241,0.18),rgba(167,139,250,0.12))", boxShadow: "0 0 0 1px rgba(99,102,241,0.22)" } as any : { backgroundColor: "rgba(99,102,241,0.12)" }),
+              }}>
+                <Text style={{ fontSize: 24 }}>🎯</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: "800", color: txtPri,
+                  ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
+                }}>New Goal</Text>
+                <Text style={{ fontSize: 12, color: txtSec, marginTop: 2, fontWeight: "500" }}>Pick an icon · name your goal</Text>
+              </View>
+            </View>
+            <Pressable onPress={onClose} style={({ pressed }) => ({
+              width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center",
+              backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+              ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .15s" } as any : {}),
+            })}>
+              <Text style={{ color: txtSec, fontSize: 16, fontWeight: "700" }}>✕</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
+
+          {/* ── Icon Selector Row ── */}
+          <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 10 }}>Goal Icon</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            {/* Selected icon big button */}
+            <Pressable onPress={togglePicker}
+              style={({ pressed }) => ({
+                width: 64, height: 64, borderRadius: 18, alignItems: "center", justifyContent: "center",
+                borderWidth: 2,
+                borderColor: showPicker ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.3)"),
+                backgroundColor: showPicker ? "rgba(99,102,241,0.12)" : (dark ? "rgba(255,255,255,0.04)" : "rgba(99,102,241,0.06)"),
+                opacity: pressed ? 0.8 : 1,
+                ...(Platform.OS === "web" ? {
+                  boxShadow: showPicker ? "0 0 0 3px rgba(99,102,241,0.2)" : "none",
+                  transition: "all .2s", cursor: "pointer",
+                } as any : {}),
+              })}>
+              <Text style={{ fontSize: 30 }}>{selectedIcon}</Text>
+            </Pressable>
+
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: txtPri, marginBottom: 4 }}>
+                {showPicker ? "Choose from categories below ↓" : "Tap icon to change"}
+              </Text>
+              <Text style={{ fontSize: 11, fontWeight: "500", color: txtSec }}>
+                Icon appears on your goal card
+              </Text>
+            </View>
+
+            {/* Quick popular icons */}
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              {["🎯","💻","📚","🚀","🎨"].map(ic => (
+                <Pressable key={ic} onPress={() => { setSelectedIcon(ic); setShowPicker(false); }}
+                  style={({ pressed }) => ({
+                    width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center",
+                    backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.14)" : (pressed ? "rgba(99,102,241,0.08)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)")),
+                    borderWidth: 1,
+                    borderColor: selectedIcon === ic ? "rgba(99,102,241,0.45)" : border,
+                    ...(Platform.OS === "web" ? { cursor: "pointer", transition: "all .14s" } as any : {}),
+                  })}>
+                  <Text style={{ fontSize: 18 }}>{ic}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* ── Expandable Icon Picker ── */}
+          {showPicker && (
+            <Animated.View style={{
+              borderRadius: 16, borderWidth: 1, borderColor: "rgba(99,102,241,0.2)",
+              backgroundColor: dark ? "rgba(99,102,241,0.06)" : "rgba(99,102,241,0.03)",
+              marginBottom: 16, overflow: "hidden",
+              ...(Platform.OS === "web" ? { animation: "sk-fadeUp .18s ease both" } as any : {}),
+            }}>
+              {/* Category Tabs */}
+              <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "rgba(99,102,241,0.15)", paddingHorizontal: 8, paddingTop: 8 }}>
+                {ICON_CATEGORIES.map((cat, ci) => (
+                  <Pressable key={ci} onPress={() => setActiveTab(ci)}
+                    style={({ pressed }) => ({
+                      paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10,
+                      marginRight: 4, marginBottom: 8,
+                      backgroundColor: activeTab === ci ? "rgba(99,102,241,0.15)" : (pressed ? "rgba(99,102,241,0.08)" : "transparent"),
+                      borderWidth: activeTab === ci ? 1 : 0,
+                      borderColor: "rgba(99,102,241,0.3)",
+                      ...(Platform.OS === "web" ? { cursor: "pointer", transition: "all .14s" } as any : {}),
+                    })}>
+                    <Text style={{ fontSize: 11, fontWeight: activeTab === ci ? "700" : "500",
+                      color: activeTab === ci ? "#6366f1" : txtSec }}>
+                      {cat.emoji} {cat.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Icon Grid */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 12, gap: 8 } as any}>
+                {ICON_CATEGORIES[activeTab].icons.map((ic, ii) => (
+                  <Pressable key={ii} onPress={() => { setSelectedIcon(ic); setShowPicker(false); }}
+                    style={({ pressed }) => ({
+                      width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center",
+                      backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.18)" : (pressed ? "rgba(99,102,241,0.1)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)")),
+                      borderWidth: selectedIcon === ic ? 2 : 1,
+                      borderColor: selectedIcon === ic ? "#6366f1" : (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"),
+                      ...(Platform.OS === "web" ? {
+                        cursor: "pointer", transition: "all .12s",
+                        boxShadow: selectedIcon === ic ? "0 0 0 3px rgba(99,102,241,0.2)" : "none",
+                      } as any : {}),
+                    })}>
+                    <Text style={{ fontSize: 20 }}>{ic}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* ── Goal Name Input ── */}
+          <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Goal Name</Text>
+          <View style={{
+            flexDirection: "row", alignItems: "center",
+            backgroundColor: inputBg, borderColor: iBorder, borderWidth: 1.5,
+            borderRadius: 14, paddingHorizontal: 14, paddingVertical: 4, gap: 10, marginBottom: 12,
+            ...(Platform.OS === "web" && focused ? { boxShadow: "0 0 0 3px rgba(99,102,241,0.16)" } as any : {}),
+            ...(Platform.OS === "web" ? { transition: "border-color .2s, box-shadow .2s" } as any : {}),
+          } as any}>
+            <Text style={{ fontSize: 18, opacity: focused || hasText ? 1 : 0.4 }}>{selectedIcon}</Text>
+            {Platform.OS === "web" ? (
+              <input value={goal}
+                onChange={(e: any) => e.target.value.length <= 60 && setGoal(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onKeyDown={(e: any) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
+                autoFocus placeholder="e.g. Master React Native..."
+                style={{ flex: 1, fontSize: 15, fontWeight: "500", border: "none", outline: "none",
+                  background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                  fontFamily: "Plus Jakarta Sans,sans-serif", padding: "12px 0" } as any} />
+            ) : (
+              <TextInput
+                style={{ flex: 1, fontSize: 15, fontWeight: "500", color: txtPri, paddingVertical: 13 }}
+                placeholder="e.g. Master React Native..."
+                placeholderTextColor={txtMute}
+                value={goal}
+                onChangeText={t => t.length <= 60 && setGoal(t)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                autoFocus returnKeyType="done" onSubmitEditing={handleSave}
+              />
+            )}
+            {hasText && (
+              <Pressable onPress={() => setGoal("")} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}>
+                <Text style={{ color: txtMute, fontSize: 14 }}>✕</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* ── Suggestion Chips — also set icon ── */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 16 } as any}>
+            {SUGGESTIONS.map((s, i) => {
+              const sugIcon = SUGGESTION_ICON_MAP[s] || "🎯";
+              return (
+                <Pressable key={i} onPress={() => { setGoal(s); setSelectedIcon(sugIcon); }}
+                  style={({ pressed }) => ({
+                    flexDirection: "row", alignItems: "center", gap: 5,
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1,
+                    backgroundColor: goal === s ? "rgba(99,102,241,0.12)" : (pressed ? "rgba(99,102,241,0.07)" : (dark ? "rgba(255,255,255,0.04)" : "rgba(99,102,241,0.04)")),
+                    borderColor: goal === s ? "rgba(99,102,241,0.4)" : border,
+                    ...(Platform.OS === "web" ? { cursor: "pointer", transition: "all .14s" } as any : {}),
+                  })}>
+                  <Text style={{ fontSize: 13 }}>{sugIcon}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: goal === s ? "700" : "500", color: goal === s ? "#6366f1" : txtSec }}>{s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Typing progress bar */}
+          {Platform.OS === "web" && (
+            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 16, overflow: "hidden" } as any}>
+              <View style={{ height: "100%", width: `${(goal.length / 60) * 100}%`, borderRadius: 99,
+                background: "linear-gradient(90deg,#6366f1,#a78bfa)", transition: "width .3s" } as any} />
+            </View>
+          )}
+
+          {/* Preview pill */}
+          {hasText && (
+            <View style={{
+              flexDirection: "row", alignItems: "center", gap: 10, padding: 12,
+              borderRadius: 12, borderWidth: 1, marginBottom: 14,
+              borderColor: "rgba(99,102,241,0.22)",
+              backgroundColor: dark ? "rgba(99,102,241,0.07)" : "rgba(99,102,241,0.04)",
+            }}>
+              <Text style={{ fontSize: 20 }}>{selectedIcon}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: "#6366f1", flex: 1 }} numberOfLines={1}>{goal.trim()}</Text>
+              <View style={{ backgroundColor: "rgba(99,102,241,0.18)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+                <Text style={{ fontSize: 10, color: "#6366f1", fontWeight: "700" }}>Preview</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Save */}
+          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+            <Pressable onPress={handleSave} disabled={saving}
+              style={({ pressed }) => ({
+                paddingVertical: 15, borderRadius: 14, alignItems: "center",
+                backgroundColor: "#6366f1", opacity: (pressed || saving) ? 0.85 : 1,
+                ...(Platform.OS === "web" ? {
+                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.22)" : "rgba(99,102,241,0.14)"),
+                  boxShadow: hasText ? "0 6px 20px rgba(99,102,241,0.42)" : "none",
+                  cursor: hasText ? "pointer" : "not-allowed", transition: "all .2s",
+                } as any : {}),
+              })}>
+              <Text style={{ color: "white", fontWeight: "800", fontSize: 15, opacity: hasText ? 1 : 0.5,
+                ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
+              }}>{saving ? "Creating..." : hasText ? `${selectedIcon}  Create Goal` : "Enter a goal name"}</Text>
+            </Pressable>
+          </Animated.View>
+          <Pressable onPress={onClose} style={{ alignItems: "center", paddingTop: 12 }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: txtMute }}>Cancel</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+/* ════════════════════════════════
+   ADD TASK MODAL — inline on dashboard
+════════════════════════════════ */
+function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
+  dark: boolean; goalId: string; onClose: () => void; addTaskFn: (goalId: string, title: string) => void;
+}) {
+  const [task,    setTask]    = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [focused, setFocused] = useState(false);
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(44)).current;
+  const btnScale  = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 68, friction: 10 }),
+    ]).start();
+  }, []);
+
+  const EXAMPLES = [
+    "Complete Chapter 3 exercises",
+    "Watch 2 tutorial videos on the topic",
+    "Build a small prototype feature",
+    "Review notes and summarize key points",
+  ];
+
+  const card    = dark ? "#0d1424" : "#ffffff";
+  const txtPri  = dark ? "#eef2ff" : "#0f172a";
+  const txtSec  = dark ? "rgba(238,242,255,0.55)" : "#475569";
+  const txtMute = dark ? "rgba(238,242,255,0.28)" : "rgba(15,23,42,0.3)";
+  const border  = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const inputBg = dark ? "rgba(255,255,255,0.04)" : "#f8faff";
+  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.22)");
+  const hasText = task.trim().length > 0;
+
+  const handleAdd = () => {
+    if (!task.trim()) { showError("Task name cannot be empty"); return; }
+    setSaving(true);
+    Animated.sequence([
+      Animated.spring(btnScale, { toValue: 0.95, useNativeDriver: true, tension: 200, friction: 5 }),
+      Animated.spring(btnScale, { toValue: 1,    useNativeDriver: true, tension: 200, friction: 5 }),
+    ]).start(() => {
+      try {
+        addTaskFn(goalId, task.trim());
+        showSuccess("Task added 🎉");
+        onClose();
+      } catch { showError("Something went wrong"); setSaving(false); }
+    });
+  };
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }] as any}>
+      <Animated.View style={[StyleSheet.absoluteFill, {
+        backgroundColor: dark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.48)",
+        opacity: fadeAnim,
+      }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }} pointerEvents="box-none">
+        <Animated.View style={[
+          { width: "100%", maxWidth: 480, backgroundColor: card, borderRadius: 24, padding: 28, borderWidth: 1, borderColor: border },
+          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.7)" : "0 24px 80px rgba(0,0,0,0.2)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}>
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center",
+                ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,rgba(99,102,241,0.16),rgba(167,139,250,0.1))", boxShadow: "0 0 0 1px rgba(99,102,241,0.2)" } as any : { backgroundColor: "rgba(99,102,241,0.12)" }),
+              }}>
+                <Text style={{ fontSize: 24 }}>📝</Text>
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: "800", color: txtPri,
+                  ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
+                }}>Add Task</Text>
+                <Text style={{ fontSize: 12, color: txtSec, marginTop: 2, fontWeight: "500" }}>Break your goal into steps</Text>
+              </View>
+            </View>
+            <Pressable onPress={onClose}
+              style={({ pressed }) => ({
+                width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center",
+                backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+                ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .15s" } as any : {}),
+              })}>
+              <Text style={{ color: txtSec, fontSize: 16, fontWeight: "700" }}>✕</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
+
+          <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Task Name</Text>
+
+          {/* Input */}
+          <View style={{
+            flexDirection: "row", alignItems: "center",
+            backgroundColor: inputBg, borderColor: iBorder, borderWidth: 1.5,
+            borderRadius: 14, paddingHorizontal: 14, paddingVertical: 4, gap: 10, marginBottom: 14,
+            ...(Platform.OS === "web" && focused ? { boxShadow: "0 0 0 3px rgba(99,102,241,0.16)" } as any : {}),
+            ...(Platform.OS === "web" ? { transition: "border-color .2s, box-shadow .2s" } as any : {}),
+          } as any}>
+            <Text style={{ fontSize: 16, opacity: focused || hasText ? 1 : 0.4 }}>✏️</Text>
+            {Platform.OS === "web" ? (
+              <input
+                value={task}
+                onChange={(e: any) => e.target.value.length <= 80 && setTask(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onKeyDown={(e: any) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") onClose(); }}
+                autoFocus
+                placeholder="e.g. Complete Chapter 3 exercises"
+                style={{ flex: 1, fontSize: 15, fontWeight: "500", border: "none", outline: "none",
+                  background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                  fontFamily: "Plus Jakarta Sans,sans-serif", padding: "12px 0" } as any}
+              />
+            ) : (
+              <TextInput
+                style={{ flex: 1, fontSize: 15, fontWeight: "500", color: txtPri, paddingVertical: 13 }}
+                placeholder="e.g. Complete Chapter 3 exercises"
+                placeholderTextColor={txtMute}
+                value={task}
+                onChangeText={t => t.length <= 80 && setTask(t)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleAdd}
+              />
+            )}
+            {hasText && (
+              <Pressable onPress={() => setTask("")} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}>
+                <Text style={{ color: txtMute, fontSize: 14 }}>✕</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Quick examples */}
+          <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Quick Examples</Text>
+          <View style={{ gap: 6, marginBottom: 18 }}>
+            {EXAMPLES.map((ex, i) => (
+              <Pressable key={i} onPress={() => setTask(ex)}
+                style={({ pressed }) => ({
+                  flexDirection: "row", alignItems: "center", gap: 10,
+                  paddingVertical: 10, paddingHorizontal: 14,
+                  borderRadius: 12, borderWidth: 1,
+                  backgroundColor: pressed ? "rgba(99,102,241,0.09)" : (dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"),
+                  borderColor: pressed ? "rgba(99,102,241,0.35)" : border,
+                  ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .14s, border-color .14s" } as any : {}),
+                })}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(99,102,241,0.45)" }} />
+                <Text style={{ fontSize: 13, fontWeight: "500", color: txtSec, flex: 1 }}>{ex}</Text>
+                <Text style={{ fontSize: 11, color: "rgba(99,102,241,0.5)" }}>↗</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Typing progress bar */}
+          {Platform.OS === "web" && task.length > 0 && (
+            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 18, overflow: "hidden" } as any}>
+              <View style={{ height: "100%", width: `${(task.length / 80) * 100}%`, borderRadius: 99,
+                background: "linear-gradient(90deg,#6366f1,#a78bfa)", transition: "width .3s" } as any} />
+            </View>
+          )}
+
+          {/* Save */}
+          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+            <Pressable onPress={handleAdd} disabled={saving}
+              style={({ pressed }) => ({
+                paddingVertical: 15, borderRadius: 14, alignItems: "center",
+                backgroundColor: "#6366f1", opacity: (pressed || saving) ? 0.85 : 1,
+                ...(Platform.OS === "web" ? {
+                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.22)" : "rgba(99,102,241,0.14)"),
+                  boxShadow: hasText ? "0 6px 20px rgba(99,102,241,0.42)" : "none",
+                  cursor: hasText ? "pointer" : "not-allowed", transition: "all .2s",
+                } as any : {}),
+              })}>
+              <Text style={{ color: "white", fontWeight: "800", fontSize: 15, opacity: hasText ? 1 : 0.5,
+                ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
+              }}>{saving ? "Saving..." : hasText ? "✓  Save Task" : "Enter a task name"}</Text>
+            </Pressable>
+          </Animated.View>
+          <Pressable onPress={onClose} style={{ alignItems: "center", paddingTop: 12 }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: txtMute }}>Cancel</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
 /* ════════════════════════════════
    MAIN DASHBOARD
 ════════════════════════════════ */
@@ -1206,6 +1720,8 @@ export default function Dashboard() {
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
   const [activityLog,  setActivityLog]  = useState<Record<string,number>>({});
   const [userRole,     setUserRole]     = useState("Intern Developer");
+  const [showAddGoal,      setShowAddGoal]      = useState(false);
+  const [showAddTaskGoalId, setShowAddTaskGoalId] = useState<string | null>(null);
 
   /* Animations */
   const fadeAnim   = useRef(new Animated.Value(0)).current;
@@ -1384,7 +1900,7 @@ export default function Dashboard() {
           <Text style={styles.emptyEmoji}>🚀</Text>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>No goals yet</Text>
           <Text style={styles.emptySub}>Create your first learning goal to get started</Text>
-          <Pressable onPress={() => router.push("/add-goal")} disabled={!isSynced}
+          <Pressable onPress={() => setShowAddGoal(true)} disabled={!isSynced}
             style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}>
             <Text style={styles.emptyBtnTx}>Create Goal →</Text>
           </Pressable>
@@ -1411,7 +1927,7 @@ export default function Dashboard() {
               >
                 <View style={styles.goalHeader}>
                   <View style={[styles.goalIconWrap, { backgroundColor: accent + "1c" }]}>
-                    <Text style={{ fontSize: 20 }}>{GOAL_EMOJIS[index % GOAL_EMOJIS.length]}</Text>
+                    <Text style={{ fontSize: 20 }}>{(g as any).icon || GOAL_EMOJIS[index % GOAL_EMOJIS.length]}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.goalTitle, { color: textPrimary }]} numberOfLines={1}>{g.name}</Text>
@@ -1494,7 +2010,7 @@ export default function Dashboard() {
                 <Pressable
                   style={[styles.addTaskBtn, { borderColor: accent + "44" }, !isSynced && { opacity: 0.5 }]}
                   disabled={!isSynced}
-                  onPress={() => router.push({ pathname: "/add-task", params: { goalId: g.id } })}
+                  onPress={() => setShowAddTaskGoalId(g.id)}
                 >
                   <Text style={[styles.addTaskTx, { color: accent }]}>+ Add Task</Text>
                 </Pressable>
@@ -1584,7 +2100,7 @@ export default function Dashboard() {
                   <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                     <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
                     <Pressable
-                      onPress={() => router.push("/add-goal")}
+                      onPress={() => setShowAddGoal(true)}
                       disabled={!isSynced}
                       style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}
                     >
@@ -1635,7 +2151,7 @@ export default function Dashboard() {
             {/* Goals header + 2-col grid */}
             <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
-              <Pressable onPress={() => router.push("/add-goal")} disabled={!isSynced}
+              <Pressable onPress={() => setShowAddGoal(true)} disabled={!isSynced}
                 style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}>
                 <Text style={styles.addGoalTx}>+ Add Goal</Text>
               </Pressable>
@@ -1668,7 +2184,7 @@ export default function Dashboard() {
           {/* Goals header */}
           <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
-            <Pressable onPress={() => router.push("/add-goal")} disabled={!isSynced}
+            <Pressable onPress={() => setShowAddGoal(true)} disabled={!isSynced}
               style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}>
               <Text style={styles.addGoalTx}>＋ Add Goal</Text>
             </Pressable>
@@ -1694,6 +2210,24 @@ export default function Dashboard() {
             </Pressable>
           </View>
         </View>
+      )}
+
+      {/* ── Inline Goal Modal ── */}
+      {showAddGoal && (
+        <AddGoalModal
+          dark={dark}
+          onClose={() => setShowAddGoal(false)}
+          addGoalFn={(name: string, icon: string) => taskCtx.addGoal(name, icon)}
+        />
+      )}
+      {/* ── Inline Task Modal ── */}
+      {showAddTaskGoalId && (
+        <AddTaskModal
+          dark={dark}
+          goalId={showAddTaskGoalId}
+          onClose={() => setShowAddTaskGoalId(null)}
+          addTaskFn={(gId: string, title: string) => taskCtx.addTask(gId, title)}
+        />
       )}
 
       {/* DateTimePicker */}

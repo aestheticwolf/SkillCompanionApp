@@ -8,10 +8,12 @@ import {
   Platform,
   Animated,
   ScrollView,
+  Image,
 } from "react-native";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "expo-router";
+import SkillPathLogo from "../src/components/SkillPathLogo";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/src/services/firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -194,11 +196,8 @@ export default function Signup() {
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
             <View style={[styles.logoGlow, IS_WEB ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
               <View style={styles.logoRing}>
-                <View style={[styles.logoCircle, IS_WEB ? {
-                  background: "linear-gradient(135deg,#6366f1,#a78bfa)",
-                  animation: "sk-breathe 3s ease-in-out infinite",
-                } as any : {}]}>
-                  <Text style={{ fontSize: 32 }}>✨</Text>
+                <View style={[styles.logoCircle]}>
+                  <SkillPathLogo size={80} />
                 </View>
               </View>
             </View>
@@ -465,8 +464,8 @@ const styles = StyleSheet.create({
 
   header:     { alignItems: "center", marginBottom: 24 },
   logoGlow:   { marginBottom: 16 },
-  logoRing:   { width: 90, height: 90, borderRadius: 45, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
-  logoCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center" },
+  logoRing:   { width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 2, borderColor: "rgba(255,255,255,0.45)", alignItems: "center", justifyContent: "center" },
+  logoCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: "transparent", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   appName:    { fontSize: 34, fontWeight: "900", color: "white", letterSpacing: -0.8, marginBottom: 6 },
   tagline:    { fontSize: 14, color: "rgba(255,255,255,0.65)", fontWeight: "500", marginBottom: 16 },
   pillsRow:   { flexDirection: "row", gap: 8 } as any,
