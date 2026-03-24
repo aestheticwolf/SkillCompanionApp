@@ -196,7 +196,7 @@ export default function Signup() {
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
             <View style={[styles.logoGlow, IS_WEB ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
               <View style={styles.logoRing}>
-                <View style={[styles.logoCircle]}>
+                <View style={[styles.logoCircle, IS_WEB ? { animation: "sk-breathe 3s ease-in-out infinite" } as any : {}]}>
                   <SkillPathLogo size={80} />
                 </View>
               </View>

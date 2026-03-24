@@ -66,6 +66,28 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-heatIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
       .sk-cell{transition:transform .12s,box-shadow .12s;animation:sk-heatIn .15s ease both}
       .sk-cell:hover{transform:scale(1.5)!important;z-index:10!important;border-radius:4px!important;box-shadow:0 2px 8px rgba(99,102,241,0.4)!important}
+
+      /* ── Professional dark mode surface refinements ── */
+      .sk-dark-screen {
+        background-image:
+          radial-gradient(ellipse 70% 45% at 15% 0%, rgba(99,102,241,0.045) 0%, transparent 65%),
+          radial-gradient(ellipse 55% 35% at 85% 100%, rgba(99,102,241,0.03) 0%, transparent 65%);
+      }
+      .sk-dark-sidebar {
+        background-image: linear-gradient(180deg, rgba(99,102,241,0.04) 0%, transparent 35%);
+      }
+      .sk-dark-topbar {
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+      .sk-dark-card {
+        background-image: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, transparent 55%);
+      }
+      .sk-dark-hero {
+        background-image:
+          radial-gradient(ellipse 60% 80% at 90% 50%, rgba(99,102,241,0.12) 0%, transparent 60%),
+          radial-gradient(ellipse 40% 60% at 10% 20%, rgba(79,70,229,0.08) 0%, transparent 50%);
+      }
     `;
     document.head.appendChild(s);
   }
@@ -150,14 +172,18 @@ function Particles() {
     </View>
   );
 }
+
+/* ════════════════════════════════
+   SIDEBAR
+════════════════════════════════ */
 function Sidebar({
   dark, router, activeRoute, overallPct, displayName, isSynced,
   goals, completedTasks, totalTasks, userRole,
 }: any) {
-  const bg       = dark ? "#0a0f20" : "#ffffff";
-  const border   = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
-  const txtPrim  = dark ? "#eef2ff" : "#0f172a";
-  const txtMute  = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
+  const bg       = dark ? "#141720" : "#ffffff";
+  const border   = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)";
+  const txtPrim  = dark ? "#E8ECFF" : "#0f172a";
+  const txtMute  = dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.45)";
 
   const NAV = [
     { icon: "🏠", label: "Dashboard", route: "/dashboard" },
@@ -169,7 +195,10 @@ function Sidebar({
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <View style={[sidebarSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
+    <View
+      className={dark && Platform.OS === "web" ? "sk-dark-sidebar" : undefined}
+      style={[sidebarSt.wrap, { backgroundColor: bg, borderRightColor: border }]}
+    >
       {/* Logo */}
       <View style={sidebarSt.logoRow}>
         <View style={[sidebarSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
@@ -226,10 +255,10 @@ function Sidebar({
           <View style={[
             sidebarSt.progRing,
             Platform.OS === "web"
-              ? { background: `conic-gradient(#6366f1 ${overallPct * 3.6}deg, ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"} 0deg)` } as any
+              ? { background: `conic-gradient(#6366f1 ${overallPct * 3.6}deg, ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)"} 0deg)` } as any
               : { borderWidth: 5, borderColor: "#6366f1" },
           ]}>
-            <View style={[sidebarSt.progRingIn, { backgroundColor: dark ? "#0a0f20" : "#f5f7ff" }]}>
+            <View style={[sidebarSt.progRingIn, { backgroundColor: dark ? "#141720" : "#f5f7ff" }]}>
               <Text style={[sidebarSt.progPct, { color: "#6366f1" }]}>{overallPct}%</Text>
             </View>
           </View>
@@ -284,7 +313,6 @@ const sidebarSt = StyleSheet.create({
   },
   badge:      { backgroundColor: "#ef4444", borderRadius: 99, paddingHorizontal: 7, paddingVertical: 2 },
   badgeTx:    { color: "white", fontSize: 10, fontWeight: "800" },
-
   progCard:   { borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1 },
   progLabel:  { fontSize: 11, fontWeight: "700", letterSpacing: 1, marginBottom: 10, color: "#6366f1", textTransform: "uppercase" as const },
   progRingRow:{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
@@ -295,7 +323,6 @@ const sidebarSt = StyleSheet.create({
     ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
   },
   progSub:    { fontSize: 11, fontWeight: "500" },
-
   userRow:    { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 0, borderTopWidth: 0, padding: 12, borderRadius: 14, borderWidth: 1 },
   userAvatar: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center",
     ...(Platform.OS === "web" ? { background: "linear-gradient(135deg,#f97316,#ef4444)" } as any : {}),
@@ -314,14 +341,14 @@ const sidebarSt = StyleSheet.create({
 ════════════════════════════════ */
 function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, onClose, onToggleDark, onShowV2, router }: any) {
   const t = {
-    bg:    dark ? "#111827" : "#ffffff",
-    bdr:   dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)",
-    text:  dark ? "#eef2ff" : "#0f172a",
-    sub:   dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.5)",
-    muted: dark ? "rgba(238,242,255,0.2)" : "rgba(15,23,42,0.2)",
+    bg:    dark ? "#1C1F2E" : "#ffffff",
+    bdr:   dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)",
+    text:  dark ? "#E8ECFF" : "#0f172a",
+    sub:   dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.5)",
+    muted: dark ? "rgba(180,188,220,0.2)" : "rgba(15,23,42,0.2)",
     inp:   dark ? "rgba(255,255,255,0.07)" : "#f5f7ff",
     card:  dark ? "rgba(255,255,255,0.04)" : "#ffffff",
-    sh:    dark ? "0 8px 40px rgba(0,0,0,.7)" : "0 8px 40px rgba(0,0,0,.15)",
+    sh:    dark ? "0 8px 40px rgba(0,0,0,.8)" : "0 8px 40px rgba(0,0,0,.15)",
     ov:    dark ? "rgba(0,0,0,.72)" : "rgba(0,0,0,.38)",
   };
   const initials = displayName.charAt(0).toUpperCase();
@@ -333,12 +360,11 @@ function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, o
     { icon: "🔔", label: "Notifications", sub: "Coming in v2 ✨",           fn: () => { onShowV2(); }, v2: true },
     { icon: "⚙️", label: "Settings",      sub: "Coming in v2 ✨",           fn: () => { onShowV2(); }, v2: true },
     { icon: dark ? "☀️" : "🌙", label: dark ? "Light Mode" : "Dark Mode",
-      sub: dark ? "Switch to light" : "Switch to dark", fn: () => { onToggleDark(); /* no onClose */ }, toggle: true },
+      sub: dark ? "Switch to light" : "Switch to dark", fn: () => { onToggleDark(); }, toggle: true },
     { icon: "📤", label: "Share App",     sub: "Coming in v2 ✨",           fn: () => { onShowV2(); }, v2: true },
     { icon: "🚪", label: "Log Out",       sub: "Sign out of account",        fn: () => { router.replace("/login"); onClose(); }, danger: true },
   ];
 
-  /* Close on outside click — web only */
   const dropRef = useRef<any>(null);
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -359,9 +385,7 @@ function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, o
   } : {};
 
   return (
-    <View ref={dropRef} style={Platform.OS === "web" ? dropStyle as any : { position: "absolute", right: 0, top: 50, width: 280, backgroundColor: dark ? "#111827" : "#fff", borderRadius: 22, padding: 8, zIndex: 9999 }}>
-
-      {/* User card */}
+    <View ref={dropRef} style={Platform.OS === "web" ? dropStyle as any : { position: "absolute", right: 0, top: 50, width: 280, backgroundColor: dark ? "#1C1F2E" : "#fff", borderRadius: 22, padding: 8, zIndex: 9999 }}>
       <View style={{ padding: 14, borderRadius: 16, backgroundColor: "rgba(99,102,241,0.07)", borderWidth: 1, borderColor: "rgba(99,102,241,0.14)", marginBottom: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <View style={{ width: 50, height: 50, borderRadius: 16, alignItems: "center", justifyContent: "center", flexShrink: 0,
@@ -382,14 +406,13 @@ function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, o
             </View>
           </View>
         </View>
-        {/* Stats row */}
         <View style={{ flexDirection: "row", gap: 6 }}>
           {[
             { v: `${streak}🔥`, l: "Streak" },
             { v: `${overallPct}%`,  l: "Progress" },
             { v: `${Math.min(9999, 0)}⭐`, l: "Score" },
           ].map((s, i) => (
-            <View key={i} style={{ flex: 1, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderRadius: 10, padding: 8, alignItems: "center", borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+            <View key={i} style={{ flex: 1, backgroundColor: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", borderRadius: 10, padding: 8, alignItems: "center", borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }}>
               <Text style={{ fontSize: 12, fontWeight: "800", color: t.text,
                 ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
               }}>{s.v}</Text>
@@ -399,14 +422,13 @@ function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, o
         </View>
       </View>
 
-      {/* Menu items */}
       {items.map((item, i) => (
         <Pressable
           key={i}
           onPress={item.fn}
           style={({ pressed }) => [
             { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, paddingHorizontal: 12, borderRadius: 12,
-              backgroundColor: pressed ? (item.danger ? "rgba(239,68,68,0.09)" : dark ? "rgba(255,255,255,0.07)" : "rgba(99,102,241,0.06)") : "transparent",
+              backgroundColor: pressed ? (item.danger ? "rgba(239,68,68,0.09)" : dark ? "rgba(255,255,255,0.06)" : "rgba(99,102,241,0.06)") : "transparent",
               borderTopWidth: i === items.length - 1 ? 1 : 0,
               borderTopColor: t.bdr,
               marginTop: i === items.length - 1 ? 4 : 0,
@@ -450,10 +472,10 @@ function ProfileDrop({ dark, displayName, email, overallPct, streak, userRole, o
    TOP BAR (web wide)
 ════════════════════════════════ */
 function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSynced, pulseAnim, overallPct, streak, sidebarOpen, setSidebarOpen, userRole, onShowV2 }: any) {
-  const bg     = dark ? "#0a0f20" : "#ffffff";
-  const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
-  const txtPri = dark ? "#eef2ff" : "#0f172a";
-  const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
+  const bg     = dark ? "#141720" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)";
+  const txtPri = dark ? "#E8ECFF" : "#0f172a";
+  const txtSec = dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.5)";
 
   const [time, setTime] = useState(() => new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
   useEffect(() => {
@@ -467,9 +489,11 @@ function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSyn
   const [showDrop, setShowDrop] = useState(false);
 
   return (
-    <View style={[topBarSt.wrap, { backgroundColor: bg, borderBottomColor: border }]}>
+    <View
+      className={dark && Platform.OS === "web" ? "sk-dark-topbar" : undefined}
+      style={[topBarSt.wrap, { backgroundColor: bg, borderBottomColor: border }]}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        {/* Sidebar hamburger toggle */}
         <Pressable
           className={Platform.OS === "web" ? "sk-hamb" : undefined}
           onPress={() => setSidebarOpen((s: boolean) => !s)}
@@ -477,13 +501,13 @@ function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSyn
             backgroundColor: sidebarOpen
               ? (dark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.08)")
               : "transparent",
-            borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+            borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
           }]}
         >
           <View style={{ gap: 4 }}>
-            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 14 : 18 }]} />
-            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: 14 }]} />
-            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 18 : 10 }]} />
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(224,236,255,0.5)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 14 : 18 }]} />
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(224,236,255,0.5)" : "rgba(15,23,42,0.5)"), width: 14 }]} />
+            <View style={[topBarSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(224,236,255,0.5)" : "rgba(15,23,42,0.5)"), width: sidebarOpen ? 18 : 10 }]} />
           </View>
         </Pressable>
         <View>
@@ -492,8 +516,9 @@ function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSyn
         </View>
       </View>
       <View style={topBarSt.right}>
-        <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
-        {/* Dark mode toggle pill */}
+        <Text style={[topBarSt.time, { color: txtSec,
+          ...(Platform.OS === "web" ? { border: `1px solid ${dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"}` } as any : {}),
+        }]}>{time}</Text>
         {Platform.OS === "web" ? (
           <Pressable onPress={async () => { setDarkMode(!dark); await saveTheme(!dark); }}
             style={{ width: 44, height: 26, borderRadius: 99, backgroundColor: dark ? "#6366f1" : "rgba(0,0,0,0.1)", justifyContent: "center", position: "relative" } as any}
@@ -512,7 +537,6 @@ function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSyn
               style={{ transform: [{ scaleX: 0.78 }, { scaleY: 0.78 }] }} />
           </View>
         )}
-        {/* Bell */}
         <Pressable style={topBarSt.notifBtn}>
           <Text style={{ fontSize: 18 }}>🔔</Text>
           <Animated.View style={[topBarSt.notifDot, {
@@ -520,7 +544,6 @@ function TopBar({ dark, router, displayName, email, darkMode, setDarkMode, isSyn
             transform: [{ scale: pulseAnim }],
           }]} />
         </Pressable>
-        {/* Avatar + dropdown */}
         <View style={{ position: "relative" }}>
           <Pressable
             onPress={() => setShowDrop(s => !s)}
@@ -568,7 +591,7 @@ const topBarSt = StyleSheet.create({
   sub:        { fontSize: 12, fontWeight: "500", marginTop: 1 },
   right:      { flexDirection: "row", alignItems: "center", gap: 10 },
   time:       { fontSize: 13, fontWeight: "600",
-    ...(Platform.OS === "web" ? { padding: "7px 14px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.07)", background: "transparent" } as any : {}),
+    ...(Platform.OS === "web" ? { padding: "7px 14px", borderRadius: 10, background: "transparent" } as any : {}),
   },
   toggleWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
   notifBtn:   { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", position: "relative",
@@ -586,10 +609,9 @@ const topBarSt = StyleSheet.create({
 });
 
 /* ════════════════════════════════
-   HERO BANNER (web wide)
+   HERO BANNER
 ════════════════════════════════ */
 function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAnim }: any) {
-  /* Blinking dot animation */
   const blinkAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
@@ -605,7 +627,7 @@ function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAn
       style={[
         herSt.wrap,
         Platform.OS === "web"
-          ? { boxShadow: "0 8px 32px rgba(99,102,241,0.22)" }
+          ? { boxShadow: dark ? "0 8px 40px rgba(0,0,0,0.5)" : "0 8px 32px rgba(99,102,241,0.22)" }
           : { elevation: 8 },
         { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
@@ -613,11 +635,17 @@ function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAn
       {Platform.OS === "web" && (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
           borderRadius: 18,
-          background: "linear-gradient(135deg,#3730a3 0%,#6d28d9 55%,#9333ea 100%)",
+          background: dark
+            ? "linear-gradient(135deg,#0f1221 0%,#1a2040 45%,#151c35 100%)"
+            : "linear-gradient(135deg,#3730a3 0%,#6d28d9 55%,#9333ea 100%)",
         } as any]} />
       )}
+      {/* Dark mode: subtle accent glow overlay */}
+      {Platform.OS === "web" && dark && (
+        <View pointerEvents="none" className="sk-dark-hero" style={[StyleSheet.absoluteFill, { borderRadius: 18 } as any]} />
+      )}
       {Platform.OS !== "web" && (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#1e3a8a", borderRadius: 18 }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? "#0f1221" : "#1e3a8a", borderRadius: 18 }]} />
       )}
       <View pointerEvents="none" style={[herSt.orb, { width: 220, height: 220, top: -60, right: -40 },
         Platform.OS === "web" ? { animation: "sk-float 4s ease-in-out infinite" } as any : {}
@@ -628,7 +656,6 @@ function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAn
 
       <View style={herSt.inner}>
         <Particles />
-        {/* Blinking badge */}
         <View style={herSt.badge}>
           <Animated.View style={[herSt.badgeDot, {
             backgroundColor: isSynced ? "#34d399" : "#f87171",
@@ -643,7 +670,7 @@ function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAn
           You're {overallPct}% through your learning goals. Keep pushing —{"\n"}consistency is your superpower.
         </Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <View style={{ height: 8, width: 260, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 99, overflow: "hidden" } as any}>
+          <View style={{ height: 8, width: 260, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 99, overflow: "hidden" } as any}>
             {Platform.OS === "web" ? (
               <View style={{
                 height: "100%", width: `${overallPct}%`, borderRadius: 99,
@@ -664,7 +691,7 @@ function HeroBanner({ dark, displayName, overallPct, isSynced, fadeAnim, slideAn
 
 const herSt = StyleSheet.create({
   wrap:    { borderRadius: 24, padding: 28, paddingVertical: 32, marginBottom: 28, overflow: "hidden", position: "relative" },
-  orb:     { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.07)" } as any,
+  orb:     { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" } as any,
   inner:   { zIndex: 1 },
   badge:   { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   badgeDot:{ width: 8, height: 8, borderRadius: 4 },
@@ -678,9 +705,8 @@ const herSt = StyleSheet.create({
   },
 });
 
-
 /* ════════════════════════════════
-   STREAK TIMER — Snapchat‑style expiry ring
+   STREAK TIMER
 ════════════════════════════════ */
 function StreakTimer({ streak, activityToday, dark }: { streak: number; activityToday: boolean; dark: boolean }) {
   const [now, setNow] = useState(() => new Date());
@@ -692,7 +718,7 @@ function StreakTimer({ streak, activityToday, dark }: { streak: number; activity
   const midnight = new Date(now); midnight.setHours(24,0,0,0);
   const msLeft   = midnight.getTime() - now.getTime();
   const hoursLeft = msLeft / 3600000;
-  const pct       = msLeft / 86400000; // fraction of day remaining
+  const pct       = msLeft / 86400000;
   const urgent    = hoursLeft < 3 && streak > 0 && !activityToday;
   const warning   = hoursLeft < 8 && streak > 0 && !activityToday;
 
@@ -700,7 +726,6 @@ function StreakTimer({ streak, activityToday, dark }: { streak: number; activity
 
   const r = 22, cx = 26, cy = 26, circ = 2 * Math.PI * r;
   const dash = pct * circ;
-
   const ringColor = urgent ? "#ef4444" : warning ? "#f97316" : "#34d399";
   const glowColor = urgent ? "rgba(239,68,68,0.6)" : warning ? "rgba(249,115,22,0.5)" : "rgba(52,211,153,0.4)";
 
@@ -710,11 +735,9 @@ function StreakTimer({ streak, activityToday, dark }: { streak: number; activity
         ...(urgent ? { animation: "sk-pulse 1s infinite" } : warning ? { animation: "sk-breathe 2s ease-in-out infinite" } : {}),
       } as any}>
         <svg width="52" height="52" viewBox="0 0 52 52">
-          {/* Track */}
           <circle cx={cx} cy={cy} r={r} fill="none"
-            stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"}
+            stroke={dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"}
             strokeWidth="3.5" />
-          {/* Progress arc */}
           <circle cx={cx} cy={cy} r={r} fill="none"
             stroke={ringColor}
             strokeWidth="3.5"
@@ -743,7 +766,7 @@ function StreakTimer({ streak, activityToday, dark }: { streak: number; activity
 }
 
 /* ════════════════════════════════
-   GITHUB‑STYLE HEAT MAP (web only)
+   HEAT MAP
 ════════════════════════════════ */
 function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; dark: boolean }) {
   if (Platform.OS !== "web") return null;
@@ -752,9 +775,7 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
   const today = new Date();
   today.setHours(0,0,0,0);
 
-  /* Build grid: WEEKS cols × 7 rows, starting from Sunday */
   const startDay = new Date(today);
-  /* rewind to last Sunday WEEKS weeks ago */
   const dayOfWeek = today.getDay();
   startDay.setDate(today.getDate() - dayOfWeek - (WEEKS - 1) * 7);
 
@@ -780,11 +801,11 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
   const maxCount = Math.max(1, ...Object.values(activityLog));
   const getColor = (count: number, isToday: boolean) => {
     if (isToday && count === 0) return dark ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.12)";
-    if (count === 0) return dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+    if (count === 0) return dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)";
     const intensity = Math.min(count / maxCount, 1);
-    if (intensity < 0.25) return dark ? "rgba(99,102,241,0.3)" : "rgba(99,102,241,0.25)";
-    if (intensity < 0.5)  return dark ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.45)";
-    if (intensity < 0.75) return dark ? "rgba(99,102,241,0.7)" : "rgba(99,102,241,0.65)";
+    if (intensity < 0.25) return dark ? "rgba(99,102,241,0.28)" : "rgba(99,102,241,0.25)";
+    if (intensity < 0.5)  return dark ? "rgba(99,102,241,0.48)" : "rgba(99,102,241,0.45)";
+    if (intensity < 0.75) return dark ? "rgba(99,102,241,0.68)" : "rgba(99,102,241,0.65)";
     return "#6366f1";
   };
 
@@ -793,10 +814,10 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
   return (
     <View style={{
       borderRadius: 20, padding: 20, marginBottom: 28, borderWidth: 1,
-      borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-      backgroundColor: dark ? "#0d1424" : "#ffffff",
+      borderColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+      backgroundColor: dark ? "#1C1F2E" : "#ffffff",
       ...(Platform.OS === "web" ? { animation: "sk-fadeUp .4s ease both" } as any : {}),
-      ...(Platform.OS === "web" ? { boxShadow: dark ? "0 2px 16px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.05)" } as any : {}),
+      ...(Platform.OS === "web" ? { boxShadow: dark ? "0 2px 20px rgba(0,0,0,0.5)" : "0 2px 12px rgba(0,0,0,0.05)" } as any : {}),
     }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -804,43 +825,40 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
             <Text style={{ fontSize: 16 }}>📅</Text>
           </View>
           <View>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: dark ? "#eef2ff" : "#0f172a",
+            <Text style={{ fontSize: 15, fontWeight: "800", color: dark ? "#E8ECFF" : "#0f172a",
               ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
             }}>Activity Heatmap</Text>
-            <Text style={{ fontSize: 11, fontWeight: "500", color: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)", marginTop: 1 }}>
+            <Text style={{ fontSize: 11, fontWeight: "500", color: dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.45)", marginTop: 1 }}>
               {Object.values(activityLog).reduce((a,b)=>a+b,0)} tasks · {Object.keys(activityLog).length} active days
             </Text>
           </View>
         </View>
-        {/* Legend */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Text style={{ fontSize: 10, color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)", marginRight: 4, fontWeight: "500" }}>Less</Text>
+          <Text style={{ fontSize: 10, color: dark ? "rgba(180,188,220,0.45)" : "rgba(15,23,42,0.4)", marginRight: 4, fontWeight: "500" }}>Less</Text>
           {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
             <View key={i} style={{
               width: 10, height: 10, borderRadius: 3,
               backgroundColor: v === 0
-                ? (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)")
-                : v < 0.3 ? (dark ? "rgba(99,102,241,0.3)" : "rgba(99,102,241,0.25)")
-                : v < 0.6 ? (dark ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.45)")
-                : v < 0.8 ? (dark ? "rgba(99,102,241,0.7)" : "rgba(99,102,241,0.65)")
+                ? (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)")
+                : v < 0.3 ? (dark ? "rgba(99,102,241,0.28)" : "rgba(99,102,241,0.25)")
+                : v < 0.6 ? (dark ? "rgba(99,102,241,0.48)" : "rgba(99,102,241,0.45)")
+                : v < 0.8 ? (dark ? "rgba(99,102,241,0.68)" : "rgba(99,102,241,0.65)")
                 : "#6366f1",
             }} />
           ))}
-          <Text style={{ fontSize: 10, color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)", marginLeft: 4, fontWeight: "500" }}>More</Text>
+          <Text style={{ fontSize: 10, color: dark ? "rgba(180,188,220,0.45)" : "rgba(15,23,42,0.4)", marginLeft: 4, fontWeight: "500" }}>More</Text>
         </View>
       </View>
 
-      {/* Month labels */}
       <View style={{ flexDirection: "row", marginBottom: 4, paddingLeft: 2 }}>
         {months.map((m, i) => (
           <View key={i} style={{ position: "absolute", left: m.col * (CELL + GAP) } as any}>
-            <Text style={{ fontSize: 9, color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)", fontWeight: "600" }}>{m.label}</Text>
+            <Text style={{ fontSize: 9, color: dark ? "rgba(180,188,220,0.45)" : "rgba(15,23,42,0.4)", fontWeight: "600" }}>{m.label}</Text>
           </View>
         ))}
         <View style={{ height: 14 }} />
       </View>
 
-      {/* Grid */}
       <View style={{ flexDirection: "row", gap: GAP } as any}>
         {Array.from({ length: WEEKS }, (_, w) => (
           <View key={w} style={{ flexDirection: "column", gap: GAP } as any}>
@@ -855,7 +873,6 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
                   ...(cell.count > 0 ? { boxShadow: `0 0 4px ${getColor(cell.count, cell.isToday)}66` } as any : {}),
                   cursor: "default",
                   transition: "transform .12s, box-shadow .12s",
-
                 } as any} />
               );
             })}
@@ -866,7 +883,7 @@ function HeatMap({ activityLog, dark }: { activityLog: Record<string,number>; da
   );
 }
 
-/* ════ STREAK TIMER INLINE — fits inside card ════ */
+/* ════ STREAK TIMER INLINE ════ */
 function StreakTimerInline({ streak, activityToday, dark }: { streak: number; activityToday: boolean; dark: boolean }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -890,7 +907,7 @@ function StreakTimerInline({ streak, activityToday, dark }: { streak: number; ac
         style={{ ...(urgent ? { animation: "sk-pulse 1s infinite" } : warning ? { animation: "sk-breathe 2s ease-in-out infinite" } : {}) } as any}
       >
         <circle cx={cx} cy={cy} r={r} fill="none"
-          stroke={dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"} strokeWidth="3" />
+          stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} strokeWidth="3" />
         <circle cx={cx} cy={cy} r={r} fill="none"
           stroke={ringColor} strokeWidth="3"
           strokeDasharray={`${dash} ${circ}`}
@@ -919,13 +936,13 @@ function StreakTimerInline({ streak, activityToday, dark }: { streak: number; ac
 }
 
 /* ════════════════════════════════
-   STAT CARDS ROW (web wide)
+   STAT CARDS ROW
 ════════════════════════════════ */
 function StatCards({ dark, goals, completedTasks, streak, activityToday, fadeAnim, slideAnim }: any) {
-  const bg     = dark ? "#0d1424" : "#ffffff";
-  const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const txtPri = dark ? "#eef2ff" : "#0f172a";
-  const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
+  const bg     = dark ? "#1C1F2E" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+  const txtPri = dark ? "#E8ECFF" : "#0f172a";
+  const txtSec = dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.5)";
 
   const CARDS = [
     { icon: "🎯", val: goals.length,     lbl: "Active Goals",     sub: "All on track",   color: "#6366f1", bg2: "rgba(99,102,241,0.08)"  },
@@ -934,19 +951,23 @@ function StatCards({ dark, goals, completedTasks, streak, activityToday, fadeAni
     { icon: "⭐", val: Math.min(9999, completedTasks * 50 + goals.length * 120 + Number(streak) * 15), lbl: "Skill Score", sub: "Based on activity", color: "#fbbf24", bg2: "rgba(251,191,36,0.08)" },
   ];
 
-  /* ── Single stat card with count-up ── */
   function StatCard({ icon, val, lbl, sub, color, bg2, i, streak, activityToday }: any) {
     const isNum  = typeof val === "number";
     const counted = useCountUp(isNum ? val : 0);
     const display = isNum ? counted : val;
     return (
       <Animated.View
-        className={Platform.OS === "web" ? "sk-hov" : undefined}
+        className={Platform.OS === "web" ? `sk-hov${dark ? " sk-dark-card" : ""}` : undefined}
         style={[
           stSt.card,
           { backgroundColor: bg, borderColor: border },
           Platform.OS === "web"
-            ? { boxShadow: dark ? "0 4px 20px rgba(0,0,0,0.3)" : `0 4px 16px ${color}18`, borderTopColor: color, borderTopWidth: 2 }
+            ? {
+                boxShadow: dark
+                  ? `0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)`
+                  : `0 4px 16px ${color}18`,
+                borderTopColor: color, borderTopWidth: 2,
+              }
             : { elevation: 3 },
           {
             opacity: fadeAnim,
@@ -958,7 +979,7 @@ function StatCards({ dark, goals, completedTasks, streak, activityToday, fadeAni
           <View pointerEvents="none" style={{
             position: "absolute", top: -12, right: -12, width: 70, height: 70,
             borderRadius: 35, backgroundColor: color,
-            filter: "blur(20px)", opacity: 0.15,
+            filter: "blur(20px)", opacity: dark ? 0.08 : 0.15,
           } as any} />
         )}
         <View style={[stSt.iconWrap, { backgroundColor: bg2 },
@@ -973,7 +994,6 @@ function StatCards({ dark, goals, completedTasks, streak, activityToday, fadeAni
         <View style={stSt.subRow}>
           <Text style={{ color, fontSize: 10, fontWeight: "700" }}>↑ {sub}</Text>
         </View>
-        {/* StreakTimer inside card to avoid overflow clipping */}
         {i === 2 && <StreakTimerInline streak={streak} activityToday={activityToday} dark={dark} />}
       </Animated.View>
     );
@@ -997,7 +1017,7 @@ const stSt = StyleSheet.create({
   subRow:  { flexDirection: "row", alignItems: "center" },
 });
 
-/* ════ TODAY'S PLAN — scrollable, shows all pending ════ */
+/* ════ TODAY'S PLAN ════ */
 function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
   const [expanded, setExpanded] = useState(false);
   const SHOW = 4;
@@ -1024,19 +1044,17 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
             <Text style={[rpSt.planBadgeTx, { color: "#6366f1" }]}>{allPending.length} pending</Text>
           </View>
         </View>
-        {allPending.every((_,i) => false) ? null : (
-          <Pressable onPress={() => setExpanded(e => !e)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: "#6366f1",
-              ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
-            }}>{expanded ? "Show less" : "View all"}</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={() => setExpanded(e => !e)}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: "#6366f1",
+            ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
+          }}>{expanded ? "Show less" : "View all"}</Text>
+        </Pressable>
       </View>
       <View style={{ height: 1, backgroundColor: border, marginVertical: 10 }} />
       {shown.map((item, idx) => (
         <View key={idx} style={[rpSt.planRow, {
-          backgroundColor: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+          backgroundColor: dark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.02)",
           borderWidth: 1, borderColor: border,
           borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
         }]}>
@@ -1052,14 +1070,13 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
           </View>
         </View>
       ))}
-      {/* Expand / collapse button */}
       {allPending.length > SHOW && (
         <Pressable onPress={() => setExpanded(e => !e)}
           style={({ pressed }) => [rpSt.viewMoreBtn, {
             backgroundColor: pressed
               ? (dark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.1)")
-              : (dark ? "rgba(99,102,241,0.08)" : "rgba(99,102,241,0.06)"),
-            borderColor: dark ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.15)",
+              : (dark ? "rgba(99,102,241,0.07)" : "rgba(99,102,241,0.06)"),
+            borderColor: dark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.15)",
           }]}
         >
           <Text style={{ fontSize: 12, fontWeight: "700", color: "#6366f1" }}>
@@ -1067,7 +1084,6 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
           </Text>
         </Pressable>
       )}
-      {/* All-done state */}
       {allPending.length === 0 && (
         <View style={{ alignItems: "center", paddingVertical: 12 }}>
           <Text style={{ fontSize: 20, marginBottom: 6 }}>🎉</Text>
@@ -1080,23 +1096,23 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
 }
 
 /* ════════════════════════════════
-   RIGHT PANEL (web wide)
+   RIGHT PANEL
 ════════════════════════════════ */
 function RightPanel({ dark, goals, getGoalProgress, getRecommendation, fadeAnim }: any) {
-  const bg     = dark ? "#0a0f20" : "#ffffff";
-  const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
-  const txtPri = dark ? "#eef2ff" : "#0f172a";
-  const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
+  const bg     = dark ? "#141720" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)";
+  const txtPri = dark ? "#E8ECFF" : "#0f172a";
+  const txtSec = dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.5)";
   const recBg  = dark ? "rgba(99,102,241,0.1)" : "#eff6ff";
 
   return (
     <Animated.View style={[rpSt.wrap, { opacity: fadeAnim }]}>
-
-      {/* AI Recommendation */}
       <View style={[rpSt.card, {
         borderColor: "rgba(99,102,241,0.2)",
         ...(Platform.OS === "web"
-          ? { background: "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(167,139,250,0.06))" }
+          ? { background: dark
+              ? "linear-gradient(135deg,rgba(99,102,241,0.1),rgba(99,102,241,0.04))"
+              : "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(167,139,250,0.06))" }
           : { backgroundColor: recBg }),
       } as any]}>
         <View style={rpSt.recHdr}>
@@ -1118,8 +1134,9 @@ function RightPanel({ dark, goals, getGoalProgress, getRecommendation, fadeAnim 
         )}
       </View>
 
-      {/* Quick Progress */}
-      <View style={[rpSt.card, { backgroundColor: bg, borderColor: border }]}>
+      <View style={[rpSt.card, { backgroundColor: bg, borderColor: border,
+        ...(Platform.OS === "web" && dark ? { boxShadow: "0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)" } as any : {}),
+      }]}>
         <Text style={[rpSt.secTitle, { color: txtPri }]}>Quick Progress</Text>
         {goals.length === 0 && (
           <Text style={[rpSt.recSub, { color: txtSec }]}>No goals yet</Text>
@@ -1144,9 +1161,7 @@ function RightPanel({ dark, goals, getGoalProgress, getRecommendation, fadeAnim 
         })}
       </View>
 
-      {/* Today's Plan — all pending, scrollable with collapse */}
       <TodaysPlan dark={dark} goals={goals} bg={bg} border={border} txtPri={txtPri} txtSec={txtSec} />
-
     </Animated.View>
   );
 }
@@ -1174,7 +1189,6 @@ const rpSt = StyleSheet.create({
   qpTop:       { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   qpName:      { fontSize: 12, fontWeight: "700", flex: 1 },
   qpPct:       { fontSize: 12, fontWeight: "700", marginLeft: 4 },
-  /* Today's Plan */
   planHdr:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   planBadge:   { backgroundColor: "#ef444418", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
   planBadgeTx: { color: "#ef4444", fontSize: 10, fontWeight: "700" },
@@ -1188,11 +1202,9 @@ const rpSt = StyleSheet.create({
   },
 });
 
-
 /* ════════════════════════════════
-   ADD GOAL MODAL — inline on dashboard
+   ADD GOAL MODAL
 ════════════════════════════════ */
-
 const ICON_CATEGORIES = [
   { label: "Coding",  emoji: "💻", icons: ["⚛️","🐍","☕","🔧","🖥️","💻","🛠️","⚙️","🐞","🔌","📱","🌐","🔐","🗄️","🖱️","⌨️"] },
   { label: "Study",   emoji: "📚", icons: ["📚","📖","🎓","📝","✏️","📓","🗒️","📄","🔬","🧪","🏫","🔭","📐","📏","🗺️","🧩"] },
@@ -1220,7 +1232,6 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const slideAnim  = useRef(new Animated.Value(44)).current;
   const btnScale   = useRef(new Animated.Value(1)).current;
-  const pickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -1229,23 +1240,15 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
     ]).start();
   }, []);
 
-  const togglePicker = () => {
-    const next = !showPicker;
-    setShowPicker(next);
-    Animated.spring(pickerAnim, {
-      toValue: next ? 1 : 0, useNativeDriver: true, tension: 80, friction: 10,
-    }).start();
-  };
-
   const SUGGESTIONS = ["Learn Java","React Native","Firebase","Flutter","Node.js","UI Design","Python","Machine Learning"];
 
-  const card    = dark ? "#0d1424" : "#ffffff";
-  const txtPri  = dark ? "#eef2ff" : "#0f172a";
-  const txtSec  = dark ? "rgba(238,242,255,0.55)" : "#475569";
-  const txtMute = dark ? "rgba(238,242,255,0.28)" : "rgba(15,23,42,0.3)";
-  const border  = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const card    = dark ? "#1C1F2E" : "#ffffff";
+  const txtPri  = dark ? "#E8ECFF" : "#0f172a";
+  const txtSec  = dark ? "rgba(180,188,220,0.6)" : "#475569";
+  const txtMute = dark ? "rgba(180,188,220,0.28)" : "rgba(15,23,42,0.3)";
+  const border  = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   const inputBg = dark ? "rgba(255,255,255,0.04)" : "#f8faff";
-  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.22)");
+  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.22)");
   const hasText = goal.trim().length > 0;
 
   const handleSave = async () => {
@@ -1265,9 +1268,8 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
 
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }] as any}>
-      {/* Backdrop */}
       <Animated.View style={[StyleSheet.absoluteFill, {
-        backgroundColor: dark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.48)", opacity: fadeAnim,
+        backgroundColor: dark ? "rgba(0,0,0,0.82)" : "rgba(0,0,0,0.48)", opacity: fadeAnim,
       }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
@@ -1275,10 +1277,9 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }} pointerEvents="box-none">
         <Animated.View style={[
           { width: "100%", maxWidth: 520, backgroundColor: card, borderRadius: 24, padding: 26, borderWidth: 1, borderColor: border },
-          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.7)" : "0 24px 80px rgba(0,0,0,0.18)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
+          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)" : "0 24px 80px rgba(0,0,0,0.18)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}>
-          {/* ── Header ── */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center",
@@ -1295,7 +1296,7 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             </View>
             <Pressable onPress={onClose} style={({ pressed }) => ({
               width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center",
-              backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+              backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"),
               ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .15s" } as any : {}),
             })}>
               <Text style={{ color: txtSec, fontSize: 16, fontWeight: "700" }}>✕</Text>
@@ -1304,21 +1305,16 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
 
           <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
 
-          {/* ── Icon Selector Row ── */}
           <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 10 }}>Goal Icon</Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            {/* Selected icon big button */}
-            <Pressable onPress={togglePicker}
+            <Pressable onPress={() => setShowPicker(o => !o)}
               style={({ pressed }) => ({
                 width: 64, height: 64, borderRadius: 18, alignItems: "center", justifyContent: "center",
                 borderWidth: 2,
-                borderColor: showPicker ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.3)"),
+                borderColor: showPicker ? "#6366f1" : (dark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.3)"),
                 backgroundColor: showPicker ? "rgba(99,102,241,0.12)" : (dark ? "rgba(255,255,255,0.04)" : "rgba(99,102,241,0.06)"),
                 opacity: pressed ? 0.8 : 1,
-                ...(Platform.OS === "web" ? {
-                  boxShadow: showPicker ? "0 0 0 3px rgba(99,102,241,0.2)" : "none",
-                  transition: "all .2s", cursor: "pointer",
-                } as any : {}),
+                ...(Platform.OS === "web" ? { boxShadow: showPicker ? "0 0 0 3px rgba(99,102,241,0.2)" : "none", transition: "all .2s", cursor: "pointer" } as any : {}),
               })}>
               <Text style={{ fontSize: 30 }}>{selectedIcon}</Text>
             </Pressable>
@@ -1332,13 +1328,12 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
               </Text>
             </View>
 
-            {/* Quick popular icons */}
             <View style={{ flexDirection: "row", gap: 6 }}>
               {["🎯","💻","📚","🚀","🎨"].map(ic => (
                 <Pressable key={ic} onPress={() => { setSelectedIcon(ic); setShowPicker(false); }}
                   style={({ pressed }) => ({
                     width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center",
-                    backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.14)" : (pressed ? "rgba(99,102,241,0.08)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)")),
+                    backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.14)" : (pressed ? "rgba(99,102,241,0.08)" : (dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)")),
                     borderWidth: 1,
                     borderColor: selectedIcon === ic ? "rgba(99,102,241,0.45)" : border,
                     ...(Platform.OS === "web" ? { cursor: "pointer", transition: "all .14s" } as any : {}),
@@ -1349,15 +1344,13 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             </View>
           </View>
 
-          {/* ── Expandable Icon Picker ── */}
           {showPicker && (
             <Animated.View style={{
               borderRadius: 16, borderWidth: 1, borderColor: "rgba(99,102,241,0.2)",
-              backgroundColor: dark ? "rgba(99,102,241,0.06)" : "rgba(99,102,241,0.03)",
+              backgroundColor: dark ? "rgba(99,102,241,0.05)" : "rgba(99,102,241,0.03)",
               marginBottom: 16, overflow: "hidden",
               ...(Platform.OS === "web" ? { animation: "sk-fadeUp .18s ease both" } as any : {}),
             }}>
-              {/* Category Tabs */}
               <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "rgba(99,102,241,0.15)", paddingHorizontal: 8, paddingTop: 8 }}>
                 {ICON_CATEGORIES.map((cat, ci) => (
                   <Pressable key={ci} onPress={() => setActiveTab(ci)}
@@ -1376,20 +1369,15 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
                   </Pressable>
                 ))}
               </View>
-
-              {/* Icon Grid */}
               <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 12, gap: 8 } as any}>
                 {ICON_CATEGORIES[activeTab].icons.map((ic, ii) => (
                   <Pressable key={ii} onPress={() => { setSelectedIcon(ic); setShowPicker(false); }}
                     style={({ pressed }) => ({
                       width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center",
-                      backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.18)" : (pressed ? "rgba(99,102,241,0.1)" : (dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)")),
+                      backgroundColor: selectedIcon === ic ? "rgba(99,102,241,0.18)" : (pressed ? "rgba(99,102,241,0.1)" : (dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)")),
                       borderWidth: selectedIcon === ic ? 2 : 1,
-                      borderColor: selectedIcon === ic ? "#6366f1" : (dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"),
-                      ...(Platform.OS === "web" ? {
-                        cursor: "pointer", transition: "all .12s",
-                        boxShadow: selectedIcon === ic ? "0 0 0 3px rgba(99,102,241,0.2)" : "none",
-                      } as any : {}),
+                      borderColor: selectedIcon === ic ? "#6366f1" : (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)"),
+                      ...(Platform.OS === "web" ? { cursor: "pointer", transition: "all .12s", boxShadow: selectedIcon === ic ? "0 0 0 3px rgba(99,102,241,0.2)" : "none" } as any : {}),
                     })}>
                     <Text style={{ fontSize: 20 }}>{ic}</Text>
                   </Pressable>
@@ -1398,7 +1386,6 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             </Animated.View>
           )}
 
-          {/* ── Goal Name Input ── */}
           <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Goal Name</Text>
           <View style={{
             flexDirection: "row", alignItems: "center",
@@ -1416,7 +1403,7 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
                 onKeyDown={(e: any) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose(); }}
                 autoFocus placeholder="e.g. Master React Native..."
                 style={{ flex: 1, fontSize: 15, fontWeight: "500", border: "none", outline: "none",
-                  background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                  background: "transparent", color: dark ? "#E8ECFF" : "#0f172a",
                   fontFamily: "Plus Jakarta Sans,sans-serif", padding: "12px 0" } as any} />
             ) : (
               <TextInput
@@ -1437,7 +1424,6 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             )}
           </View>
 
-          {/* ── Suggestion Chips — also set icon ── */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 16 } as any}>
             {SUGGESTIONS.map((s, i) => {
               const sugIcon = SUGGESTION_ICON_MAP[s] || "🎯";
@@ -1457,15 +1443,13 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             })}
           </View>
 
-          {/* Typing progress bar */}
           {Platform.OS === "web" && (
-            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 16, overflow: "hidden" } as any}>
+            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 16, overflow: "hidden" } as any}>
               <View style={{ height: "100%", width: `${(goal.length / 60) * 100}%`, borderRadius: 99,
                 background: "linear-gradient(90deg,#6366f1,#a78bfa)", transition: "width .3s" } as any} />
             </View>
           )}
 
-          {/* Preview pill */}
           {hasText && (
             <View style={{
               flexDirection: "row", alignItems: "center", gap: 10, padding: 12,
@@ -1481,14 +1465,13 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
             </View>
           )}
 
-          {/* Save */}
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
             <Pressable onPress={handleSave} disabled={saving}
               style={({ pressed }) => ({
                 paddingVertical: 15, borderRadius: 14, alignItems: "center",
                 backgroundColor: "#6366f1", opacity: (pressed || saving) ? 0.85 : 1,
                 ...(Platform.OS === "web" ? {
-                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.22)" : "rgba(99,102,241,0.14)"),
+                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.14)"),
                   boxShadow: hasText ? "0 6px 20px rgba(99,102,241,0.42)" : "none",
                   cursor: hasText ? "pointer" : "not-allowed", transition: "all .2s",
                 } as any : {}),
@@ -1508,7 +1491,7 @@ function AddGoalModal({ dark, onClose, addGoalFn }: {
 }
 
 /* ════════════════════════════════
-   ADD TASK MODAL — inline on dashboard
+   ADD TASK MODAL
 ════════════════════════════════ */
 function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
   dark: boolean; goalId: string; onClose: () => void; addTaskFn: (goalId: string, title: string) => void;
@@ -1534,13 +1517,13 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
     "Review notes and summarize key points",
   ];
 
-  const card    = dark ? "#0d1424" : "#ffffff";
-  const txtPri  = dark ? "#eef2ff" : "#0f172a";
-  const txtSec  = dark ? "rgba(238,242,255,0.55)" : "#475569";
-  const txtMute = dark ? "rgba(238,242,255,0.28)" : "rgba(15,23,42,0.3)";
-  const border  = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const card    = dark ? "#1C1F2E" : "#ffffff";
+  const txtPri  = dark ? "#E8ECFF" : "#0f172a";
+  const txtSec  = dark ? "rgba(180,188,220,0.6)" : "#475569";
+  const txtMute = dark ? "rgba(180,188,220,0.28)" : "rgba(15,23,42,0.3)";
+  const border  = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   const inputBg = dark ? "rgba(255,255,255,0.04)" : "#f8faff";
-  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.14)" : "rgba(99,102,241,0.22)");
+  const iBorder = focused ? "#6366f1" : (dark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.22)");
   const hasText = task.trim().length > 0;
 
   const handleAdd = () => {
@@ -1561,7 +1544,7 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }] as any}>
       <Animated.View style={[StyleSheet.absoluteFill, {
-        backgroundColor: dark ? "rgba(0,0,0,0.78)" : "rgba(0,0,0,0.48)",
+        backgroundColor: dark ? "rgba(0,0,0,0.82)" : "rgba(0,0,0,0.48)",
         opacity: fadeAnim,
       }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
@@ -1570,10 +1553,9 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }} pointerEvents="box-none">
         <Animated.View style={[
           { width: "100%", maxWidth: 480, backgroundColor: card, borderRadius: 24, padding: 28, borderWidth: 1, borderColor: border },
-          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.7)" : "0 24px 80px rgba(0,0,0,0.2)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
+          Platform.OS === "web" ? { boxShadow: dark ? "0 24px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)" : "0 24px 80px rgba(0,0,0,0.2)", animation: "sk-fadeUp .22s ease both" } as any : { elevation: 24 },
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
         ]}>
-          {/* Header */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View style={{ width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center",
@@ -1591,7 +1573,7 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
             <Pressable onPress={onClose}
               style={({ pressed }) => ({
                 width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center",
-                backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"),
+                backgroundColor: pressed ? (dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)") : (dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"),
                 ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .15s" } as any : {}),
               })}>
               <Text style={{ color: txtSec, fontSize: 16, fontWeight: "700" }}>✕</Text>
@@ -1599,10 +1581,8 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
           </View>
 
           <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
-
           <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Task Name</Text>
 
-          {/* Input */}
           <View style={{
             flexDirection: "row", alignItems: "center",
             backgroundColor: inputBg, borderColor: iBorder, borderWidth: 1.5,
@@ -1621,7 +1601,7 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
                 autoFocus
                 placeholder="e.g. Complete Chapter 3 exercises"
                 style={{ flex: 1, fontSize: 15, fontWeight: "500", border: "none", outline: "none",
-                  background: "transparent", color: dark ? "#eef2ff" : "#0f172a",
+                  background: "transparent", color: dark ? "#E8ECFF" : "#0f172a",
                   fontFamily: "Plus Jakarta Sans,sans-serif", padding: "12px 0" } as any}
               />
             ) : (
@@ -1645,7 +1625,6 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
             )}
           </View>
 
-          {/* Quick examples */}
           <Text style={{ fontSize: 11, fontWeight: "700", color: txtSec, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 8 }}>Quick Examples</Text>
           <View style={{ gap: 6, marginBottom: 18 }}>
             {EXAMPLES.map((ex, i) => (
@@ -1654,7 +1633,7 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
                   flexDirection: "row", alignItems: "center", gap: 10,
                   paddingVertical: 10, paddingHorizontal: 14,
                   borderRadius: 12, borderWidth: 1,
-                  backgroundColor: pressed ? "rgba(99,102,241,0.09)" : (dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"),
+                  backgroundColor: pressed ? "rgba(99,102,241,0.09)" : (dark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.02)"),
                   borderColor: pressed ? "rgba(99,102,241,0.35)" : border,
                   ...(Platform.OS === "web" ? { cursor: "pointer", transition: "background .14s, border-color .14s" } as any : {}),
                 })}>
@@ -1665,22 +1644,20 @@ function AddTaskModal({ dark, goalId, onClose, addTaskFn }: {
             ))}
           </View>
 
-          {/* Typing progress bar */}
           {Platform.OS === "web" && task.length > 0 && (
-            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 18, overflow: "hidden" } as any}>
+            <View style={{ height: 3, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", borderRadius: 99, marginBottom: 18, overflow: "hidden" } as any}>
               <View style={{ height: "100%", width: `${(task.length / 80) * 100}%`, borderRadius: 99,
                 background: "linear-gradient(90deg,#6366f1,#a78bfa)", transition: "width .3s" } as any} />
             </View>
           )}
 
-          {/* Save */}
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
             <Pressable onPress={handleAdd} disabled={saving}
               style={({ pressed }) => ({
                 paddingVertical: 15, borderRadius: 14, alignItems: "center",
                 backgroundColor: "#6366f1", opacity: (pressed || saving) ? 0.85 : 1,
                 ...(Platform.OS === "web" ? {
-                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.22)" : "rgba(99,102,241,0.14)"),
+                  background: hasText ? "linear-gradient(135deg,#6366f1,#a78bfa)" : (dark ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.14)"),
                   boxShadow: hasText ? "0 6px 20px rgba(99,102,241,0.42)" : "none",
                   cursor: hasText ? "pointer" : "not-allowed", transition: "all .2s",
                 } as any : {}),
@@ -1723,7 +1700,6 @@ export default function Dashboard() {
   const [showAddGoal,      setShowAddGoal]      = useState(false);
   const [showAddTaskGoalId, setShowAddTaskGoalId] = useState<string | null>(null);
 
-  /* Animations */
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const slideAnim  = useRef(new Animated.Value(36)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -1745,7 +1721,6 @@ export default function Dashboard() {
   useEffect(() => { loadTheme().then(setDarkMode); }, []);
   useEffect(() => { const u = listenToNetwork(setIsSynced); return () => u(); }, []);
 
-  /* Streak + activityLog from Firestore */
   useEffect(() => {
     const userRef = doc(db, "users", user.uid);
     const unsub   = onSnapshot(userRef, (snap) => {
@@ -1769,25 +1744,24 @@ export default function Dashboard() {
     }).start();
   }, [goals]);
 
-  /* Logout */
   const handleLogout = async () => {
     await signOut(auth);
     showSuccess("Logged out successfully");
     router.replace("/login");
   };
 
-  /* Theme */
   const dark          = !!darkMode;
-  const bg            = dark ? "#080d18" : "#eef1f8";
-  const card          = dark ? "#0d1424" : "#FFFFFF";
-  const textPrimary   = dark ? "#FFFFFF"  : "#0F172A";
-  const textSecondary = dark ? "#CBD5F5"  : "#475569";
-  const textMuted     = dark ? "rgba(238,242,255,0.28)" : "rgba(15,23,42,0.28)";
-  const headerBg      = dark ? "#020617"  : "#1e3a8a";
-  const recBg         = dark ? "#020617"  : "#EFF6FF";
+  /* ── PROFESSIONAL DARK PALETTE ── */
+  const bg            = dark ? "#0D0F14" : "#eef1f8";
+  const card          = dark ? "#1C1F2E" : "#FFFFFF";
+  const textPrimary   = dark ? "#E8ECFF"  : "#0F172A";
+  const textSecondary = dark ? "rgba(180,188,220,0.75)" : "#475569";
+  const textMuted     = dark ? "rgba(180,188,220,0.28)" : "rgba(15,23,42,0.28)";
+  const headerBg      = dark ? "#0D0F14"  : "#1e3a8a";
+  const recBg         = dark ? "#141720"  : "#EFF6FF";
   const recBorder     = dark ? "#38BDF8"  : COLORS.primary;
-  const recText       = dark ? "#CBD5F5"  : "#334155";
-  const cardBorder    = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const recText       = dark ? "rgba(180,188,220,0.75)" : "#334155";
+  const cardBorder    = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
 
   const overallPct    = getOverallProgress();
   const displayName   = user.displayName || user.email || "User";
@@ -1798,26 +1772,24 @@ export default function Dashboard() {
   const activityToday  = (activityLog[todayKey] || 0) > 0;
   const totalTasks    = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
 
-  /* ── Responsive breakpoints (CSS-style media queries via useWindowDimensions) ── */
   const { width: screenW } = useWindowDimensions();
-  // xs  < 600   → mobile: compact header, single col, bottom bar
-  // sm  600–959 → tablet: no sidebar, 2-col goals, no right panel
-  // md  960+    → desktop: sidebar + hero + stat cards + right panel
   const isMobile = screenW < 600;
   const isTablet = !isMobile && screenW < 960 && Platform.OS === "web";
   const isWide    = Platform.OS === "web" && screenW >= 960;
-  const isTwoCol  = Platform.OS === "web" && screenW >= 1200;  // goal cards 2-col only at 1200+
+  const isTwoCol  = Platform.OS === "web" && screenW >= 1200;
 
   const cardShadow = Platform.OS === "web"
-    ? { boxShadow: dark ? "0 2px 12px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.05)" }
+    ? { boxShadow: dark
+        ? "0 2px 16px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.035)"
+        : "0 2px 12px rgba(0,0,0,0.05)" }
     : { elevation: 3 };
 
-  /* ── Mobile header (compact) ── */
+  /* ── Mobile header ── */
   const MobileHeader = () => (
     <Animated.View
       style={[
         styles.mHdr, { backgroundColor: headerBg },
-        Platform.OS === "web" ? { boxShadow: "0 14px 44px rgba(0,0,0,0.26)" } : { elevation: 12 },
+        Platform.OS === "web" ? { boxShadow: "0 14px 44px rgba(0,0,0,0.4)" } : { elevation: 12 },
         { transform: [{ scale: hdrScale }], opacity: fadeAnim },
       ]}
     >
@@ -1825,7 +1797,7 @@ export default function Dashboard() {
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
           borderRadius: 20,
           background: dark
-            ? "linear-gradient(135deg,#020617 0%,#0f2060 60%,#1a1060 100%)"
+            ? "linear-gradient(135deg,#0D0F14 0%,#131830 60%,#0f1628 100%)"
             : "linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#6d28d9 100%)",
         } as any]} />
       )}
@@ -1890,13 +1862,10 @@ export default function Dashboard() {
     </Animated.View>
   );
 
-  /* ── Goal list shared ── */
-  /* Goal cards always expanded — no collapse toggle */
-
   const GoalList = () => (
     <>
       {goals.length === 0 && (
-        <Animated.View style={[styles.emptyCard, { backgroundColor: dark ? "rgba(255,255,255,0.05)" : "rgba(99,102,241,0.04)", borderColor: cardBorder, ...cardShadow }, { opacity: fadeAnim }]}>
+        <Animated.View style={[styles.emptyCard, { backgroundColor: dark ? "rgba(255,255,255,0.03)" : "rgba(99,102,241,0.04)", borderColor: cardBorder, ...cardShadow }, { opacity: fadeAnim }]}>
           <Text style={styles.emptyEmoji}>🚀</Text>
           <Text style={[styles.emptyTitle, { color: textPrimary }]}>No goals yet</Text>
           <Text style={styles.emptySub}>Create your first learning goal to get started</Text>
@@ -1917,11 +1886,14 @@ export default function Dashboard() {
             return (
               <Animated.View
                 key={g.id}
-                className={Platform.OS === "web" ? "sk-hov" : undefined}
+                className={Platform.OS === "web" ? `sk-hov${dark ? " sk-dark-card" : ""}` : undefined}
                 style={[
                   styles.goalBox,
                   isTwoCol ? styles.goalBoxWide : styles.goalBoxFull,
                   { backgroundColor: card, borderColor: cardBorder, borderLeftColor: accent, ...cardShadow },
+                  Platform.OS === "web" && dark ? {
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.035)`,
+                  } as any : {},
                   { opacity: fadeAnim, transform: [{ translateY: Animated.add(slideAnim, new Animated.Value(index * 7)) }] },
                 ]}
               >
@@ -1938,7 +1910,7 @@ export default function Dashboard() {
                     </View>
                   </View>
                   <View style={[styles.miniRing, Platform.OS === "web"
-                    ? { background: `conic-gradient(${accent} ${goalPct * 3.6}deg, ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"} 0deg)` } as any
+                    ? { background: `conic-gradient(${accent} ${goalPct * 3.6}deg, ${dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)"} 0deg)` } as any
                     : { borderWidth: 2.5, borderColor: accent + "55" }
                   ]}>
                     <View style={[styles.miniRingIn, { backgroundColor: card }]}>
@@ -1948,18 +1920,16 @@ export default function Dashboard() {
                   <Pressable onPress={() => taskCtx.deleteGoal(g.id)} style={({ pressed }) => [styles.delGoalBtn, pressed && { opacity: 0.55 }]}>
                     <Text style={styles.delTx}>🗑</Text>
                   </Pressable>
-
                 </View>
 
-                {/* Progress bar */}
                 <View style={{ marginBottom: 10, marginTop: 2 }}>
                   {Platform.OS === "web" ? (
-                    <View style={{ height: 5, backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", borderRadius: 99, overflow: "hidden" } as any}>
+                    <View style={{ height: 5, backgroundColor: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", borderRadius: 99, overflow: "hidden" } as any}>
                       <View style={{
                         height: "100%", width: `${goalPct}%`,
                         background: `linear-gradient(90deg,${accent},${accent}99)`,
                         borderRadius: 99,
-                        boxShadow: `0 0 10px ${accent}66`,
+                        boxShadow: `0 0 8px ${accent}55`,
                         transition: "width 1s cubic-bezier(.4,0,.2,1)",
                       } as any} />
                     </View>
@@ -1968,14 +1938,15 @@ export default function Dashboard() {
                   )}
                 </View>
 
-                {/* Tasks */}
                 {g.tasks.map((t: any) => (
                   <Pressable
                     key={t.id}
                     onHoverIn={() => Platform.OS === "web" && setHoveredTask(t.id)}
                     onHoverOut={() => Platform.OS === "web" && setHoveredTask(null)}
                     style={[styles.taskRow, {
-                      backgroundColor: t.completed ? accent + "0d" : dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.025)",
+                      backgroundColor: t.completed
+                        ? accent + "0d"
+                        : dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.025)",
                       borderColor: t.completed ? accent + "28" : cardBorder,
                     },
                     Platform.OS === "web" && hoveredTask === t.id && { backgroundColor: accent + "14" } as any,
@@ -1992,11 +1963,11 @@ export default function Dashboard() {
                     }}
                   >
                     <View style={styles.taskContent}>
-                      <View style={[styles.cb, t.completed ? { backgroundColor: accent, borderColor: accent } : { backgroundColor: "transparent", borderColor: dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.2)" }]}>
+                      <View style={[styles.cb, t.completed ? { backgroundColor: accent, borderColor: accent } : { backgroundColor: "transparent", borderColor: dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)" }]}>
                         {t.completed && <Text style={styles.tick}>✓</Text>}
                       </View>
                       <Text style={[styles.taskTx, {
-                        color: t.completed ? (dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)") : textSecondary,
+                        color: t.completed ? (dark ? "rgba(232,236,255,0.3)" : "rgba(0,0,0,0.3)") : textSecondary,
                         textDecorationLine: t.completed ? "line-through" : "none",
                       }]} numberOfLines={1}>{t.title}</Text>
                       <Pressable onPress={() => taskCtx.deleteTask(g.id, t.id)}>
@@ -2006,7 +1977,6 @@ export default function Dashboard() {
                   </Pressable>
                 ))}
 
-                {/* Add Task button */}
                 <Pressable
                   style={[styles.addTaskBtn, { borderColor: accent + "44" }, !isSynced && { opacity: 0.5 }]}
                   disabled={!isSynced}
@@ -2024,10 +1994,12 @@ export default function Dashboard() {
 
   /* ════════════════ RENDER ════════════════ */
   return (
-    <View style={[styles.screen, { backgroundColor: bg }]}>
+    <View
+      className={dark && Platform.OS === "web" ? "sk-dark-screen" : undefined}
+      style={[styles.screen, { backgroundColor: bg }]}
+    >
       <StatusBar barStyle="light-content" backgroundColor={headerBg} />
 
-      {/* Offline banner */}
       {!isSynced && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineTx}>⚡ You are offline. Changes will sync when online.</Text>
@@ -2035,10 +2007,7 @@ export default function Dashboard() {
       )}
 
       {isWide ? (
-        /* ══ DESKTOP LAYOUT (960px+) ══ */
         <View style={styles.wideRoot}>
-
-          {/* Sidebar — collapsible on desktop */}
           {Platform.OS === "web" ? (
             <View className="sk-sidebar" style={{
               width: sidebarOpen ? 260 : 0,
@@ -2061,10 +2030,7 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Center + Right */}
           <View style={styles.wideCenter}>
-
-            {/* Top bar */}
             <TopBar
               dark={dark} router={router} displayName={displayName}
               email={userEmail}
@@ -2080,25 +2046,17 @@ export default function Dashboard() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 32 }}
             >
-              {/* Hero */}
               <HeroBanner dark={dark} displayName={displayName} overallPct={overallPct} isSynced={isSynced} fadeAnim={fadeAnim} slideAnim={slideAnim} />
-
-              {/* Stat cards */}
               <StatCards dark={dark} goals={goals} completedTasks={completedTasks} streak={streak} activityToday={activityToday} fadeAnim={fadeAnim} slideAnim={slideAnim} />
 
-              {/* Activity HeatMap */}
               <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                 <HeatMap activityLog={activityLog} dark={dark} />
               </Animated.View>
 
-              {/* Goals + Right panel row */}
               <View style={styles.wideContentRow}>
-
-                {/* Goals col */}
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  {/* Goals header — inside goals column so it aligns with the cards */}
                   <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-                    <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
+                    <Text style={[styles.secTitle, { color: dark ? "#E8ECFF" : "#334155" }]}>Your Goals</Text>
                     <Pressable
                       onPress={() => setShowAddGoal(true)}
                       disabled={!isSynced}
@@ -2109,8 +2067,6 @@ export default function Dashboard() {
                   </Animated.View>
                   <GoalList />
                 </View>
-
-                {/* Right panel */}
                 <RightPanel dark={dark} goals={goals} getGoalProgress={getGoalProgress} getRecommendation={getRecommendation} fadeAnim={fadeAnim} />
               </View>
             </ScrollView>
@@ -2118,13 +2074,11 @@ export default function Dashboard() {
         </View>
 
       ) : isTablet ? (
-        /* ══ TABLET LAYOUT (600–959px) ══ */
         <View style={[styles.wrapper, { paddingTop: Platform.OS === "ios" ? 52 : 10 }]}>
-          {/* Compact top row */}
           <View style={styles.tabletTopRow}>
             <View>
-              <Text style={[styles.secTitle, { color: dark ? "#eef2ff" : "#0f172a", fontSize: 20 }]}>Dashboard</Text>
-              <Text style={{ color: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)", fontSize: 11, fontWeight: "500" }}>
+              <Text style={[styles.secTitle, { color: dark ? "#E8ECFF" : "#0f172a", fontSize: 20 }]}>Dashboard</Text>
+              <Text style={{ color: dark ? "rgba(180,188,220,0.6)" : "rgba(15,23,42,0.45)", fontSize: 11, fontWeight: "500" }}>
                 {displayName}
               </Text>
             </View>
@@ -2138,19 +2092,16 @@ export default function Dashboard() {
               <Pressable onPress={() => router.push("/profile")} style={[styles.mAvatar, { backgroundColor: "#6366f1" }]}>
                 <Text style={[styles.mAvatarTx, { color: "white" }]}>{initials}</Text>
               </Pressable>
-              <Pressable onPress={handleLogout} style={[styles.logoutBtn, { backgroundColor: dark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }]}>
+              <Pressable onPress={handleLogout} style={[styles.logoutBtn, { backgroundColor: dark ? "rgba(239,68,68,0.1)" : "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)" }]}>
                 <Text style={[styles.logoutTx, { color: "#ef4444" }]}>Logout</Text>
               </Pressable>
             </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-            {/* Hero compact */}
             <HeroBanner dark={dark} displayName={displayName} overallPct={overallPct} isSynced={isSynced} fadeAnim={fadeAnim} slideAnim={slideAnim} />
-
-            {/* Goals header + 2-col grid */}
             <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-              <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
+              <Text style={[styles.secTitle, { color: dark ? "#E8ECFF" : "#334155" }]}>Your Goals</Text>
               <Pressable onPress={() => setShowAddGoal(true)} disabled={!isSynced}
                 style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}>
                 <Text style={styles.addGoalTx}>+ Add Goal</Text>
@@ -2161,11 +2112,9 @@ export default function Dashboard() {
         </View>
 
       ) : (
-        /* ══ MOBILE / NARROW LAYOUT ══ */
         <View style={styles.wrapper}>
           <MobileHeader />
 
-          {/* Rec card */}
           <Animated.View style={[styles.recCard, { backgroundColor: recBg, borderLeftColor: recBorder, ...cardShadow }, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.recRow}>
               <View style={styles.recIconWrap}><Text style={{ fontSize: 20 }}>🚀</Text></View>
@@ -2181,9 +2130,8 @@ export default function Dashboard() {
             <ShimmerBar pct={overallPct} color={dark ? "#6366f1" : COLORS.primary} h={7} />
           </Animated.View>
 
-          {/* Goals header */}
           <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
+            <Text style={[styles.secTitle, { color: dark ? "#E8ECFF" : "#334155" }]}>Your Goals</Text>
             <Pressable onPress={() => setShowAddGoal(true)} disabled={!isSynced}
               style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}>
               <Text style={styles.addGoalTx}>＋ Add Goal</Text>
@@ -2194,8 +2142,7 @@ export default function Dashboard() {
             <GoalList />
           </ScrollView>
 
-          {/* Bottom bar */}
-          <View style={[styles.bottomBar, { backgroundColor: dark ? "rgba(2,6,23,0.96)" : "rgba(240,244,255,0.96)", borderTopColor: cardBorder }]}>
+          <View style={[styles.bottomBar, { backgroundColor: dark ? "rgba(13,15,20,0.97)" : "rgba(240,244,255,0.96)", borderTopColor: cardBorder }]}>
             <Pressable
               style={[styles.bbBtn, styles.reminderBtn]}
               onPress={() => {
@@ -2212,7 +2159,6 @@ export default function Dashboard() {
         </View>
       )}
 
-      {/* ── Inline Goal Modal ── */}
       {showAddGoal && (
         <AddGoalModal
           dark={dark}
@@ -2220,7 +2166,6 @@ export default function Dashboard() {
           addGoalFn={(name: string, icon: string) => taskCtx.addGoal(name, icon)}
         />
       )}
-      {/* ── Inline Task Modal ── */}
       {showAddTaskGoalId && (
         <AddTaskModal
           dark={dark}
@@ -2230,7 +2175,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* DateTimePicker */}
       {showPicker && Platform.OS !== "web" && (
         <DateTimePicker
           value={reminderTime} mode="time" is24Hour display="default"
@@ -2262,32 +2206,28 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "ios" ? 52 : 14,
   },
 
-  /* Wide layout */
   wideRoot:       { flex: 1, flexDirection: "row" } as any,
   wideCenter:     { flex: 1, flexDirection: "column", minWidth: 0 } as any,
   widePadded:     { flex: 1, paddingHorizontal: 28, paddingTop: 28 },
   wideContentRow: { flexDirection: "row", gap: 16, alignItems: "flex-start" } as any,
 
-  /* Tablet */
   tabletTopRow:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
 
-  /* Offline */
   offlineBanner: { backgroundColor: "#FEF3C7", borderLeftWidth: 4, borderLeftColor: "#F59E0B", borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, marginHorizontal: 18, marginTop: 8, marginBottom: 4 },
   offlineTx:     { color: "#92400E", fontSize: 12, fontWeight: "600", textAlign: "center" },
 
-  /* Mobile header */
   mHdr:        { borderRadius: 20, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16, marginBottom: 12, overflow: "hidden", position: "relative" },
-  orb:         { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.06)" } as any,
+  orb:         { position: "absolute", borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)" } as any,
   mHdrRow1:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14, zIndex: 1 },
   mHdrRow2:    { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, zIndex: 1 },
   mHdrControls:{ flexDirection: "row", alignItems: "center", gap: 9 },
-  syncBadge:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  syncBadge:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.10)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.16)" },
   syncDot:     { width: 7, height: 7, borderRadius: 4 },
   syncTx:      { fontSize: 11, fontWeight: "700" },
   toggleRow:   { flexDirection: "row", alignItems: "center", gap: 3 },
   mAvatar:     { width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.45)" },
   mAvatarTx:   { fontWeight: "800", fontSize: 14, color: "#1e3a8a" },
-  logoutBtn:   { backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  logoutBtn:   { backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   logoutTx:    { color: "white", fontWeight: "700", fontSize: 12 },
   welcomeTx:   { color: "rgba(255,255,255,0.62)", fontSize: 12, fontWeight: "500", marginBottom: 2 },
   nameTx:      { color: "white", fontSize: 24, fontWeight: "900", letterSpacing: -0.5 },
@@ -2297,12 +2237,11 @@ const styles = StyleSheet.create({
   ringPct:     { color: "white", fontSize: 13, fontWeight: "900" },
   ringDone:    { color: "rgba(255,255,255,0.55)", fontSize: 9, fontWeight: "500" },
   statRow:     { flexDirection: "row", gap: 7, zIndex: 1 },
-  chip:        { flex: 1, backgroundColor: "rgba(255,255,255,0.11)", borderRadius: 13, paddingVertical: 10, paddingHorizontal: 5, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.16)" },
+  chip:        { flex: 1, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 13, paddingVertical: 10, paddingHorizontal: 5, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.14)" },
   chipIcon:    { fontSize: 15, marginBottom: 3 },
   chipVal:     { color: "white", fontSize: 14, fontWeight: "900" },
   chipLbl:     { color: "rgba(255,255,255,0.55)", fontSize: 9, fontWeight: "500", marginTop: 1 },
 
-  /* Rec card (mobile) */
   recCard:    { borderRadius: 16, padding: 16, marginBottom: 12, borderLeftWidth: 4 },
   recRow:     { flexDirection: "row", alignItems: "flex-start", gap: 11, marginBottom: 10 },
   recIconWrap:{ width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(99,102,241,0.14)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
@@ -2311,7 +2250,6 @@ const styles = StyleSheet.create({
   recProgRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 7 },
   progTx:     { fontSize: 11, fontWeight: "500" },
 
-  /* Goals */
   goalsHdr:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingVertical: 0 },
   secTitle:   { fontSize: 18, fontWeight: "800", letterSpacing: -0.4,
     ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}),
@@ -2347,11 +2285,6 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? { transition: "all .15s" } as any : {}),
   },
   delTx:       { color: "#EF4444", fontSize: 15 },
-
-  chevBtn:     { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center",
-    ...(Platform.OS === "web" ? { transition: "transform .2s" } as any : {}),
-  },
-  chevTx:      { fontSize: 16, lineHeight: 18 },
 
   taskRow:     { marginBottom: 6, paddingVertical: 11, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1,
     ...(Platform.OS === "web" ? { transition: "background .15s", cursor: "pointer" } as any : {}),
