@@ -32,3 +32,27 @@ export const showInfo = (message: string) => {
     autoHide: true,
   });
 };
+
+/** Red toast for deletions — task removed, goal removed */
+export const showDelete = (message: string) => {
+  Toast.show({
+    type: "delete",
+    text1: message,
+    text2: "",
+    position: "bottom",
+    visibilityTime: 2000,
+    autoHide: true,
+  });
+};
+
+/** Blue info toast for v2 / coming-soon features */
+export const showComingSoon = (message?: string) => {
+  Toast.show({
+    type: "info",
+    text1: "Coming Soon ✨",
+    text2: message || "This feature arrives in v2",
+    position: "bottom",
+    visibilityTime: 2800,
+    autoHide: true,
+  });
+};

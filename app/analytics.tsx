@@ -145,10 +145,10 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks, userRol
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtMut = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
   const NAV = [
-    { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
-    { icon: "📊", label: "Analytics",  route: "/analytics", active: true  },
-    { icon: "🔔", label: "Reminders",  route: null, active: false, v2: true },
-    { icon: "⚙️", label: "Settings",   route: null, active: false, v2: true },
+    { icon: "🏠", label: "Dashboard", route: "/dashboard" },
+    { icon: "📊", label: "Analytics",  route: "/analytics" },
+    { icon: "🔔", label: "Reminders",  badge: 3, v2: true  },
+    { icon: "⚙️", label: "Settings",   route: null, v2: true },
   ];
   return (
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>

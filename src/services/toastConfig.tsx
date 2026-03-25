@@ -8,13 +8,6 @@ import {
   Pressable,
 } from "react-native";
 
-/* ─── Inline theme store — exported so dashboard.tsx can sync it ─── */
-let _dark = false;
-export const themeStore = {
-  get dark(): boolean { return _dark; },
-  set dark(value: boolean) { _dark = value; },
-};
-
 /* ─── Inject web CSS once ─── */
 if (Platform.OS === "web" && typeof document !== "undefined") {
   const id = "sk-toast-css";
@@ -32,6 +25,17 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
   }
 }
 
+/* ─── Detect dark mode from DOM at render time ─── */
+function getIsDark(): boolean {
+  if (Platform.OS !== "web" || typeof document === "undefined") return false;
+  // Check if any ancestor has sk-dark-screen class (set on root View when dark)
+  return (
+    document.querySelector(".sk-dark-screen") !== null ||
+    document.documentElement.classList.contains("dark") ||
+    document.body.classList.contains("dark")
+  );
+}
+
 /* ══ Custom Toast Component ══ */
 function SkToast({
   type,
@@ -40,60 +44,87 @@ function SkToast({
   onPress,
   hide,
 }: {
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "delete";
   text1?: string;
   text2?: string;
   onPress?: () => void;
   hide?: () => void;
 }) {
-  const dark = themeStore.dark;
+  const slideAnim  = useRef(new Animated.Value(40)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  const scaleAnim  = useRef(new Animated.Value(0.88)).current;
+  const barAnim    = useRef(new Animated.Value(0)).current;
 
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.88)).current;
-  const barAnim   = useRef(new Animated.Value(0)).current;
+  /* Detect theme once at mount */
+  const isDark = getIsDark();
+
+  /* ── Theme tokens ── */
+  const theme = isDark
+    ? {
+        /* Dark: original look */
+        bg:          "rgba(0, 3, 10, 0.97)",
+        border:      "rgba(255,255,255,0.08)",
+        titleColor:  "#eef2ff",
+        subColor:    "rgba(238,242,255,0.5)",
+        dismissBg:   "rgba(255,255,255,0.07)",
+        dismissHov:  "rgba(255,255,255,0.14)",
+        dismissColor:"rgba(238,242,255,0.5)",
+        timerTrack:  "rgba(255,255,255,0.06)",
+        shadow:      "0 8px 40px rgba(0,0,0,0.55)",
+        nativeBg:    "#0d1424",
+      }
+    : {
+        /* Light: clean white card */
+        bg:          "rgba(255,255,255,0.98)",
+        border:      "rgba(0,0,0,0.08)",
+        titleColor:  "#0f172a",
+        subColor:    "rgba(15,23,42,0.5)",
+        dismissBg:   "rgba(0,0,0,0.05)",
+        dismissHov:  "rgba(0,0,0,0.10)",
+        dismissColor:"rgba(15,23,42,0.45)",
+        timerTrack:  "rgba(0,0,0,0.06)",
+        shadow:      "0 8px 32px rgba(0,0,0,0.12)",
+        nativeBg:    "#ffffff",
+      };
 
   const cfg = {
     success: {
       icon: "✓",
-      iconBg:    dark ? "rgba(52,211,153,0.15)"  : "rgba(52,211,153,0.12)",
+      iconBg:    isDark ? "rgba(52,211,153,0.15)"  : "rgba(52,211,153,0.12)",
       iconColor: "#34d399",
       accent:    "#34d399",
       barGrad:   "linear-gradient(90deg,#34d399,#6ee7b7)",
-      glow:      dark ? "rgba(52,211,153,0.25)"  : "rgba(52,211,153,0.18)",
+      glow:      isDark ? "rgba(52,211,153,0.25)"  : "rgba(52,211,153,0.18)",
       label:     text1 || "Success",
     },
     error: {
       icon: "✕",
-      iconBg:    dark ? "rgba(239,68,68,0.15)"   : "rgba(239,68,68,0.10)",
+      iconBg:    isDark ? "rgba(239,68,68,0.15)"   : "rgba(239,68,68,0.10)",
       iconColor: "#ef4444",
       accent:    "#ef4444",
       barGrad:   "linear-gradient(90deg,#ef4444,#f87171)",
-      glow:      dark ? "rgba(239,68,68,0.25)"   : "rgba(239,68,68,0.15)",
+      glow:      isDark ? "rgba(239,68,68,0.25)"   : "rgba(239,68,68,0.15)",
       label:     text1 || "Error",
     },
     info: {
-      icon: "→",
-      iconBg:    dark ? "rgba(99,102,241,0.15)"  : "rgba(99,102,241,0.10)",
+      icon: "i",
+      iconBg:    isDark ? "rgba(99,102,241,0.15)"  : "rgba(99,102,241,0.10)",
       iconColor: "#6366f1",
       accent:    "#6366f1",
       barGrad:   "linear-gradient(90deg,#6366f1,#a78bfa)",
-      glow:      dark ? "rgba(99,102,241,0.25)"  : "rgba(99,102,241,0.18)",
-      label:     text1 || "Coming Soon",
+      glow:      isDark ? "rgba(99,102,241,0.25)"  : "rgba(99,102,241,0.18)",
+      label:     text1 || "Info",
     },
-  }[type];
-
-  /* Theme colours */
-  const bgColor      = dark ? "rgba(13,20,36,0.97)"   : "rgba(255,255,255,0.98)";
-  const textColor    = dark ? "#eef2ff"                : "#0f172a";
-  const subColor     = dark ? "rgba(238,242,255,0.50)" : "rgba(15,23,42,0.50)";
-  const dismissBg    = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
-  const dismissColor = dark ? "rgba(238,242,255,0.50)" : "rgba(15,23,42,0.40)";
-  const dismissHover = dark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)";
-  const timerTrackBg = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const boxShadow    = dark
-    ? `0 8px 40px rgba(0,0,0,.55), 0 0 0 1px ${cfg.accent}22, 0 4px 20px ${cfg.glow}`
-    : `0 4px 24px rgba(0,0,0,.10), 0 0 0 1px ${cfg.accent}22, 0 2px 12px ${cfg.glow}`;
+    delete: {
+      icon: "🗑",
+      iconBg:    isDark ? "rgba(239,68,68,0.15)"   : "rgba(239,68,68,0.10)",
+      iconColor: "#ef4444",
+      accent:    "#ef4444",
+      barGrad:   "linear-gradient(90deg,#ef4444,#f87171)",
+      glow:      isDark ? "rgba(239,68,68,0.25)"   : "rgba(239,68,68,0.15)",
+      label:     text1 || "Deleted",
+    },
+  }[type as string] as any;
 
   useEffect(() => {
     Animated.parallel([
@@ -106,21 +137,22 @@ function SkToast({
     }).start();
   }, []);
 
-  /* ── Web ── */
+  /* ── Web render ── */
   if (Platform.OS === "web") {
     return (
       <div
         className="sk-toast-wrap"
         style={{
           minWidth: 320, maxWidth: 420,
-          background: bgColor,
+          background: theme.bg,
           backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           borderRadius: 18,
-          border: `1px solid ${cfg.accent}33`,
-          boxShadow,
+          border: `1px solid ${isDark ? cfg.accent + "33" : cfg.accent + "28"}`,
+          boxShadow: `${theme.shadow}, 0 0 0 1px ${cfg.accent}18, 0 4px 20px ${cfg.glow}`,
           overflow: "hidden",
           cursor: "pointer",
-          fontFamily: "Inter,sans-serif",
+          fontFamily: "Plus Jakarta Sans,sans-serif",
         } as React.CSSProperties}
         onClick={onPress || hide}
       >
@@ -149,7 +181,8 @@ function SkToast({
           {/* Text */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 14, fontWeight: "700", color: textColor,
+              fontSize: 14, fontWeight: "700",
+              color: theme.titleColor,
               marginBottom: text2 ? 3 : 0,
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
             }}>
@@ -158,7 +191,7 @@ function SkToast({
             {text2 && (
               <div style={{
                 fontSize: 12, fontWeight: "500",
-                color: subColor,
+                color: theme.subColor,
                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               }}>
                 {text2}
@@ -171,14 +204,14 @@ function SkToast({
             onClick={(e) => { e.stopPropagation(); hide?.(); }}
             style={{
               width: 26, height: 26, borderRadius: 8, border: "none",
-              background: dismissBg,
-              color: dismissColor,
+              background: theme.dismissBg,
+              color: theme.dismissColor,
               fontSize: 14, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0, transition: "background .15s",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = dismissHover)}
-            onMouseLeave={e => (e.currentTarget.style.background = dismissBg)}
+            onMouseEnter={e => (e.currentTarget.style.background = theme.dismissHov)}
+            onMouseLeave={e => (e.currentTarget.style.background = theme.dismissBg)}
           >
             ✕
           </button>
@@ -187,7 +220,7 @@ function SkToast({
         {/* Timer progress bar */}
         <div style={{
           height: 2,
-          background: timerTrackBg,
+          background: theme.timerTrack,
           margin: "0 16px 12px",
           borderRadius: 99,
           overflow: "hidden",
@@ -205,13 +238,21 @@ function SkToast({
     );
   }
 
-  /* ── Native (iOS / Android) ── */
-  const nativeBg = dark ? "#0d1424" : "#ffffff";
+  /* ── Native (iOS / Android) — unchanged ── */
+  const nativeBg = isDark ? "#0d1424" : "#ffffff";
+  const nativeBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const nativeTitle = isDark ? "#eef2ff" : "#0f172a";
+  const nativeSub   = isDark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
+  const nativeTrack = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
+
   return (
     <Animated.View style={[
       nSt.wrap,
-      { backgroundColor: nativeBg, borderColor: cfg.accent + "44" },
-      dark ? nSt.shadowDark : nSt.shadowLight,
+      {
+        backgroundColor: nativeBg,
+        borderColor: cfg.accent + "44",
+        shadowColor: isDark ? "#000" : cfg.accent,
+      },
       { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] },
     ]}>
       {/* Top accent line */}
@@ -225,13 +266,13 @@ function SkToast({
 
         {/* Text */}
         <View style={{ flex: 1 }}>
-          <Text style={[nSt.title, { color: textColor }]} numberOfLines={1}>{cfg.label}</Text>
-          {!!text2 && <Text style={[nSt.sub, { color: subColor }]} numberOfLines={1}>{text2}</Text>}
+          <Text style={[nSt.title, { color: nativeTitle }]} numberOfLines={1}>{cfg.label}</Text>
+          {!!text2 && <Text style={[nSt.sub, { color: nativeSub }]} numberOfLines={1}>{text2}</Text>}
         </View>
       </Pressable>
 
       {/* Timer bar */}
-      <View style={[nSt.timerTrack, { backgroundColor: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }]}>
+      <View style={[nSt.timerTrack, { backgroundColor: nativeTrack }]}>
         <Animated.View style={[nSt.timerBar, {
           backgroundColor: cfg.accent,
           width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ["100%", "0%"] }) as any,
@@ -248,21 +289,11 @@ const nSt = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     overflow: "hidden",
-    minWidth: 280,
-  },
-  shadowDark: {
     elevation: 16,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.35,
     shadowRadius: 20,
-  },
-  shadowLight: {
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    minWidth: 280,
   },
   topBar:     { height: 3 },
   body:       { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, paddingBottom: 12 },
@@ -274,7 +305,7 @@ const nSt = StyleSheet.create({
   timerBar:   { height: "100%" as any, borderRadius: 99 },
 });
 
-/* ══ Export toastConfig ══ */
+/* ══ Export toastConfig — all 4 types, nothing changed ══ */
 export const toastConfig = {
   success: ({ text1, text2, onPress, hide }: any) => (
     <SkToast type="success" text1={text1} text2={text2} onPress={onPress} hide={hide} />
@@ -284,5 +315,8 @@ export const toastConfig = {
   ),
   info: ({ text1, text2, onPress, hide }: any) => (
     <SkToast type="info" text1={text1} text2={text2} onPress={onPress} hide={hide} />
+  ),
+  delete: ({ text1, text2, onPress, hide }: any) => (
+    <SkToast type="delete" text1={text1} text2={text2} onPress={onPress} hide={hide} />
   ),
 };

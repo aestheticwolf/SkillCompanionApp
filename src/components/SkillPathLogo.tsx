@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Animated, Platform, View } from "react-native";
 
 /* ── Unique ID counter so multiple logos on the same page
@@ -117,14 +117,18 @@ interface Props {
 }
 
 export default function SkillPathLogo({ size = 48, transparent = false, dark = false }: Props) {
-  /* Stable unique IDs per instance */
-  const uid   = useRef(`sp${++_logoCounter}`).current;
-  const pgId  = `${uid}-pg`;   // main path gradient
-  const d1Id  = `${uid}-d1`;   // dot 1 gradient
-  const d2Id  = `${uid}-d2`;   // dot 2 gradient
-  const d3Id  = `${uid}-d3`;   // dot 3 gradient
-  const shId  = `${uid}-sh`;   // shimmer gradient
-  const fxId  = `${uid}-fx`;   // drop-shadow filter
+  /* Stable unique IDs per instance — prevents gradient ID collisions */
+  const uid  = useRef(`sp${++_logoCounter}`).current;
+  const pgId = `${uid}-pg`;
+  const d1Id = `${uid}-d1`;
+  const d2Id = `${uid}-d2`;
+  const d3Id = `${uid}-d3`;
+  const shId = `${uid}-sh`;
+  const fxId = `${uid}-fx`;
+
+  /* mountKey — new value on every mount so CSS animations always restart
+     (React reuses DOM nodes on navigation; this forces a brand-new SVG element) */
+  const [mountKey] = useState(() => Math.random());
 
   /* Native animated values */
   const a1 = useRef(new Animated.Value(0)).current;
@@ -133,7 +137,6 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
 
   useEffect(() => {
     if (Platform.OS === "web") return;
-
     const make = (val: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -149,17 +152,16 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
     return () => { l1.stop(); l2.stop(); l3.stop(); };
   }, []);
 
-  /* ── WEB SVG ── */
   if (Platform.OS === "web") {
     const ring = transparent
       ? (dark ? "#0a0f20" : "#2e1a47")
       : (dark ? "#0d1424" : "white");
 
-    /* Path geometry — matches reference exactly */
     const PATH = "M16 74 C 26 68, 34 56, 46 46 C 58 36, 66 26, 82 22";
 
     return (
       <svg
+        key={mountKey}
         width={size}
         height={size}
         viewBox="0 0 100 100"
@@ -167,7 +169,7 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
         style={{ display: "block", flexShrink: 0, overflow: "visible" } as React.CSSProperties}
       >
         <defs>
-          {/* ── Main path gradient: coral → gold → teal → sky (4 stops, matches ref) ── */}
+          {/* Main path gradient: coral → gold → teal → sky */}
           <linearGradient id={pgId} x1="12" y1="76" x2="88" y2="22" gradientUnits="userSpaceOnUse">
             <stop offset="0%"   stopColor="#FF5C5C"/>
             <stop offset="40%"  stopColor="#FFCA3A"/>
@@ -175,7 +177,6 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
             <stop offset="100%" stopColor="#38BDF8"/>
           </linearGradient>
 
-          {/* ── Per-dot gradients (matches ref) ── */}
           {/* Dot 1: coral → orange */}
           <linearGradient id={d1Id} x1="12" y1="70" x2="30" y2="52" gradientUnits="userSpaceOnUse">
             <stop stopColor="#FF5C5C"/>
@@ -192,7 +193,7 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
             <stop offset="1" stopColor="#38BDF8"/>
           </linearGradient>
 
-          {/* ── Shimmer highlight: white streak ── */}
+          {/* Shimmer highlight */}
           <linearGradient id={shId} x1="12" y1="76" x2="88" y2="22" gradientUnits="userSpaceOnUse">
             <stop offset="0%"   stopColor="rgba(255,255,255,0)"/>
             <stop offset="45%"  stopColor="rgba(255,255,255,0)"/>
@@ -201,7 +202,6 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
             <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
           </linearGradient>
 
-          {/* ── Drop-shadow filter (matches ref) ── */}
           {!transparent && (
             <filter id={fxId} x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="6" stdDeviation="8"
@@ -210,7 +210,7 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
           )}
         </defs>
 
-        {/* ── Container circle ── */}
+        {/* Container circle */}
         {!transparent && (
           <circle
             cx="50" cy="50" r="46"
@@ -221,7 +221,7 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
           />
         )}
 
-        {/* ── Ghost track underlay ── */}
+        {/* Ghost track underlay */}
         <path
           d={PATH}
           stroke={dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"}
@@ -230,17 +230,19 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
           fill="none"
         />
 
-        {/* ── Colored track: draws in, then glows ── */}
+        {/* Colored path — draws in, then glows */}
         <path
           className="sp-path sp-path-glow"
           d={PATH}
           stroke={`url(#${pgId})`}
           strokeWidth="3.5"
           strokeLinecap="round"
+          strokeDasharray="200"
+          strokeDashoffset="200"
           fill="none"
         />
 
-        {/* ── Flowing shimmer streak ── */}
+        {/* Shimmer streak */}
         <path
           className="sp-shimmer"
           d={PATH}
@@ -250,21 +252,16 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
           fill="none"
         />
 
-        {/* ════ DOT 0 · coral→orange · bottom-left ════ */}
+        {/* DOT 0 · coral→orange · bottom-left */}
         <g className="sp-d0">
-          {/* Ripple */}
           <circle className="sp-rp-0" cx="18" cy="74" r="9" fill="none" stroke="#FF5C5C" strokeWidth="1"/>
-          {/* Halo eraser */}
           <circle cx="18" cy="74" r="11" fill={ring}/>
-          {/* Dot body */}
           <circle cx="18" cy="74" r="9"  fill={`url(#${d1Id})`}/>
-          {/* Specular */}
           <circle cx="18" cy="74" r="4"  fill="white" opacity="0.6"/>
-          {/* Glint */}
           <circle cx="15.5" cy="71.5" r="1.3" fill="white" opacity="0.45"/>
         </g>
 
-        {/* ════ DOT 1 · gold→lime · middle ════ */}
+        {/* DOT 1 · gold→lime · middle */}
         <g className="sp-d1">
           <circle className="sp-rp-1" cx="48" cy="46" r="11" fill="none" stroke="#FFCA3A" strokeWidth="1"/>
           <circle cx="48" cy="46" r="12.5" fill={ring}/>
@@ -273,14 +270,13 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
           <circle cx="45"  cy="43.5" r="1.5" fill="white" opacity="0.45"/>
         </g>
 
-        {/* ════ DOT 2 · teal→sky · top-right ════ */}
+        {/* DOT 2 · teal→sky · top-right */}
         <g className="sp-d2">
           <circle className="sp-rp-2" cx="81" cy="22" r="13" fill="none" stroke="#14D9C5" strokeWidth="1"/>
           <circle cx="81" cy="22" r="14.5" fill={ring}/>
           <circle cx="81" cy="22" r="12"   fill={`url(#${d3Id})`}/>
           <circle cx="81" cy="22" r="5"    fill="white" opacity="0.6"/>
           <circle cx="78"  cy="19.5" r="1.8" fill="white" opacity="0.45"/>
-          {/* Star sparkle (matches reference) */}
           <path
             className="sp-star"
             d="M81 14 L82.2 18 L86 18.8 L82.8 21.4 L84 25.4 L81 23.2 L78 25.4 L79.2 21.4 L76 18.8 L79.8 18Z"
@@ -292,12 +288,12 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
     );
   }
 
-  /* ── Native fallback: three floating dots (unchanged) ── */
-  const bg = dark ? "#0d1424" : "white";
+  /* ── Native fallback ── */
+  const nativeBg = dark ? "#0d1424" : "white";
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: bg,
+      backgroundColor: nativeBg,
       alignItems: "center", justifyContent: "center",
       overflow: "hidden",
     }}>
