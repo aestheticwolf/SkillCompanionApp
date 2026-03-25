@@ -16,7 +16,8 @@ import { useWindowDimensions } from "react-native";
 import { TaskContext } from "../src/context/TaskContext";
 import { AuthContext } from "../src/context/AuthContext";
 import { loadTheme } from "../src/services/uiPreferences";
-import { showSuccess } from "../src/services/toast";
+// import { showSuccess } from "../src/services/toast";
+import { showComingSoon } from "../src/services/toast";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../src/services/firebase";
 
@@ -164,7 +165,11 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks, userRol
       <Text style={[sbSt.navLabel, { color: txtMut }]}>NAVIGATION</Text>
       {NAV.map((n: any, i: number) => (
         <Pressable key={i} onPress={() => {
-          if (n.v2) { showSuccess("🚀 Coming in v2 — stay tuned!"); return; }
+          // if (n.v2) { showSuccess("🚀 Coming in v2 — stay tuned!"); return; }
+          if (n.v2) { 
+  showComingSoon();
+  return; 
+}
           n.route && router.push(n.route);
         }}
           style={({ pressed }) => [sbSt.navItem,

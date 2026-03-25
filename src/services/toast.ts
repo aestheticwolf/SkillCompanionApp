@@ -37,8 +37,8 @@ export const showInfo = (message: string) => {
 export const showDelete = (message: string) => {
   Toast.show({
     type: "delete",
-    text1: message,
-    text2: "",
+    text1: "Deleted",
+    text2: message,
     position: "bottom",
     visibilityTime: 2000,
     autoHide: true,

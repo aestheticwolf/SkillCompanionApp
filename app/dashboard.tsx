@@ -1973,7 +1973,7 @@ export default function Dashboard() {
                       <Text style={[styles.miniRingTx, { color: accent }]}>{goalPct}%</Text>
                     </View>
                   </View>
-                  <Pressable onPress={() => { taskCtx.deleteGoal(g.id); showDelete("Goal removed"); }} style={({ pressed }) => [styles.delGoalBtn, pressed && { opacity: 0.55 }]}>
+                  <Pressable onPress={() => { taskCtx.deleteGoal(g.id); showDelete("Goal removed successfully"); }} style={({ pressed }) => [styles.delGoalBtn, pressed && { opacity: 0.55 }]}>
                     <Text style={styles.delTx}>🗑</Text>
                   </Pressable>
 
