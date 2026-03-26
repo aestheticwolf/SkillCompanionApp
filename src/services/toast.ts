@@ -5,7 +5,7 @@ export const showSuccess = (message: string) => {
     type: "success",
     text1: "Success",
     text2: message,
-    position: "bottom",
+    // position: "bottom",
     visibilityTime: 2500,
     autoHide: true,
   });
@@ -16,7 +16,7 @@ export const showError = (message: string) => {
     type: "error",
     text1: "Error",
     text2: message,
-    position: "bottom",
+    // position: "bottom",
     visibilityTime: 3000,
     autoHide: true,
   });
@@ -27,7 +27,7 @@ export const showInfo = (message: string) => {
     type: "info",
     text1: "Coming Soon",
     text2: message,
-    position: "bottom",
+    // position: "bottom",
     visibilityTime: 3500,
     autoHide: true,
   });
@@ -39,7 +39,7 @@ export const showDelete = (message: string) => {
     type: "delete",
     text1: "Deleted",
     text2: message,
-    position: "bottom",
+    // position: "bottom",
     visibilityTime: 2000,
     autoHide: true,
   });
@@ -51,7 +51,7 @@ export const showComingSoon = (message?: string) => {
     type: "info",
     text1: "Coming Soon ✨",
     text2: message || "This feature arrives in v2",
-    position: "bottom",
+    // position: "bottom",
     visibilityTime: 2800,
     autoHide: true,
   });

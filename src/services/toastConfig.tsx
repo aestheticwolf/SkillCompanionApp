@@ -187,6 +187,8 @@ function SkToast({
         className="sk-toast-wrap"
         style={
           {
+            width: "100%",
+            zIndex: 9999,
             minWidth: 320,
             maxWidth: 420,
             background: theme.bg,

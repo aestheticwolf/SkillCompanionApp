@@ -76,34 +76,46 @@ export function TaskProvider({
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getRecommendation = () => {
+//   const getRecommendation = () => {
+//   const overall = getOverallProgress();
+
+//   if (goals.length === 0) {
+//     return "Start by creating your first learning goal.";
+//   }
+
+//   if (overall === 0) {
+//     return "Begin with one small task today.";
+//   }
+
+//   if (overall < 30) {
+//     return "Try completing 2 tasks daily for faster growth.";
+//   }
+
+//   if (overall < 60) {
+//     return "Good consistency. Maintain your routine.";
+//   }
+
+//   if (overall < 80) {
+//     return "Great work. Focus on difficult topics now.";
+//   }
+
+//   if (overall < 100) {
+//     return "Almost complete. Finish remaining tasks.";
+//   }
+
+//   return "Excellent. Start a new advanced skill.";
+// };
+
+
+const getRecommendation = () => {
   const overall = getOverallProgress();
-
-  if (goals.length === 0) {
-    return "Start by creating your first learning goal.";
-  }
-
-  if (overall === 0) {
-    return "Begin with one small task today.";
-  }
-
-  if (overall < 30) {
-    return "Try completing 2 tasks daily for faster growth.";
-  }
-
-  if (overall < 60) {
-    return "Good consistency. Maintain your routine.";
-  }
-
-  if (overall < 80) {
-    return "Great work. Focus on difficult topics now.";
-  }
-
-  if (overall < 100) {
-    return "Almost complete. Finish remaining tasks.";
-  }
-
-  return "Excellent. Start a new advanced skill.";
+  if (goals.length === 0) return "🌱 Start by creating your first learning goal to begin your journey.";
+  if (overall === 0) return "🚀 Begin with one small task today — every journey starts with a single step.";
+  if (overall < 25) return "💪 Good start! Consistency is your superpower — keep going.";
+  if (overall < 50) return "🔥 Nice momentum. Try completing 2 tasks daily for faster growth.";
+  if (overall < 75) return "⚡ You're halfway there! Keep pushing forward — the finish line is in sight.";
+  if (overall < 100) return "🏆 Excellent progress! You're almost there — finish strong!";
+  return "✨ Perfect score! You've completed everything. Start a new advanced skill.";
 };
 
 

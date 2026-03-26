@@ -39,12 +39,19 @@ export default function Layout() {
     <AuthProvider>
       <TaskProvider>
         <Stack screenOptions={{ headerShown: false }} />
-        <Toast
+        {/* <Toast
           config={toastConfig}
           position="bottom"
           bottomOffset={32}
           visibilityTime={3800}
-        />
+        /> */}
+
+<Toast
+  config={toastConfig}
+  position="top"
+  topOffset={20}
+/>
+
       </TaskProvider>
     </AuthProvider>
   );

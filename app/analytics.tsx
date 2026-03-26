@@ -307,7 +307,8 @@ export default function Analytics() {
   const taskCtx = useContext(TaskContext);
   const authCtx = useContext(AuthContext);
   if (!taskCtx || !authCtx || !authCtx.user) return null;
-  const { goals, getOverallProgress } = taskCtx;
+  // const { goals, getOverallProgress } = taskCtx;
+  const { goals, getOverallProgress, getRecommendation } = taskCtx;
 
   const [darkMode,    setDarkMode]    = useState<boolean | null>(null);
   const [streak,      setStreak]      = useState(0);
@@ -358,13 +359,14 @@ export default function Analytics() {
   const overallPct     = getOverallProgress();
   const skillScore     = Math.min(9999, completedTasks * 50 + totalGoals * 120 + streak * 15);
 
-  const getInsight = () => {
-    if (overallPct === 100) return "Perfect score! 🏆 You've completed everything. Start a new challenge!";
-    if (overallPct >= 75)   return "Excellent progress! 🚀 You're almost there — finish strong!";
-    if (overallPct >= 50)   return "Nice momentum. 🔥 Keep pushing forward, you're halfway done!";
-    if (overallPct >= 25)   return "Good start! 💪 Consistency is your superpower — keep going.";
-    return "Let's get moving! 🌱 Every task completed is a step forward.";
-  };
+  // const getInsight = () => {
+  //   if (overallPct === 100) return "Perfect score! 🏆 You've completed everything. Start a new challenge!";
+  //   if (overallPct >= 75)   return "Excellent progress! 🚀 You're almost there — finish strong!";
+  //   if (overallPct >= 50)   return "Nice momentum. 🔥 Keep pushing forward, you're halfway done!";
+  //   if (overallPct >= 25)   return "Good start! 💪 Consistency is your superpower — keep going.";
+  //   return "Let's get moving! 🌱 Every task completed is a step forward.";
+  // };
+
 
   /* Theme */
   const dark          = !!darkMode;
@@ -541,7 +543,9 @@ export default function Analytics() {
                   <Text style={[styles.cardTitle, { color: textPrimary }]}>Insight</Text>
                 </View>
               </View>
-              <Text style={[styles.insightTx, { color: textSecondary, marginBottom: 16 }]}>{getInsight()}</Text>
+              {/* <Text style={[styles.insightTx, { color: textSecondary, marginBottom: 16 }]}>{getInsight()}</Text> */}
+
+              <Text style={[styles.insightTx, { color: textSecondary, marginBottom: 16 }]}>{getRecommendation()}</Text>
               {/* Score rows — each label+value+bar as one unit */}
               {SCORE_ROWS.map((row, i) => (
                 <View key={i} style={{ marginBottom: i < SCORE_ROWS.length - 1 ? 14 : 0 }}>
