@@ -30,8 +30,8 @@ import { auth, db } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
 import {
   requestNotificationPermission,
-  scheduleDailyReminder,
   requestWebNotificationPermission,
+  scheduleDailyReminder,
   sendWebTestNotification,
 } from "../src/services/notifications";
 import { updateStreak } from "../src/services/streak";
@@ -57,6 +57,20 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-pulse{0%,100%{opacity:1}50%{opacity:.3}}
       @keyframes sk-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
       @keyframes sk-glow{0%,100%{box-shadow:0 0 8px rgba(99,102,241,.3)}50%{box-shadow:0 0 22px rgba(99,102,241,.75)}}
+@keyframes sk-glow-today {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(239,68,68,0.4);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 28px rgba(239,68,68,1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(239,68,68,0.4);
+  }
+}
       @keyframes sk-shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
       @keyframes sk-particle{0%{transform:translateY(0) scale(1);opacity:.8}100%{transform:translateY(-60px) scale(0);opacity:0}}
       @keyframes sk-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -76,6 +90,13 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-heatIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
       .sk-cell{transition:transform .12s,box-shadow .12s;animation:sk-heatIn .15s ease both}
       .sk-cell:hover{transform:scale(1.5)!important;z-index:10!important;border-radius:4px!important;box-shadow:0 2px 8px rgba(99,102,241,0.4)!important}
+     .sk-cell-today {
+  animation: sk-glow-today 0.9s ease-in-out infinite;
+  will-change: transform, box-shadow;
+  transform-origin: center;
+   transform: translateZ(0);
+   display: inline-block;
+}
 
       /* ── Professional dark mode surface refinements ── */
       .sk-dark-screen {
@@ -332,13 +353,13 @@ function Sidebar({
             key={i}
             onPress={() => {
               if (n.label === "Reminders") {
-              // trigger notification dropdown
-              return;
+                // trigger notification dropdown
+                return;
               }
 
               if (n.v2) {
-              showComingSoon();
-              return;
+                showComingSoon();
+                return;
               }
               n.route && router.push(n.route);
             }}
@@ -1050,92 +1071,123 @@ function TopBar({
   onShowV2,
   totalTasks,
   completedTasks,
-  goals
+  goals,
 }: any) {
   const bg = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
 
-const [showNotif, setShowNotif] = useState(false);
-const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotif, setShowNotif] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const lastNotifiedCount = useRef(0);
+  const bellAnim = useRef(new Animated.Value(1)).current;
 
-const [time, setTime] = useState(() =>
-  new Date().toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-);
-
-const [showDrop, setShowDrop] = useState(false);
-
-
-useEffect(() => {
-  const pending = goals.reduce(
-    (acc: number, goal: any) => {
-      return (
-        acc +
-        goal.tasks.filter(
-          (t: any) =>
-            t &&
-            t.title &&
-            t.title.trim() !== "" &&
-            !(
-              t.completed === true ||
-              t.completed === "true" ||
-              t.completed === 1 ||
-              t.isCompleted === true
-            )
-        ).length
-      );
-    },
-    0
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   );
 
-  const newNotifs: any[] = [];
+  const [showDrop, setShowDrop] = useState(false);
 
-  if (pending === 0 && totalTasks > 0) {
-    newNotifs.push({
-      id: "done",
-      text: "All tasks completed 🎉",
-      icon: "✅",
-    });
-  } else {
-    if (pending > 0) {
-      newNotifs.push({
-        id: "pending",
-        text: `${pending} tasks pending`,
-        icon: "📌",
-      });
-    }
-
-    if (streak > 0) {
-      newNotifs.push({
-        id: "streak",
-        text: `${streak} day streak`,
-        icon: "🔥",
-      });
-    }
-  }
-
-  setNotifications(newNotifs);
-}, [goals, streak]);
-
+  const pendingTasks = goals.reduce((acc: number, goal: any) => {
+    return (
+      acc +
+      goal.tasks.filter(
+        (t: any) =>
+          t &&
+          t.title &&
+          t.title.trim() !== "" &&
+          !(
+            t.completed === true ||
+            t.completed === "true" ||
+            t.completed === 1 ||
+            t.isCompleted === true
+          ),
+      ).length
+    );
+  }, 0);
 
   useEffect(() => {
-  const tm = setInterval(() => {
-    setTime(
-      new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    );
-  }, 1000);
+    const pending = pendingTasks;
 
-  return () => clearInterval(tm);
-}, []);
+    const newNotifs: any[] = [];
 
+    if (pending === 0 && totalTasks > 0) {
+      // don't add notification → keeps badge = 0
+    } else {
+      if (pending > 0) {
+        newNotifs.push({
+          id: "pending",
+          text: `${pending} tasks pending`,
+          icon: "📌",
+        });
+      }
 
+      if (streak > 0) {
+        newNotifs.push({
+          id: "streak",
+          text: `${streak} day streak`,
+          icon: "🔥",
+        });
+      }
+    }
+
+    setNotifications(newNotifs);
+  }, [pendingTasks, streak, totalTasks]);
+
+  useEffect(() => {
+    if (pendingTasks === 0) return;
+
+    // prevent spam
+    if (lastNotifiedCount.current === pendingTasks) return;
+
+    lastNotifiedCount.current = pendingTasks;
+
+    Animated.sequence([
+      Animated.timing(bellAnim, {
+        toValue: 1.3,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bellAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const triggerNotification = async () => {
+      if (Platform.OS === "web") {
+        const granted = await requestWebNotificationPermission();
+        if (granted) {
+          sendWebTestNotification(pendingTasks, streak);
+        }
+      } else {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await scheduleDailyReminder(9, 0);
+        }
+      }
+    };
+
+    triggerNotification();
+  }, [pendingTasks]);
+
+  useEffect(() => {
+    const tm = setInterval(() => {
+      setTime(
+        new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
+    }, 1000);
+
+    return () => clearInterval(tm);
+  }, []);
 
   const hour = new Date().getHours();
   const greet =
@@ -1274,10 +1326,12 @@ useEffect(() => {
         )}
         {/* Bell */}
         <Pressable
-        style={topBarSt.notifBtn}
-        onPress={() => setShowNotif((s) => !s)}
+          style={topBarSt.notifBtn}
+          onPress={() => setShowNotif((s) => !s)}
         >
-          <Text style={{ fontSize: 18 }}>🔔</Text>
+          <Animated.View style={{ transform: [{ scale: bellAnim }] }}>
+            <Text style={{ fontSize: 18 }}>🔔</Text>
+          </Animated.View>
           <Animated.View
             style={[
               topBarSt.notifDot,
@@ -1288,60 +1342,58 @@ useEffect(() => {
             ]}
           />
 
-          {notifications.length > 0 && (
-  <View
-    style={{
-      position: "absolute",
-      top: -4,
-      right: -4,
-      backgroundColor: "#ef4444",
-      borderRadius: 10,
-      paddingHorizontal: 5,
-      paddingVertical: 1,
-    }}
-  >
-    <Text style={{ color: "#fff", fontSize: 10 }}>
-      {notifications.length}
-    </Text>
-  </View>
-)}
+          {pendingTasks > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -4,
+                backgroundColor: "#ef4444",
+                borderRadius: 10,
+                paddingHorizontal: 5,
+                paddingVertical: 1,
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 10 }}>
+                {pendingTasks}
+              </Text>
+            </View>
+          )}
         </Pressable>
 
         {showNotif && (
-  <View
-    style={{
-      position: "absolute",
-      top: 70,
-      right: 100,
-      width: 280,
-      borderRadius: 16,
-      padding: 12,
-      zIndex: 9999,
-      backgroundColor: dark ? "#111827" : "#ffffff",
-      borderWidth: 1,
-      borderColor: dark
-        ? "rgba(255,255,255,0.08)"
-        : "rgba(0,0,0,0.06)",
+          <View
+            style={{
+              position: "absolute",
+              top: 70,
+              right: 100,
+              width: 280,
+              borderRadius: 16,
+              padding: 12,
+              zIndex: 9999,
+              backgroundColor: dark ? "#111827" : "#ffffff",
+              borderWidth: 1,
+              borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
 
-      ...(Platform.OS === "web"
-        ? {
-            boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-            animation: "sk-fadeUp .2s ease",
-          }
-        : {}),
-    }}
-  >
-    <Text
-      style={{
-        fontWeight: "800",
-        marginBottom: 10,
-        color: dark ? "#f9fafb" : "#111827",
-      }}
-    >
-      Notifications
-    </Text>
+              ...(Platform.OS === "web"
+                ? {
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+                    animation: "sk-fadeUp .2s ease",
+                  }
+                : {}),
+            }}
+          >
+            <Text
+              style={{
+                fontWeight: "800",
+                marginBottom: 10,
+                color: dark ? "#f9fafb" : "#111827",
+              }}
+            >
+              Notifications
+            </Text>
 
-    {/* <Text
+            {/* <Text
   style={{
     fontSize: 12,
     marginBottom: 6,
@@ -1361,49 +1413,50 @@ useEffect(() => {
       📌 Tasks Pending: {Math.max(0, totalTasks - completedTasks)}
     </Text> */}
 
+            {notifications.length === 0 ? (
+              <Text
+                style={{
+                  fontSize: 12,
+                  opacity: 0.6,
+                  color: dark ? "#9ca3af" : "#6b7280",
+                }}
+              >
+                All tasks completed 🎉
+              </Text>
+            ) : (
+              notifications.map((item) => (
+                <View
+                  key={item.id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ marginRight: 8 }}>{item.icon}</Text>
 
-  {notifications.length === 0 ? (
-  <Text
-    style={{
-      fontSize: 12,
-      opacity: 0.6,
-      color: dark ? "#9ca3af" : "#6b7280",
-    }}
-  >
-    No notifications
-  </Text>
-) : (
-  notifications.map((item) => (
-    <View
-      key={item.id}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 8,
-      }}
-    >
-      <Text style={{ marginRight: 8 }}>{item.icon}</Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: dark ? "rgba(255,255,255,0.85)" : "#374151",
+                    }}
+                  >
+                    {item.text}
+                  </Text>
+                </View>
+              ))
+            )}
 
-      <Text
-        style={{
-          fontSize: 12,
-          color: dark
-            ? "rgba(255,255,255,0.85)"
-            : "#374151",
-        }}
-      >
-        {item.text}
-      </Text>
-    </View>
-  ))
-)}  
-
-    <Text style={{ fontSize: 12, color: dark ? "rgba(255,255,255,0.6)" : "#6b7280" }}>
-      Keep going 💪
-    </Text>
-  </View>
-)}      
-
+            <Text
+              style={{
+                fontSize: 12,
+                color: dark ? "rgba(255,255,255,0.6)" : "#6b7280",
+              }}
+            >
+              Keep going 💪
+            </Text>
+          </View>
+        )}
 
         {/* Avatar + dropdown */}
         <View style={{ position: "relative" }}>
@@ -1888,15 +1941,15 @@ function HeatMap({
   // startDay.setDate(today.getDate() - dayOfWeek - (WEEKS - 1) * 7);
 
   const startDay = new Date(selectedYear, 0, 1);
-const firstDay = startDay.getDay();
-startDay.setDate(startDay.getDate() - firstDay);
+  const firstDay = startDay.getDay();
+  startDay.setDate(startDay.getDate() - firstDay);
 
-  const cells: {
+  const cells: Array<{
     date: string;
     count: number;
     month: number;
     isToday: boolean;
-  }[] = [];
+  }> = [];
   const months: { label: string; col: number }[] = [];
   let lastMonth = -1;
 
@@ -1904,11 +1957,27 @@ startDay.setDate(startDay.getDate() - firstDay);
     for (let d = 0; d < 7; d++) {
       const dt = new Date(startDay);
       dt.setDate(startDay.getDate() + w * 7 + d);
-      const key = dt.toISOString().split("T")[0];
+      const key = dt.toLocaleDateString("en-CA");
       const year = new Date(key).getFullYear();
 
-      const count = year === selectedYear ? activityLog[key] || 0 : 0;
-      const isToday = key === today.toISOString().split("T")[0];
+      const rawCount = year === selectedYear ? activityLog[key] || 0 : 0;
+
+      const count =
+        rawCount === 0
+          ? 0
+          : rawCount <= 2
+            ? 1
+            : rawCount <= 5
+              ? 2
+              : rawCount <= 10
+                ? 3
+                : rawCount <= 20
+                  ? 4
+                  : rawCount <= 30
+                    ? 5
+                    : 6;
+      const todayStr = today.toLocaleDateString("en-CA");
+      const isToday = key === todayStr;
       cells.push({ date: key, count, month: dt.getMonth(), isToday });
       if (dt.getMonth() !== lastMonth && d === 0) {
         months.push({
@@ -1921,30 +1990,40 @@ startDay.setDate(startDay.getDate() - firstDay);
   }
 
   const maxCount = Math.max(1, ...Object.values(activityLog));
-  const getColor = (count: number, isToday: boolean) => {
-    if (isToday && count === 0)
-      return dark ? "rgba(99,102,241,0.2)" : "rgba(99,102,241,0.12)";
+
+  const getColor = (count: number, isToday?: boolean) => {
+    if (isToday) {
+      if (count === 0) return "#fee2e2"; // very light red
+      if (count === 1) return "#fca5a5";
+      if (count <= 3) return "#ef4444";
+      if (count <= 5) return "#dc2626";
+      return "#b91c1c"; // strong dark red
+    }
+
     if (count === 0)
       return dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-    const intensity = Math.min(count / maxCount, 1);
-    if (intensity < 0.25)
-      return dark ? "rgba(99,102,241,0.3)" : "rgba(99,102,241,0.25)";
-    if (intensity < 0.5)
-      return dark ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.45)";
-    if (intensity < 0.75)
-      return dark ? "rgba(99,102,241,0.7)" : "rgba(99,102,241,0.65)";
+
+    if (count === 1)
+      return dark ? "rgba(99,102,241,0.25)" : "rgba(99,102,241,0.2)";
+
+    if (count <= 3)
+      return dark ? "rgba(99,102,241,0.45)" : "rgba(99,102,241,0.4)";
+
+    if (count <= 5)
+      return dark ? "rgba(99,102,241,0.65)" : "rgba(99,102,241,0.6)";
+
     return "#6366f1";
   };
 
   const CELL = 10,
-    GAP = 2;
+    GAP = 3;
 
   return (
     <View
       style={{
         borderRadius: 20,
         padding: 20,
-        overflow: "hidden",
+        overflow: "visible",
         marginBottom: 28,
         width: "100%",
         maxWidth: 900,
@@ -1987,21 +2066,23 @@ startDay.setDate(startDay.getDate() - firstDay);
           </View>
           <View>
             <Text
-  style={{
-    fontSize: 15,
-    fontWeight: "800",
-    color: dark ? "#ffffff" : "#0f172a",
+              style={{
+                fontSize: 15,
+                fontWeight: "800",
+                color: dark ? "#ffffff" : "#0f172a",
 
-    ...(Platform.OS === "web"
-      ? ({
-          fontFamily: "Outfit,sans-serif",
-          textShadow: dark ? "0 0 10px rgba(99,102,241,0.3)" : "none",
-        } as any)
-      : {}),
-  }}
->
-  Activity Heatmap
-</Text>
+                ...(Platform.OS === "web"
+                  ? ({
+                      fontFamily: "Outfit,sans-serif",
+                      textShadow: dark
+                        ? "0 0 10px rgba(99,102,241,0.3)"
+                        : "none",
+                    } as any)
+                  : {}),
+              }}
+            >
+              Activity Heatmap
+            </Text>
             <Text
               style={{
                 fontSize: 11,
@@ -2011,13 +2092,17 @@ startDay.setDate(startDay.getDate() - firstDay);
               }}
             >
               {Object.entries(activityLog)
-  .filter(([date]) => new Date(date).getFullYear() === selectedYear)
-  .reduce((sum, [, val]) => sum + val, 0)} tasks ·{" "}
+                .filter(
+                  ([date]) => new Date(date).getFullYear() === selectedYear,
+                )
+                .reduce((sum, [, val]) => sum + val, 0)}{" "}
+              tasks ·{" "}
               {
-  Object.keys(activityLog).filter(
-    (date) => new Date(date).getFullYear() === selectedYear
-  ).length
-} active days
+                Object.keys(activityLog).filter(
+                  (date) => new Date(date).getFullYear() === selectedYear,
+                ).length
+              }{" "}
+              active days
             </Text>
           </View>
         </View>
@@ -2073,49 +2158,55 @@ startDay.setDate(startDay.getDate() - firstDay);
           </Text>
 
           <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
-        <Pressable onPress={() => setSelectedYear(currentYear)}>
-          <View
-            style={{
-              backgroundColor:
-                selectedYear === currentYear ? "#3b82f6" : "rgba(0,0,0,0.1)",
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: 6,
-              marginBottom: 2,
-            }}
-          >
-            <Text
-              style={{
-                color: selectedYear === currentYear ? "#ffffff" : dark ? "rgba(255,255,255,0.6)" : "#94a3b8",
-                fontSize: 10,
-                fontWeight: "700",
-              }}
-            >
-              {currentYear}
-            </Text>
-          </View>
-        </Pressable>
+            <Pressable onPress={() => setSelectedYear(currentYear)}>
+              <View
+                style={{
+                  backgroundColor:
+                    selectedYear === currentYear
+                      ? "#3b82f6"
+                      : "rgba(0,0,0,0.1)",
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                  marginBottom: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      selectedYear === currentYear
+                        ? "#ffffff"
+                        : dark
+                          ? "rgba(255,255,255,0.6)"
+                          : "#94a3b8",
+                    fontSize: 10,
+                    fontWeight: "700",
+                  }}
+                >
+                  {currentYear}
+                </Text>
+              </View>
+            </Pressable>
 
-        <Pressable onPress={() => setSelectedYear(currentYear - 1)}>
-          <Text
-            style={{
-              fontSize: 9,
-              color:
-                selectedYear === currentYear - 1
-                  ? "#3b82f6"
-                  : dark
-                    ? "rgba(238,242,255,0.4)"
-                    : "rgba(15,23,42,0.4)",
-              fontWeight: "700",
-            }}
-          >
-            {currentYear - 1}
-          </Text>
-        </Pressable>
-      </View>
+            <Pressable onPress={() => setSelectedYear(currentYear - 1)}>
+              <Text
+                style={{
+                  fontSize: 9,
+                  color:
+                    selectedYear === currentYear - 1
+                      ? "#3b82f6"
+                      : dark
+                        ? "rgba(238,242,255,0.4)"
+                        : "rgba(15,23,42,0.4)",
+                  fontWeight: "700",
+                }}
+              >
+                {currentYear - 1}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
-
 
       {/* Month labels */}
       <View style={{ flexDirection: "row", marginBottom: 8, paddingLeft: 4 }}>
@@ -2140,21 +2231,53 @@ startDay.setDate(startDay.getDate() - firstDay);
 
       {/* Grid */}
       <ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-   style={{ overflow: "hidden" }} 
-  contentContainerStyle={{
-    flexDirection: "row",
-    gap: GAP,
-    paddingRight: 20,
-  }}
->
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          gap: GAP,
+          width: WEEKS * (CELL + GAP),
+        }}
+        contentContainerStyle={{
+          flexDirection: "row",
+          gap: GAP,
+          paddingRight: 20,
+          overflow: "visible",
+        }}
+      >
         {Array.from({ length: WEEKS }, (_, w) => (
-          <View key={w} style={{ flexDirection: "column", gap: GAP } as any}>
+          <View
+            key={w}
+            style={{
+              flexDirection: "column",
+              gap: GAP,
+              minWidth: CELL,
+              overflow: "visible",
+            }}
+          >
             {Array.from({ length: 7 }, (_, d) => {
-              const cell = cells[w * 7 + d];
-              if (!cell)
-                return <View key={d} style={{ width: CELL, height: CELL }} />;
+              const cell: any = cells[w * 7 + d] || {
+                count: 0,
+                isToday: false,
+              };
+
+              if (!cell) {
+                return (
+                  <View
+                    key={d}
+                    className={
+                      Platform.OS === "web"
+                        ? `sk-cell ${cell.isToday ? "sk-cell-today" : ""}`
+                        : undefined
+                    }
+                    style={{
+                      width: CELL,
+                      height: CELL,
+                    }}
+                  />
+                );
+              }
               return (
                 <View
                   key={d}
@@ -2165,19 +2288,38 @@ startDay.setDate(startDay.getDate() - firstDay);
                       height: CELL,
                       borderRadius: 3,
                       backgroundColor: getColor(cell.count, cell.isToday),
+                      transform: cell.isToday ? [{ translateY: -1 }] : [],
+                      zIndex: cell.isToday ? 5 : 1,
+                      marginVertical: cell.isToday ? 3 : 0,
+                      overflow: "visible",
+
                       ...(cell.isToday
-                        ? ({
-                            outline: "2px solid #6366f1",
-                            outlineOffset: "1px",
-                            boxShadow: "0 0 8px rgba(99,102,241,0.55)",
-                            animation: "sk-glow 2s ease-in-out infinite",
-                          } as any)
+                        ? {
+                            outline: "2px solid #000000",
+                            outlineOffset: "2px",
+
+                            // 🔥 dynamic glow based on task count
+                            boxShadow:
+                              cell.count === 0
+                                ? "0 0 6px rgba(239,68,68,0.3)"
+                                : cell.count === 1
+                                  ? "0 0 10px rgba(239,68,68,0.5)"
+                                  : cell.count <= 3
+                                    ? "0 0 14px rgba(239,68,68,0.7)"
+                                    : cell.count <= 5
+                                      ? "0 0 18px rgba(239,68,68,0.9)"
+                                      : "0 0 22px rgba(239,68,68,1)",
+
+                            animation: "sk-glow-today 1s ease-in-out infinite",
+
+                            zIndex: 10,
+                          }
                         : {}),
-                      ...(cell.count > 0
-                        ? ({
-                            boxShadow: `0 0 4px ${getColor(cell.count, cell.isToday)}66`,
-                          } as any)
-                        : {}),
+
+                      ...(cell.count > 0 &&
+                        !cell.isToday && {
+                          boxShadow: `0 0 4px ${getColor(cell.count, false)}66`,
+                        }),
                       cursor: "default",
                       transition: "transform .12s, box-shadow .12s",
                     } as any
@@ -2187,24 +2329,36 @@ startDay.setDate(startDay.getDate() - firstDay);
             })}
           </View>
         ))}
-   </ScrollView>
-<View
-  style={{
-    marginTop: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  }}
->
- <Text style={{ fontSize: 12, opacity: dark ? 0.7 : 0.6, color: dark ? "#fff" : undefined }}>
-    Keep it going 🔥
-  </Text>
+      </ScrollView>
+      <View
+        style={{
+          marginTop: 10,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            opacity: dark ? 0.7 : 0.6,
+            color: dark ? "#fff" : undefined,
+          }}
+        >
+          Keep it going 🔥
+        </Text>
 
-  <Text style={{ fontSize: 12, fontWeight: "700", opacity: dark ? 0.7 : 0.6, color: dark ? "#fff" : undefined }}>
-    {selectedYear}
-  </Text>
-</View>
-
-</View>     
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "700",
+            opacity: dark ? 0.7 : 0.6,
+            color: dark ? "#fff" : undefined,
+          }}
+        >
+          {selectedYear}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -4459,41 +4613,43 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-  const setupNotifications = async () => {
-    try {
-      const granted = await requestNotificationPermission();
+    const setupNotifications = async () => {
+      try {
+        const granted = await requestNotificationPermission();
 
-      if (granted && Platform.OS !== "web") {
-        await scheduleDailyReminder(20, 0);
-      }
+        if (granted && Platform.OS !== "web") {
+          await scheduleDailyReminder(20, 0);
+        }
 
-      if (Platform.OS === "web") {
-        const granted = await requestWebNotificationPermission();
+        if (Platform.OS === "web") {
+          const granted = await requestWebNotificationPermission();
 
-        if (granted) {
-          sendWebTestNotification(); // instant
+          if (granted) {
+            sendWebTestNotification(); // instant
 
-          if (!intervalRef.current) {
-            intervalRef.current = setInterval(() => {
-              sendWebTestNotification();
-            }, 30 * 60 * 1000);
+            if (!intervalRef.current) {
+              intervalRef.current = setInterval(
+                () => {
+                  sendWebTestNotification();
+                },
+                30 * 60 * 1000,
+              );
+            }
           }
         }
+      } catch (e) {
+        console.log("Notification error", e);
       }
+    };
 
-    } catch (e) {
-      console.log("Notification error", e);
-    }
-  };
+    setupNotifications();
 
-  setupNotifications();
-
-  return () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-  };
-}, []);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const displayName = user.displayName || user.email || "User";
   const userEmail = user.email || "";

@@ -35,10 +35,23 @@ export async function requestWebNotificationPermission() {
   return permission === "granted";
 }
 
-export function sendWebTestNotification() {
+export function sendWebTestNotification(
+  pendingTasks?: number,
+  streak?: number
+) {
   if (Platform.OS !== "web") return;
 
+  let message = "Keep going 💪";
+
+  if (pendingTasks && pendingTasks > 0) {
+    message = `You have ${pendingTasks} pending task${
+      pendingTasks > 1 ? "s" : ""
+    }`;
+  } else if (streak && streak > 0) {
+    message = `🔥 ${streak} day streak! Keep it up`;
+  }
+
   new Notification("Skill Companion Reminder", {
-    body: "Complete your pending tasks today 💪",
+    body: message,
   });
 }
