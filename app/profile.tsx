@@ -125,11 +125,11 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtMut = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
   const NAV = [
-    { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
-    { icon: "📊", label: "Analytics",  route: "/analytics", active: false },
-    { icon: "🔔", label: "Reminders",  route: null,         active: false, v2: true },
-    { icon: "⚙️", label: "Settings",   route: null,         active: false, v2: true },
-  ];
+  { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
+  { icon: "📊", label: "Analytics",  route: "/analytics", active: false },
+  { icon: "🔔", label: "Reminders",  route: "/notifications", active: false },
+  { icon: "⚙️", label: "Settings",   route: null,         active: false, v2: true },
+];
   return (
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
       <View style={sbSt.logoRow}>
@@ -137,7 +137,16 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
           <SkillPathLogo size={48} />
         </View>
         <View>
-          <Text style={[sbSt.logoName, { color: txtPri }]}>SkillPath</Text>
+          <Text style={[sbSt.logoName,
+  Platform.OS === "web"
+    ? ({
+        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+      } as any)
+    : { color: "#FF5C5C" },
+]}>SkillPath</Text>
           <Text style={[sbSt.logoSub, { color: txtMut }]}>Learning Companion</Text>
         </View>
       </View>
@@ -230,14 +239,20 @@ const sbSt = StyleSheet.create({
 });
 
 /* ════ TOP BAR — matches dashboard ════ */
-function TopBar({ dark, router, displayName, sidebarOpen, setSidebarOpen }: any) {
+function TopBar({ dark, router, displayName, sidebarOpen, setSidebarOpen, setDarkMode }: any) {
   const bg     = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
   const [time, setTime] = useState(() => new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+  const [seconds, setSeconds] = useState(() => new Date().getSeconds());
+
   useEffect(() => {
-    const tm = setInterval(() => setTime(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })), 1000);
+   const tm = setInterval(() => {
+  const now = new Date();
+  setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+  setSeconds(now.getSeconds());
+}, 1000);
     return () => clearInterval(tm);
   }, []);
   const initials = displayName.charAt(0).toUpperCase();
@@ -264,7 +279,41 @@ function TopBar({ dark, router, displayName, sidebarOpen, setSidebarOpen }: any)
           <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>Dashboard  ›  My Profile</Text>
         </View>
       </View>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
+      {Platform.OS === "web" ? (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: border }}>
+
+    {Platform.OS === "web" && (
+          <Pressable
+            onPress={async () => { setDarkMode(!dark); const { saveTheme } = require("../src/services/uiPreferences"); await saveTheme(!dark); }}
+            style={{ width: 44, height: 26, borderRadius: 99, backgroundColor: dark ? "#6366f1" : "rgba(0,0,0,0.1)", justifyContent: "center", position: "relative" } as any}
+          >
+            <View style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: 10, backgroundColor: "white", alignItems: "center", justifyContent: "center", transition: "left .25s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } as any}>
+              <Text style={{ fontSize: 11 }}>{dark ? "🌙" : "☀️"}</Text>
+            </View>
+          </Pressable>
+        )}
+
+    <svg width="20" height="20" viewBox="0 0 24 24">
+      <circle cx={12} cy={12} r={10} fill="none" stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} strokeWidth="2"/>
+      <circle cx={12} cy={12} r={10} fill="none" stroke="#6366f1" strokeWidth="2"
+        strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
+        strokeLinecap="round" transform="rotate(-90 12 12)"
+        style={{ transition: "stroke-dasharray 0.5s linear" } as any}/>
+      <circle cx={12} cy={12} r={2} fill="#6366f1"/>
+    </svg>
+    <View>
+      <Text style={{ fontSize: 13, fontWeight: "800", color: txtPri, letterSpacing: -0.3,
+        ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) }}>
+        {time}
+      </Text>
+      <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+        {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+      </Text>
+    </View>
+  </View>
+) : (
+  <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
+)}
     </View>
   );
 }
@@ -886,7 +935,7 @@ export default function Profile() {
             completedTasks={completedTasks} totalTasks={totalTasks} />
         )}
         <View style={wSt.center}>
-          <TopBar dark={dark} router={router} displayName={displayName}
+          <TopBar dark={dark} setDarkMode={setDarkMode}  router={router} displayName={displayName}
             sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           {mainContent}
         </View>

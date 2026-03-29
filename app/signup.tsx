@@ -201,7 +201,19 @@ export default function Signup() {
                 </View>
               </View>
             </View>
-            <Text style={[styles.appName, IS_WEB ? { fontFamily: "Outfit,sans-serif" } as any : {}]}>SkillPath</Text>
+            <Text style={[styles.appName,
+  Platform.OS === "web"
+    ? ({
+        fontFamily: "Outfit,sans-serif",
+        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+      } as any)
+    : { color: "#FF5C5C" },
+]}>
+  SkillPath
+</Text>
             <Text style={styles.tagline}>Start your learning journey</Text>
             <View style={styles.pillsRow}>
               {["🚀 Get Started", "🎯 Set Goals", "🔥 Build Streaks"].map((p, i) => (

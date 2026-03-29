@@ -349,9 +349,18 @@ const NAV = [
           <SkillPathLogo size={48} />
         </View>
         <View>
-          <Text style={[sidebarSt.logoName, { color: "#a78bfa" }]}>
-            SkillPath
-          </Text>
+         <Text style={[sidebarSt.logoName,
+  Platform.OS === "web"
+    ? ({
+        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+      } as any)
+    : { color: "#FF5C5C" },
+]}>
+  SkillPath
+</Text>
           <Text style={[sidebarSt.logoSub, { color: txtMute }]}>
             Learning Companion
           </Text>
@@ -1361,6 +1370,8 @@ function TopBar({
     }),
   );
 
+  const [seconds, setSeconds] = useState(() => new Date().getSeconds());
+
   const [showDrop, setShowDrop] = useState(false);
 
   const pendingTasks = goals.reduce((acc: number, goal: any) => {
@@ -1449,13 +1460,10 @@ function TopBar({
 
   useEffect(() => {
     const tm = setInterval(() => {
-      setTime(
-        new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      );
-    }, 1000);
+  const now = new Date();
+  setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+  setSeconds(now.getSeconds());
+}, 1000);
 
     return () => clearInterval(tm);
   }, []);
@@ -1539,7 +1547,37 @@ function TopBar({
         </View>
       </View>
       <View style={topBarSt.right}>
-        <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
+        {Platform.OS === "web" ? (
+  <View style={{
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 12, borderWidth: 1, borderColor: border,
+  }}>
+    <svg width="20" height="20" viewBox="0 0 24 24">
+      <circle cx={12} cy={12} r={10} fill="none"
+        stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
+        strokeWidth="2"/>
+      <circle cx={12} cy={12} r={10} fill="none"
+        stroke="#6366f1" strokeWidth="2"
+        strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
+        strokeLinecap="round"
+        transform="rotate(-90 12 12)"
+        style={{ transition: "stroke-dasharray 0.5s linear" } as any}/>
+      <circle cx={12} cy={12} r={2} fill="#6366f1"/>
+    </svg>
+    <View>
+      <Text style={{ fontSize: 13, fontWeight: "800", color: txtPri, letterSpacing: -0.3,
+        ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) }}>
+        {time}
+      </Text>
+      <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+        {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+      </Text>
+    </View>
+  </View>
+) : (
+  <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
+)}
         {/* Dark mode toggle pill */}
         {Platform.OS === "web" ? (
           <Pressable
@@ -1719,18 +1757,21 @@ const topBarSt = StyleSheet.create({
   },
   sub: { fontSize: 12, fontWeight: "500", marginTop: 1 },
   right: { flexDirection: "row", alignItems: "center", gap: 10 },
-  time: {
-    fontSize: 13,
-    fontWeight: "600",
-    ...(Platform.OS === "web"
-      ? ({
-          padding: "7px 14px",
-          borderRadius: 10,
-          border: "1px solid rgba(0,0,0,0.07)",
-          background: "transparent",
-        } as any)
-      : {}),
-  },
+ time: {
+  fontSize: 13,
+  fontWeight: "700",
+  ...(Platform.OS === "web"
+    ? ({
+        padding: "6px 14px",
+        borderRadius: 99,
+        border: "1.5px solid rgba(99,102,241,0.18)",
+        background: "linear-gradient(135deg,rgba(99,102,241,0.07),rgba(167,139,250,0.05))",
+        color: "#6366f1",
+        letterSpacing: "0.02em",
+        fontFamily: "Outfit,sans-serif",
+      } as any)
+    : {}),
+},
   toggleWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
   notifBtn: {
     width: 40,

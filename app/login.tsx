@@ -176,10 +176,19 @@ export default function Login() {
               </View>
             </View>
 
-            <Text style={[styles.appName,
-              Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}]}>
-              SkillPath
-            </Text>
+           <Text style={[styles.appName,
+  Platform.OS === "web"
+    ? ({
+        fontFamily: "Outfit,sans-serif",
+        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+      } as any)
+    : { color: "#FF5C5C" },
+]}>
+  SkillPath
+</Text>
             <Text style={styles.tagline}>Your Learning Companion</Text>
 
             {/* Feature pills */}

@@ -158,7 +158,16 @@ const NAV = [
           <SkillPathLogo size={48} />
         </View>
         <View>
-          <Text style={[sbSt.logoName, { color: txtPri }]}>SkillPath</Text>
+         <Text style={[sbSt.logoName,
+  Platform.OS === "web"
+    ? ({
+        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+      } as any)
+    : { color: "#FF5C5C" },
+]}>SkillPath</Text>
           <Text style={[sbSt.logoSub, { color: txtMut }]}>Learning Companion</Text>
         </View>
       </View>
@@ -250,7 +259,7 @@ const sbSt = StyleSheet.create({
 });
 
 /* ════ TOP BAR with hamburger ════ */
-function TopBar({ dark, router, sidebarOpen, setSidebarOpen }: any) {
+function TopBar({ dark, setDarkMode, router, sidebarOpen, setSidebarOpen }: any) {
   const bg     = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
@@ -297,6 +306,43 @@ function TopBar({ dark, router, sidebarOpen, setSidebarOpen }: any) {
             borderWidth: 1,
             borderColor: border,
           }}>
+
+             {Platform.OS === "web" && (
+         <Pressable
+  onPress={async () => {
+    setDarkMode(!dark);
+    const { saveTheme } = require("../src/services/uiPreferences");
+    await saveTheme(!dark);
+  }}
+  style={{
+    width: 44,
+    height: 26,
+    borderRadius: 99,
+    backgroundColor: dark ? "#6366f1" : "rgba(0,0,0,0.1)",
+    justifyContent: "center",
+    position: "relative"
+  } as any}
+>
+  <View style={{
+    position: "absolute",
+    top: 3,
+    left: dark ? 21 : 3,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "left .25s",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.2)"
+  } as any}>
+    <Text style={{ fontSize: 11 }}>
+      {dark ? "🌙" : "☀️"}
+    </Text>
+  </View>
+</Pressable>
+        )}
+
             <svg width="20" height="20" viewBox="0 0 24 24">
               <circle cx={12} cy={12} r={10} fill="none"
                 stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
@@ -667,7 +713,7 @@ export default function Analytics() {
           <Sidebar dark={dark} router={router} overallPct={overallPct} completedTasks={completedTasks} totalTasks={totalTasks} userRole={userRole} displayName={displayNameA} userEmail={userEmail} />
         )}
         <View style={wSt.center}>
-          <TopBar dark={dark} router={router} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <TopBar dark={dark} setDarkMode={setDarkMode}  router={router} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           {mainContent}
         </View>
       </View>

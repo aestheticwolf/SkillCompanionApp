@@ -232,15 +232,13 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
 
         {/* Colored path — draws in, then glows */}
         <path
-          className="sp-path sp-path-glow"
-          d={PATH}
-          stroke={`url(#${pgId})`}
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeDasharray="200"
-          strokeDashoffset="200"
-          fill="none"
-        />
+  className="sp-path-glow"
+  d={PATH}
+  stroke={`url(#${pgId})`}
+  strokeWidth="3.5"
+  strokeLinecap="round"
+  fill="none"
+/>
 
         {/* Shimmer streak */}
         <path
