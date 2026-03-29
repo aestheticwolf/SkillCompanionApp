@@ -58,19 +58,26 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
       @keyframes sk-glow{0%,100%{box-shadow:0 0 8px rgba(99,102,241,.3)}50%{box-shadow:0 0 22px rgba(99,102,241,.75)}}
 @keyframes sk-glow-today {
-  0% {
+  0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 6px rgba(239,68,68,0.4);
+    box-shadow: 0 0 3px 1px rgba(239,68,68,0.3),
+                0 0 6px 1px rgba(239,68,68,0.12);
   }
   50% {
-    transform: scale(1.12);
-    box-shadow: 0 0 28px rgba(239,68,68,1);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 6px rgba(239,68,68,0.4);
+    transform: scale(1.08);
+    box-shadow: 0 0 5px 2px rgba(239,68,68,0.5),
+                0 0 10px 3px rgba(239,68,68,0.22);
   }
 }
+
+@keyframes sk-legend-today {
+  0%,100% { box-shadow: 0 0 2px 1px rgba(239,68,68,0.3); }
+  50%      { box-shadow: 0 0 4px 2px rgba(239,68,68,0.55), 0 0 8px 3px rgba(239,68,68,0.2); }
+}
+.sk-legend-today-dot {
+  animation: sk-legend-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite;
+}
+  
       @keyframes sk-shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
       @keyframes sk-particle{0%{transform:translateY(0) scale(1);opacity:.8}100%{transform:translateY(-60px) scale(0);opacity:0}}
       @keyframes sk-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -306,12 +313,19 @@ function Sidebar({
   const txtPrim = dark ? "#eef2ff" : "#0f172a";
   const txtMute = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
 
-  const NAV = [
-    { icon: "🏠", label: "Dashboard", route: "/dashboard" },
-    { icon: "📊", label: "Analytics", route: "/analytics" },
-    { icon: "🔔", label: "Reminders", badge: 3, v2: true },
-    { icon: "⚙️", label: "Settings", route: null, v2: true },
-  ];
+const pendingCount = goals.reduce((acc: number, goal: any) => {
+  return acc + goal.tasks.filter((t: any) =>
+    t && t.title && t.title.trim() !== "" &&
+    !(t.completed === true || t.completed === "true" || t.completed === 1 || t.isCompleted === true)
+  ).length;
+}, 0);
+
+const NAV = [
+  { icon: "🏠", label: "Dashboard", route: "/dashboard" },
+  { icon: "📊", label: "Analytics", route: "/analytics" },
+  { icon: "🔔", label: "Reminders", route: "/notifications", badge: pendingCount },
+  { icon: "⚙️", label: "Settings", route: null, v2: true },
+];
 
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -351,18 +365,13 @@ function Sidebar({
         return (
           <Pressable
             key={i}
-            onPress={() => {
-              if (n.label === "Reminders") {
-                // trigger notification dropdown
-                return;
-              }
-
-              if (n.v2) {
-                showComingSoon();
-                return;
-              }
-              n.route && router.push(n.route);
-            }}
+           onPress={() => {
+  if (n.v2) {
+    showComingSoon();
+    return;
+  }
+  n.route && router.push(n.route);
+}}
             style={({ pressed }) => [
               sidebarSt.navItem,
               active && {
@@ -693,15 +702,6 @@ function ProfileDrop({
     {
       icon: "🎯",
       label: "Learning Path",
-      sub: "Coming in v2 ✨",
-      fn: () => {
-        onShowV2();
-      },
-      v2: true,
-    },
-    {
-      icon: "🔔",
-      label: "Notifications",
       sub: "Coming in v2 ✨",
       fn: () => {
         onShowV2();
@@ -1051,6 +1051,277 @@ function ProfileDrop({
   );
 }
 
+
+/* ════════════════════════════════
+   NOTIFICATION DROPDOWN (TopBar)
+════════════════════════════════ */
+function NotifDropdown({
+  dark,
+  notifications,
+  pendingTasks,
+  streak,
+  onClose,
+  onViewAll,
+}: any) {
+  const bg     = dark ? "#111827" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "rgba(15,23,42,0.5)";
+  const dropRef = useRef<any>(null);
+
+  /* close on outside click */
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const NOTIF_ITEMS = [
+    ...(pendingTasks > 0
+      ? [{
+          id: "pending",
+          icon: "📌",
+          title: "Pending Tasks",
+          body: `You have ${pendingTasks} task${pendingTasks > 1 ? "s" : ""} waiting`,
+          color: "#f97316",
+          unread: true,
+        }]
+      : []),
+    ...(streak > 0
+      ? [{
+          id: "streak",
+          icon: "🔥",
+          title: `${streak} Day Streak!`,
+          body: "Keep it up — don't break the chain",
+          color: "#ef4444",
+          unread: streak > 0 && pendingTasks === 0,
+        }]
+      : []),
+    {
+      id: "sys",
+      icon: "🚀",
+      title: "SkillPath Active",
+      body: "Your learning session is synced",
+      color: "#6366f1",
+      unread: false,
+    },
+  ];
+
+  const unread = NOTIF_ITEMS.filter((n) => n.unread).length;
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? ({
+              position: "absolute",
+              top: "calc(100% + 12px)",
+              right: 0,
+              width: 320,
+              zIndex: 9999,
+              background: bg,
+              border: `1px solid ${border}`,
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: dark
+                ? "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)"
+                : "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)",
+              animation: "sk-fadeUp .18s ease both",
+            } as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 300,
+              backgroundColor: bg,
+              borderRadius: 20,
+              zIndex: 9999,
+              overflow: "hidden",
+            }
+      }
+    >
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: border,
+          ...(Platform.OS === "web"
+            ? ({
+                background: dark
+                  ? "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(0,0,0,0))"
+                  : "linear-gradient(135deg,rgba(99,102,241,0.06),rgba(0,0,0,0))",
+              } as any)
+            : {}),
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: "rgba(99,102,241,0.12)",
+              alignItems: "center",
+              justifyContent: "center",
+              ...(Platform.OS === "web"
+                ? ({ animation: "sk-breathe 3s ease-in-out infinite" } as any)
+                : {}),
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🔔</Text>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "800",
+                color: txtPri,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              Notifications
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: "500", color: txtSec }}>
+              {unread > 0 ? `${unread} unread` : "All caught up 🎉"}
+            </Text>
+          </View>
+        </View>
+        {unread > 0 && (
+          <View
+            style={{
+              backgroundColor: "#ef4444",
+              borderRadius: 99,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 11, fontWeight: "800" }}>
+              {unread}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Items */}
+      <View style={{ paddingVertical: 8 }}>
+        {NOTIF_ITEMS.map((item, i) => (
+          <View
+            key={item.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              marginHorizontal: 8,
+              borderRadius: 12,
+              marginBottom: 2,
+              backgroundColor: item.unread
+                ? dark
+                  ? "rgba(99,102,241,0.07)"
+                  : "rgba(99,102,241,0.04)"
+                : "transparent",
+              borderWidth: item.unread ? 1 : 0,
+              borderColor: item.unread
+                ? "rgba(99,102,241,0.14)"
+                : "transparent",
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                backgroundColor: item.color + "18",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginBottom: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: txtPri,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                {item.unread && (
+                  <View
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 4,
+                      backgroundColor: item.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </View>
+              <Text
+                style={{ fontSize: 11, fontWeight: "500", color: txtSec }}
+                numberOfLines={1}
+              >
+                {item.body}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Footer */}
+      <Pressable
+        onPress={onViewAll}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          paddingVertical: 13,
+          borderTopWidth: 1,
+          borderTopColor: border,
+          backgroundColor: pressed
+            ? dark
+              ? "rgba(99,102,241,0.1)"
+              : "rgba(99,102,241,0.06)"
+            : "transparent",
+          ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+        })}
+      >
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#6366f1" }}>
+          View all notifications
+        </Text>
+        <Text style={{ fontSize: 13, color: "#6366f1" }}>→</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /* ════════════════════════════════
    TOP BAR (web wide)
 ════════════════════════════════ */
@@ -1138,12 +1409,12 @@ function TopBar({
     setNotifications(newNotifs);
   }, [pendingTasks, streak, totalTasks]);
 
-  useEffect(() => {
+   useEffect(() => {
     if (pendingTasks === 0) return;
-
-    // prevent spam
-    if (lastNotifiedCount.current === pendingTasks) return;
-
+    if (pendingTasks <= lastNotifiedCount.current) {
+      lastNotifiedCount.current = pendingTasks;
+      return;
+    }
     lastNotifiedCount.current = pendingTasks;
 
     Animated.sequence([
@@ -1324,7 +1595,9 @@ function TopBar({
             />
           </View>
         )}
-        {/* Bell */}
+
+        
+       {/* Bell */}
         <Pressable
           style={topBarSt.notifBtn}
           onPress={() => setShowNotif((s) => !s)}
@@ -1341,7 +1614,6 @@ function TopBar({
               },
             ]}
           />
-
           {pendingTasks > 0 && (
             <View
               style={{
@@ -1352,9 +1624,12 @@ function TopBar({
                 borderRadius: 10,
                 paddingHorizontal: 5,
                 paddingVertical: 1,
+                ...(Platform.OS === "web"
+                  ? ({ animation: "sk-pulse 2s infinite" } as any)
+                  : {}),
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 10 }}>
+              <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>
                 {pendingTasks}
               </Text>
             </View>
@@ -1362,100 +1637,17 @@ function TopBar({
         </Pressable>
 
         {showNotif && (
-          <View
-            style={{
-              position: "absolute",
-              top: 70,
-              right: 100,
-              width: 280,
-              borderRadius: 16,
-              padding: 12,
-              zIndex: 9999,
-              backgroundColor: dark ? "#111827" : "#ffffff",
-              borderWidth: 1,
-              borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-
-              ...(Platform.OS === "web"
-                ? {
-                    boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-                    animation: "sk-fadeUp .2s ease",
-                  }
-                : {}),
+          <NotifDropdown
+            dark={dark}
+            notifications={notifications}
+            pendingTasks={pendingTasks}
+            streak={streak}
+            onClose={() => setShowNotif(false)}
+            onViewAll={() => {
+              setShowNotif(false);
+              router.push("/notifications");
             }}
-          >
-            <Text
-              style={{
-                fontWeight: "800",
-                marginBottom: 10,
-                color: dark ? "#f9fafb" : "#111827",
-              }}
-            >
-              Notifications
-            </Text>
-
-            {/* <Text
-  style={{
-    fontSize: 12,
-    marginBottom: 6,
-    color: dark ? "rgba(255,255,255,0.85)" : "#374151",
-  }}
->
-      🔥 Streak: {streak}
-    </Text>
-
-    <Text
-  style={{
-    fontSize: 12,
-    marginBottom: 6,
-    color: dark ? "rgba(255,255,255,0.85)" : "#374151",
-  }}
->
-      📌 Tasks Pending: {Math.max(0, totalTasks - completedTasks)}
-    </Text> */}
-
-            {notifications.length === 0 ? (
-              <Text
-                style={{
-                  fontSize: 12,
-                  opacity: 0.6,
-                  color: dark ? "#9ca3af" : "#6b7280",
-                }}
-              >
-                All tasks completed 🎉
-              </Text>
-            ) : (
-              notifications.map((item) => (
-                <View
-                  key={item.id}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text style={{ marginRight: 8 }}>{item.icon}</Text>
-
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: dark ? "rgba(255,255,255,0.85)" : "#374151",
-                    }}
-                  >
-                    {item.text}
-                  </Text>
-                </View>
-              ))
-            )}
-
-            <Text
-              style={{
-                fontSize: 12,
-                color: dark ? "rgba(255,255,255,0.6)" : "#6b7280",
-              }}
-            >
-              Keep going 💪
-            </Text>
-          </View>
+          />
         )}
 
         {/* Avatar + dropdown */}
@@ -2157,6 +2349,45 @@ function HeatMap({
             More
           </Text>
 
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              marginLeft: 14,
+              paddingLeft: 14,
+              borderLeftWidth: 1,
+              borderLeftColor: dark
+                ? "rgba(255,255,255,0.1)"
+                : "rgba(0,0,0,0.08)",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)",
+                marginRight: 4,
+                fontWeight: "500",
+              }}
+            >
+              Today
+            </Text>
+            {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map(
+  (color, i) => (
+    <View
+      key={i}
+      className={Platform.OS === "web" && i === 4 ? "sk-legend-today-dot" : undefined}
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: 3,
+        backgroundColor: color,
+      }}
+    />
+  ),
+)}
+          </View>
+
           <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
             <Pressable onPress={() => setSelectedYear(currentYear)}>
               <View
@@ -2234,28 +2465,33 @@ function HeatMap({
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: GAP,
-          width: WEEKS * (CELL + GAP),
-        }}
+  display: "flex",
+  flexDirection: "row",
+  gap: GAP,
+  width: WEEKS * (CELL + GAP),
+  overflow: "visible" as any,
+}}
         contentContainerStyle={{
-          flexDirection: "row",
-          gap: GAP,
-          paddingRight: 20,
-          overflow: "visible",
-        }}
+  flexDirection: "row",
+  gap: GAP,
+  paddingRight: 20,
+  paddingTop: 8,
+  paddingBottom: 8,
+  overflow: "visible",
+}}
       >
         {Array.from({ length: WEEKS }, (_, w) => (
-          <View
-            key={w}
-            style={{
-              flexDirection: "column",
-              gap: GAP,
-              minWidth: CELL,
-              overflow: "visible",
-            }}
-          >
+         <View
+  key={w}
+  style={{
+    flexDirection: "column",
+    gap: GAP,
+    width: CELL,
+    minWidth: CELL,
+    alignItems: "center",
+    overflow: "visible" as any,
+  }}
+>
             {Array.from({ length: 7 }, (_, d) => {
               const cell: any = cells[w * 7 + d] || {
                 count: 0,
@@ -2290,31 +2526,22 @@ function HeatMap({
                       backgroundColor: getColor(cell.count, cell.isToday),
                       transform: cell.isToday ? [{ translateY: -1 }] : [],
                       zIndex: cell.isToday ? 5 : 1,
-                      marginVertical: cell.isToday ? 3 : 0,
+                      // marginVertical: cell.isToday ? 2 : 0,
+                      alignItems: "center",
                       overflow: "visible",
 
                       ...(cell.isToday
-                        ? {
-                            outline: "2px solid #000000",
-                            outlineOffset: "2px",
-
-                            // 🔥 dynamic glow based on task count
-                            boxShadow:
-                              cell.count === 0
-                                ? "0 0 6px rgba(239,68,68,0.3)"
-                                : cell.count === 1
-                                  ? "0 0 10px rgba(239,68,68,0.5)"
-                                  : cell.count <= 3
-                                    ? "0 0 14px rgba(239,68,68,0.7)"
-                                    : cell.count <= 5
-                                      ? "0 0 18px rgba(239,68,68,0.9)"
-                                      : "0 0 22px rgba(239,68,68,1)",
-
-                            animation: "sk-glow-today 1s ease-in-out infinite",
-
-                            zIndex: 10,
-                          }
-                        : {}),
+  ? {
+      outline: "none",
+      borderRadius: 4,
+      background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
+      animation: "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
+      zIndex: 10,
+      perspective: "200px",
+      transformStyle: "preserve-3d",
+      willChange: "transform, box-shadow",
+    }
+  : {}),
 
                       ...(cell.count > 0 &&
                         !cell.isToday && {
@@ -4072,8 +4299,13 @@ function AddTaskModal({
       }),
     ]).start(() => {
       try {
-        addTaskFn(goalId, task.trim());
+       addTaskFn(goalId, task.trim());
         showSuccess("Task added 🎉");
+        if (Platform.OS === "web") {
+          requestWebNotificationPermission().then((ok) => {
+            if (ok) new Notification("SkillPath", { body: "New task added 📝" });
+          });
+        }
         onClose();
       } catch {
         showError("Something went wrong");
@@ -4625,14 +4857,14 @@ export default function Dashboard() {
           const granted = await requestWebNotificationPermission();
 
           if (granted) {
-            sendWebTestNotification(); // instant
-
             if (!intervalRef.current) {
               intervalRef.current = setInterval(
                 () => {
-                  sendWebTestNotification();
+                  if (hasPendingTasks()) {
+                    sendWebTestNotification();
+                  }
                 },
-                30 * 60 * 1000,
+                30 * 1000,
               );
             }
           }
@@ -4964,11 +5196,16 @@ export default function Dashboard() {
                       </Text>
                     </View>
                   </View>
-                  <Pressable
-                    onPress={() => {
-                      taskCtx.deleteGoal(g.id);
-                      showDelete("Goal removed successfully");
-                    }}
+                 <Pressable
+  onPress={() => {
+    taskCtx.deleteGoal(g.id);
+    showDelete("Goal removed successfully");
+    if (Platform.OS === "web") {
+      requestWebNotificationPermission().then((ok) => {
+        if (ok) new Notification("SkillPath", { body: `Goal "${g.name}" deleted 🗑` });
+      });
+    }
+  }}
                     style={({ pressed }) => [
                       styles.delGoalBtn,
                       pressed && { opacity: 0.55 },
@@ -5051,11 +5288,13 @@ export default function Dashboard() {
                           { merge: true },
                         );
                       }
-                      showSuccess(
-                        t.completed
-                          ? "Task marked incomplete"
-                          : "Task completed 🎉",
-                      );
+                     const msg = t.completed ? "Task marked incomplete" : "Task completed 🎉";
+                      showSuccess(msg);
+                      if (Platform.OS === "web") {
+                        requestWebNotificationPermission().then((ok) => {
+                          if (ok) new Notification("SkillPath", { body: msg });
+                        });
+                      }
                     }}
                   >
                     <View style={styles.taskContent}>
@@ -5096,6 +5335,11 @@ export default function Dashboard() {
                         onPress={() => {
                           taskCtx.deleteTask(g.id, t.id);
                           showDelete("Task removed");
+                          if (Platform.OS === "web") {
+                            requestWebNotificationPermission().then((ok) => {
+                              if (ok) new Notification("SkillPath", { body: "Task removed 🗑" });
+                            });
+                          }
                         }}
                       >
                         <Text style={styles.delTx}>✕</Text>

@@ -145,12 +145,12 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks, userRol
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtMut = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
-  const NAV = [
-    { icon: "🏠", label: "Dashboard", route: "/dashboard" },
-    { icon: "📊", label: "Analytics",  route: "/analytics" },
-    { icon: "🔔", label: "Reminders",  badge: 3, v2: true  },
-    { icon: "⚙️", label: "Settings",   route: null, v2: true },
-  ];
+const NAV = [
+  { icon: "🏠", label: "Dashboard", route: "/dashboard" },
+  { icon: "📊", label: "Analytics",  route: "/analytics"   },
+  { icon: "🔔", label: "Reminders",  route: "/notifications" },
+  { icon: "⚙️", label: "Settings",   route: null, v2: true  },
+];
   return (
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
       <View style={sbSt.logoRow}>
@@ -285,7 +285,42 @@ function TopBar({ dark, router, sidebarOpen, setSidebarOpen }: any) {
           <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>Dashboard  ›  Learning Overview</Text>
         </View>
       </View>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        {Platform.OS === "web" && (
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: border,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle cx={12} cy={12} r={10} fill="none"
+                stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
+                strokeWidth="2"/>
+              <circle cx={12} cy={12} r={10} fill="none"
+                stroke="#6366f1" strokeWidth="2"
+                strokeDasharray={`${(new Date().getSeconds()/60)*62.8} 62.8`}
+                strokeLinecap="round"
+                transform="rotate(-90 12 12)"
+                style={{ transition: "stroke-dasharray 0.5s linear" } as any}/>
+              <circle cx={12} cy={12} r={2} fill="#6366f1"/>
+            </svg>
+            <View>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: dark ? "#eef2ff" : "#0f172a", letterSpacing: -0.3,
+                ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) }}>
+                {time}
+              </Text>
+              <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
