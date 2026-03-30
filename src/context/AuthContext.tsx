@@ -14,6 +14,10 @@ import { auth } from "@/src/services/firebase";
 
 import { getGoals } from "../services/firestore";
 
+import { doc, getDoc } from "firebase/firestore";
+
+import { db } from "../services/firebase";
+
 /* Types */
 type Goal = {
   id: string;
@@ -24,6 +28,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   goals: Goal[];
+  userData: any;
   refreshGoals: () => Promise<void>;
 };
 
@@ -33,6 +38,7 @@ export const AuthContext =
     user: null,
     loading: true,
     goals: [],
+    userData: null,
     refreshGoals: async () => {},
   });
 
@@ -50,6 +56,8 @@ export function AuthProvider({
 
   const [goals, setGoals] =
     useState<Goal[]>([]);
+
+    const [userData, setUserData] = useState<any>(null);
 
   /* Load Goals */
   const loadGoals = async (uid: string) => {
@@ -70,10 +78,20 @@ export function AuthProvider({
           setUser(u);
 
           if (u) {
-            await loadGoals(u.uid);
-          } else {
-            setGoals([]);
-          }
+  await loadGoals(u.uid);
+
+
+  const ref = doc(db, "users", u.uid);
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    setUserData(snap.data());
+  }
+
+} else {
+  setGoals([]);
+  setUserData(null);
+}
 
           setLoading(false);
         }
@@ -88,6 +106,7 @@ export function AuthProvider({
         user,
         loading,
         goals,
+        userData,
         refreshGoals: async () => {
           if (user) {
             await loadGoals(user.uid);

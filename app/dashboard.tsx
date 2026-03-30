@@ -4754,18 +4754,28 @@ export default function Dashboard() {
 
   if (!taskCtx || !authCtx || !authCtx.user) return null;
 
-  const user = authCtx.user;
+const { user, userData } = authCtx;
+
+const displayName =
+  userData?.displayName ||
+  user?.displayName ||
+  user?.email ||
+  "User";
+const userRole = userData?.role || "Learner";
+const streak = userData?.streak || 0;
 
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
   const intervalRef = useRef<any>(null);
   const [isSynced, setIsSynced] = useState(false);
+  // const displayNameFinal = userData?.displayName || "User";
+  const initials = displayName.charAt(0).toUpperCase();
   const [showPicker, setShowPicker] = useState(false);
   const [reminderTime, setReminderTime] = useState(new Date());
   const [hoveredTask, setHoveredTask] = useState<string | null>(null);
-  const [streak, setStreak] = useState(0);
+  // const [streak, setStreak] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activityLog, setActivityLog] = useState<Record<string, number>>({});
-  const [userRole, setUserRole] = useState("Intern Developer");
+  // const [userRole, setUserRole] = useState("Intern Developer");
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTaskGoalId, setShowAddTaskGoalId] = useState<string | null>(
     null,
@@ -4827,9 +4837,9 @@ export default function Dashboard() {
     const userRef = doc(db, "users", user.uid);
     const unsub = onSnapshot(userRef, (snap) => {
       if (snap.exists()) {
-        setStreak(snap.data().streak || 0);
-        setActivityLog(snap.data().activityLog || {});
-        setUserRole(snap.data().role || "Intern Developer");
+        // setStreak(snap.data().streak || 0);
+        // setActivityLog(snap.data().activityLog || {});
+        // setUserRole(snap.data().role || "Intern Developer");
       }
     });
     return unsub;
@@ -4924,9 +4934,8 @@ export default function Dashboard() {
     };
   }, []);
 
-  const displayName = user.displayName || user.email || "User";
   const userEmail = user.email || "";
-  const initials = displayName.charAt(0).toUpperCase();
+  // const initials = displayName.charAt(0).toUpperCase();
   const completedTasks = goals.reduce(
     (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length,
     0,
@@ -5448,11 +5457,11 @@ export default function Dashboard() {
                 router={router}
                 isSynced={isSynced}
                 overallPct={overallPct}
-                displayName={displayName}
+                displayName={userData?.displayName || "User"}
                 goals={goals}
                 completedTasks={completedTasks}
                 totalTasks={totalTasks}
-                userRole={userRole}
+                userRole={userData?.role || "Learner"}
               />
             </View>
           ) : (
@@ -5461,11 +5470,11 @@ export default function Dashboard() {
               router={router}
               isSynced={isSynced}
               overallPct={overallPct}
-              displayName={displayName}
+              displayName={userData?.displayName || "User"}
               goals={goals}
               completedTasks={completedTasks}
               totalTasks={totalTasks}
-              userRole={userRole}
+              userRole={userData?.role || "Learner"}
             />
           )}
 
@@ -5475,17 +5484,17 @@ export default function Dashboard() {
             <TopBar
               dark={dark}
               router={router}
-              displayName={displayName}
+              displayName={userData?.displayName || "User"}
               email={userEmail}
               darkMode={dark}
               setDarkMode={setDarkMode}
               isSynced={isSynced}
               pulseAnim={pulseAnim}
               overallPct={overallPct}
-              streak={streak}
+              streak={userData?.streak || 0}
               sidebarOpen={sidebarOpen}
               setSidebarOpen={setSidebarOpen}
-              userRole={userRole}
+              userRole={userData?.role || "Learner"}
               onShowV2={() => showComingSoon()}
               totalTasks={totalTasks}
               completedTasks={completedTasks}
@@ -5500,7 +5509,7 @@ export default function Dashboard() {
               {/* Hero */}
               <HeroBanner
                 dark={dark}
-                displayName={displayName}
+                displayName={userData?.displayName || "User"}
                 overallPct={overallPct}
                 isSynced={isSynced}
                 fadeAnim={fadeAnim}
@@ -5512,7 +5521,7 @@ export default function Dashboard() {
                 dark={dark}
                 goals={goals}
                 completedTasks={completedTasks}
-                streak={streak}
+                streak={userData?.streak || 0}
                 activityToday={activityToday}
                 fadeAnim={fadeAnim}
                 slideAnim={slideAnim}

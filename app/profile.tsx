@@ -370,7 +370,11 @@ export default function Profile() {
 
   /* Sync nameInput whenever Firebase Auth displayName changes */
   useEffect(() => {
-    const dn = authCtx?.user?.displayName || authCtx?.user?.email || "";
+    const dn =
+  authCtx?.userData?.displayName ||
+  authCtx?.user?.displayName ||
+  authCtx?.user?.email ||
+  "";
     if (dn && dn !== authCtx?.user?.email) {
       setNameInput(dn);
     }

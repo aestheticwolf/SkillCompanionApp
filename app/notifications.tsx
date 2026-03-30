@@ -453,6 +453,7 @@ export default function NotificationsPage() {
   if (!authCtx || !authCtx.user || !taskCtx) return null;
 
   const user = authCtx.user;
+  const { userData } = authCtx;
   const { goals } = taskCtx;
 
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
@@ -963,7 +964,7 @@ export default function NotificationsPage() {
               dark={dark}
               router={router}
               isSynced={isSynced}
-              displayName={displayName}
+              displayName={userData?.displayName || "User"}
               unreadCount={unreadCount}
             />
           </View>
