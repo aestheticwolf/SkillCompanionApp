@@ -17,7 +17,8 @@ import SkillPathLogo from "../src/components/SkillPathLogo";
 import { useWindowDimensions } from "react-native";
 import { AuthContext } from "../src/context/AuthContext";
 import { TaskContext } from "../src/context/TaskContext";
-import { loadTheme } from "../src/services/uiPreferences";
+import { loadTheme, saveTheme } from "../src/services/uiPreferences";
+import { listenToNetwork } from "../src/services/network";
 import { showSuccess } from "../src/services/toast";
 import { signOut, updateProfile, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import { auth, db } from "../src/services/firebase";
@@ -118,6 +119,679 @@ function Particles() {
   );
 }
 
+/* ════════════════════════════════
+   PROFILE DROPDOWN (Match Dashboard)
+════════════════════════════════ */
+function ProfileDrop({
+  dark,
+  displayName,
+  email,
+  overallPct,
+  streak,
+  userRole,
+  onClose,
+  onToggleDark,
+  onShowV2,
+  router,
+  onLogoutReset,
+}: any) {
+  const t = {
+    bg: dark ? "#111827" : "#ffffff",
+    bdr: dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)",
+    text: dark ? "#eef2ff" : "#0f172a",
+    sub: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.5)",
+    muted: dark ? "rgba(238,242,255,0.2)" : "rgba(15,23,42,0.2)",
+    inp: dark ? "rgba(255,255,255,0.07)" : "#f5f7ff",
+    card: dark ? "rgba(255,255,255,0.04)" : "#ffffff",
+    sh: dark ? "0 8px 40px rgba(0,0,0,.7)" : "0 8px 40px rgba(0,0,0,.15)",
+    ov: dark ? "rgba(0,0,0,.72)" : "rgba(0,0,0,.38)",
+  };
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const items: any[] = [
+    {
+      icon: "👤",
+      label: "My Profile",
+      sub: `${displayName} • ${userRole || "Intern Developer"}`,
+      fn: () => {
+        router.push("/profile");
+        onClose();
+      },
+    },
+    {
+      icon: "📊",
+      label: "My Analytics",
+      sub: "View detailed progress",
+      fn: () => {
+        router.push("/analytics");
+        onClose();
+      },
+    },
+    {
+      icon: "🎯",
+      label: "Learning Path",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "⚙️",
+      label: "Settings",
+      sub: "Customize your experience",
+      fn: () => {
+        router.push("/settings");
+        onClose();
+      },
+    },
+    {
+      icon: dark ? "☀️" : "🌙",
+      label: dark ? "Light Mode" : "Dark Mode",
+      sub: dark ? "Switch to light" : "Switch to dark",
+      fn: () => {
+        onToggleDark();
+      },
+      toggle: true,
+    },
+    {
+      icon: "📤",
+      label: "Share App",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "🚪",
+      label: "Log Out",
+      sub: "Sign out of account",
+      fn: () => {
+        onLogoutReset();
+        router.replace("/login");
+        onClose();
+      },
+      danger: true,
+    },
+  ];
+
+  const dropRef = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const dropStyle: any =
+    Platform.OS === "web"
+      ? {
+          position: "absolute" as any,
+          top: "calc(100% + 10px)",
+          right: 0,
+          width: 280,
+          zIndex: 9999,
+          background: t.bg,
+          border: `1px solid ${t.bdr}`,
+          borderRadius: 22,
+          padding: 8,
+          boxShadow: t.sh,
+          animation: "sk-fadeUp .2s ease both",
+        }
+      : {};
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? (dropStyle as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 280,
+              backgroundColor: dark ? "#111827" : "#fff",
+              borderRadius: 22,
+              padding: 8,
+              zIndex: 9999,
+            }
+      }
+    >
+      {/* User card */}
+      <View
+        style={{
+          padding: 14,
+          borderRadius: 16,
+          backgroundColor: "rgba(99,102,241,0.07)",
+          borderWidth: 1,
+          borderColor: "rgba(99,102,241,0.14)",
+          marginBottom: 6,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              ...(Platform.OS === "web"
+                ? ({
+                    background: "linear-gradient(135deg,#f97316,#ef4444)",
+                    boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
+                  } as any)
+                : { backgroundColor: "#f97316" }),
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900", fontSize: 20 }}>
+              {initials}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "800",
+                color: t.text,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              {displayName}
+            </Text>
+            <Text style={{ fontSize: 12, color: t.sub, marginTop: 1 }}>
+              {email || "user@example.com"}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#34d399",
+                  ...(Platform.OS === "web"
+                    ? ({ animation: "sk-pulse 1.5s infinite" } as any)
+                    : {}),
+                }}
+              />
+              <Text
+                style={{ fontSize: 11, color: "#34d399", fontWeight: "700" }}
+              >
+                Active learner
+              </Text>
+            </View>
+          </View>
+        </View>
+        {/* Stats row */}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {[
+            { v: `${streak}🔥`, l: "Streak" },
+            { v: `${overallPct}%`, l: "Progress" },
+            { v: `${Math.min(9999, 0)}⭐`, l: "Score" },
+          ].map((s, i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                backgroundColor: dark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.04)",
+                borderRadius: 10,
+                padding: 8,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: dark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "800",
+                  color: t.text,
+                  ...(Platform.OS === "web"
+                    ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                    : {}),
+                }}
+              >
+                {s.v}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: t.sub,
+                  marginTop: 1,
+                  fontWeight: "500",
+                }}
+              >
+                {s.l}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Menu items */}
+      {items.map((item, i) => (
+        <Pressable
+          key={i}
+          onPress={item.fn}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              padding: 10,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              backgroundColor: pressed
+                ? item.danger
+                  ? "rgba(239,68,68,0.09)"
+                  : dark
+                  ? "rgba(255,255,255,0.07)"
+                  : "rgba(99,102,241,0.06)"
+                : "transparent",
+              borderTopWidth: i === items.length - 1 ? 1 : 0,
+              borderTopColor: t.bdr,
+              marginTop: i === items.length - 1 ? 4 : 0,
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 16, width: 24, textAlign: "center" }}>
+            {item.icon}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: item.danger ? "#ef4444" : item.v2 ? t.sub : t.text,
+                }}
+              >
+                {item.label}
+              </Text>
+              {item.v2 && (
+                <View
+                  style={{
+                    backgroundColor: "rgba(99,102,241,0.12)",
+                    borderRadius: 99,
+                    paddingHorizontal: 5,
+                    paddingVertical: 1,
+                  }}
+                >
+                  <Text
+                    style={{ fontSize: 9, fontWeight: "800", color: "#6366f1" }}
+                  >
+                    v2
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={{
+                fontSize: 11,
+                color: item.v2
+                  ? "#a78bfa"
+                  : item.danger
+                  ? "rgba(239,68,68,0.5)"
+                  : t.sub,
+                marginTop: 1,
+                fontWeight: "500",
+              }}
+            >
+              {item.sub}
+            </Text>
+          </View>
+          {item.badge && (
+            <View
+              style={{
+                backgroundColor: "#ef4444",
+                borderRadius: 20,
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: "800", color: "white" }}>
+                {item.badge}
+              </Text>
+            </View>
+          )}
+          {item.toggle && (
+            <View
+              style={{
+                width: 36,
+                height: 20,
+                borderRadius: 99,
+                backgroundColor: dark ? "#6366f1" : "#cbd5e1",
+                position: "relative",
+              }}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: dark ? 17 : 3,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: "white",
+                  ...(Platform.OS === "web"
+                    ? ({
+                        transition: "left .2s",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                      } as any)
+                    : {}),
+                }}
+              />
+            </View>
+          )}
+          {!item.toggle && !item.badge && (
+            <Text style={{ fontSize: 14, color: t.muted }}>›</Text>
+          )}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/* ════════════════════════════════
+   NOTIFICATION DROPDOWN (Match Dashboard)
+════════════════════════════════ */
+function NotifDropdown({
+  dark,
+  notifications,
+  pendingTasks,
+  streak,
+  onClose,
+  onViewAll,
+}: any) {
+  const bg = dark ? "#111827" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "rgba(15,23,42,0.5)";
+  const dropRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const NOTIF_ITEMS = [
+    ...(pendingTasks > 0
+      ? [
+          {
+            id: "pending",
+            icon: "📌",
+            title: "Pending Tasks",
+            body: `You have ${pendingTasks} task${pendingTasks > 1 ? "s" : ""} waiting`,
+            color: "#f97316",
+            unread: true,
+          },
+        ]
+      : []),
+    ...(streak > 0
+      ? [
+          {
+            id: "streak",
+            icon: "🔥",
+            title: `${streak} Day Streak!`,
+            body: "Keep it up — don't break the chain",
+            color: "#ef4444",
+            unread: streak > 0 && pendingTasks === 0,
+          },
+        ]
+      : []),
+    {
+      id: "sys",
+      icon: "🚀",
+      title: "SkillPath Active",
+      body: "Your learning session is synced",
+      color: "#6366f1",
+      unread: false,
+    },
+  ];
+
+  const unread = NOTIF_ITEMS.filter((n) => n.unread).length;
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? ({
+              position: "absolute",
+              top: "calc(100% + 12px)",
+              right: 0,
+              width: 320,
+              zIndex: 9999,
+              background: bg,
+              border: `1px solid ${border}`,
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: dark
+                ? "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)"
+                : "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)",
+              animation: "sk-fadeUp .18s ease both",
+            } as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 300,
+              backgroundColor: bg,
+              borderRadius: 20,
+              zIndex: 9999,
+              overflow: "hidden",
+            }
+      }
+    >
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: border,
+          ...(Platform.OS === "web"
+            ? ({
+                background: dark
+                  ? "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(0,0,0,0))"
+                  : "linear-gradient(135deg,rgba(99,102,241,0.06),rgba(0,0,0,0))",
+              } as any)
+            : {}),
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: "rgba(99,102,241,0.12)",
+              alignItems: "center",
+              justifyContent: "center",
+              ...(Platform.OS === "web"
+                ? ({ animation: "sk-breathe 3s ease-in-out infinite" } as any)
+                : {}),
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🔔</Text>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "800",
+                color: txtPri,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              Notifications
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: "500", color: txtSec }}>
+              {unread > 0 ? `${unread} unread` : "All caught up 🎉"}
+            </Text>
+          </View>
+        </View>
+        {unread > 0 && (
+          <View
+            style={{
+              backgroundColor: "#ef4444",
+              borderRadius: 99,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 11, fontWeight: "800" }}>
+              {unread}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Items */}
+      <View style={{ paddingVertical: 8 }}>
+        {NOTIF_ITEMS.map((item, i) => (
+          <View
+            key={item.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              marginHorizontal: 8,
+              borderRadius: 12,
+              marginBottom: 2,
+              backgroundColor: item.unread
+                ? dark
+                  ? "rgba(99,102,241,0.07)"
+                  : "rgba(99,102,241,0.04)"
+                : "transparent",
+              borderWidth: item.unread ? 1 : 0,
+              borderColor: item.unread
+                ? "rgba(99,102,241,0.14)"
+                : "transparent",
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                backgroundColor: item.color + "18",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginBottom: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: txtPri,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                {item.unread && (
+                  <View
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 4,
+                      backgroundColor: item.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </View>
+              <Text
+                style={{ fontSize: 11, fontWeight: "500", color: txtSec }}
+                numberOfLines={1}
+              >
+                {item.body}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Footer */}
+      <Pressable
+        onPress={onViewAll}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          paddingVertical: 13,
+          borderTopWidth: 1,
+          borderTopColor: border,
+          backgroundColor: pressed
+            ? dark
+              ? "rgba(99,102,241,0.1)"
+              : "rgba(99,102,241,0.06)"
+            : "transparent",
+          ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+        })}
+      >
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#6366f1" }}>
+          View all notifications
+        </Text>
+        <Text style={{ fontSize: 13, color: "#6366f1" }}>→</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /* ════ SIDEBAR — same as dashboard ════ */
 function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) {
   const bg     = dark ? "#0a0f20" : "#ffffff";
@@ -128,7 +802,7 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
   { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
   { icon: "📊", label: "Analytics",  route: "/analytics", active: false },
   { icon: "🔔", label: "Reminders",  route: "/notifications", active: false },
-  { icon: "⚙️", label: "Settings",   route: null,         active: false, v2: true },
+  { icon: "⚙️", label: "Settings",   route: "/settings", active: false },
 ];
   return (
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
@@ -238,92 +912,391 @@ const sbSt = StyleSheet.create({
   onlineDot:  { width: 8, height: 8, borderRadius: 4 },
 });
 
-/* ════ TOP BAR — matches dashboard ════ */
-function TopBar({ dark, router, displayName, sidebarOpen, setSidebarOpen, setDarkMode }: any) {
-  const bg     = dark ? "#0a0f20" : "#ffffff";
+/* ════ TOP BAR — Match Dashboard Exactly ════ */
+function TopBar({
+  dark,
+  sidebarOpen,
+  setSidebarOpen,
+  toggleDark,
+  router,
+  displayName,
+  email,
+  streak,
+  overallPct,
+  userRole,
+  goals,
+  isSynced,
+  pulseAnim,
+}: any) {
+  const bg = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
   const [seconds, setSeconds] = useState(() => new Date().getSeconds());
 
+  const [showDrop, setShowDrop] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
+  const bellAnim = useRef(new Animated.Value(1)).current;
+  const hasNotified = useRef(false);
+
+  const pendingTasks = (goals || []).reduce((acc: number, goal: any) => {
+    return (
+      acc +
+      goal.tasks.filter(
+        (t: any) =>
+          t &&
+          t.title &&
+          t.title.trim() !== "" &&
+          !(
+            t.completed === true ||
+            t.completed === "true" ||
+            t.completed === 1 ||
+            t.isCompleted === true
+          )
+      ).length
+    );
+  }, 0);
+
+  const resetNotificationState = () => {
+    hasNotified.current = false;
+  };
+
   useEffect(() => {
-   const tm = setInterval(() => {
-  const now = new Date();
-  setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
-  setSeconds(now.getSeconds());
-}, 1000);
+    if (pendingTasks === 0) return;
+    if (hasNotified.current) return;
+    hasNotified.current = true;
+    Animated.sequence([
+      Animated.timing(bellAnim, {
+        toValue: 1.35,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bellAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(bellAnim, {
+        toValue: 1.2,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bellAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  }, [pendingTasks]);
+
+  useEffect(() => {
+    const tm = setInterval(() => {
+      const now = new Date();
+      setTime(
+        now.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+      setSeconds(now.getSeconds());
+    }, 1000);
+
     return () => clearInterval(tm);
   }, []);
-  const initials = displayName.charAt(0).toUpperCase();
+
   return (
     <View style={[tbSt.wrap, { backgroundColor: bg, borderBottomColor: border }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        {/* Hamburger */}
         <Pressable
           className={Platform.OS === "web" ? "sk-hamb" : undefined}
-          onPress={() => sidebarOpen !== undefined && setSidebarOpen && setSidebarOpen((s: boolean) => !s)}
-          style={[tbSt.hambBtn, {
-            backgroundColor: sidebarOpen
-              ? (dark ? "rgba(99,102,241,0.14)" : "rgba(99,102,241,0.08)") : "transparent",
-            borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-          }]}>
+          onPress={() => setSidebarOpen((s: boolean) => !s)}
+          style={[
+            tbSt.hambBtn,
+            {
+              backgroundColor: sidebarOpen
+                ? dark
+                  ? "rgba(99,102,241,0.14)"
+                  : "rgba(99,102,241,0.08)"
+                : "transparent",
+              borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+            },
+          ]}
+        >
           <View style={{ gap: 4 }}>
-            {[{ w: sidebarOpen ? 14 : 18 }, { w: 14 }, { w: sidebarOpen ? 18 : 10 }].map((line, i) => (
-              <View key={i} style={[tbSt.hambLine, { backgroundColor: sidebarOpen ? "#6366f1" : (dark ? "rgba(238,242,255,0.6)" : "rgba(15,23,42,0.5)"), width: line.w }]} />
+            {[
+              { w: sidebarOpen ? 14 : 18 },
+              { w: 14 },
+              { w: sidebarOpen ? 18 : 10 },
+            ].map((line, i) => (
+              <View
+                key={i}
+                style={[
+                  tbSt.hambLine,
+                  {
+                    backgroundColor: sidebarOpen
+                      ? ACCENT
+                      : dark
+                      ? "rgba(238,242,255,0.6)"
+                      : "rgba(15,23,42,0.5)",
+                    width: line.w,
+                  },
+                ]}
+              />
             ))}
           </View>
         </Pressable>
         <View>
           <Text style={[tbSt.title, { color: txtPri }]}>Profile</Text>
-          <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>Dashboard  ›  My Profile</Text>
+          <Text style={{ fontSize: 12, fontWeight: "500", marginTop: 1, color: txtSec }}>
+            Dashboard › My Profile
+          </Text>
         </View>
       </View>
-      {Platform.OS === "web" ? (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: border }}>
 
-    {Platform.OS === "web" && (
-          <Pressable
-            onPress={async () => { setDarkMode(!dark); const { saveTheme } = require("../src/services/uiPreferences"); await saveTheme(!dark); }}
-            style={{ width: 44, height: 26, borderRadius: 99, backgroundColor: dark ? "#6366f1" : "rgba(0,0,0,0.1)", justifyContent: "center", position: "relative" } as any}
+      {Platform.OS === "web" && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          {/* Clock — web only (Match Dashboard) */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 9,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: border,
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.03)"
+                : "rgba(99,102,241,0.03)",
+            }}
           >
-            <View style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: 10, backgroundColor: "white", alignItems: "center", justifyContent: "center", transition: "left .25s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } as any}>
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
+                strokeWidth="2"
+              />
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth="2"
+                strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
+                strokeLinecap="round"
+                transform="rotate(-90 12 12)"
+                style={{ transition: "stroke-dasharray 0.5s linear" } as any}
+              />
+              <circle cx={12} cy={12} r={2} fill="#6366f1" />
+            </svg>
+            <View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "800",
+                  color: txtPri,
+                  letterSpacing: -0.3,
+                }}
+              >
+                {time}
+              </Text>
+              <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+          </View>
+
+          {/* Dark mode toggle — web only (Match Dashboard) */}
+          <Pressable
+            onPress={toggleDark}
+            style={{
+              width: 44,
+              height: 26,
+              borderRadius: 99,
+              backgroundColor: dark ? ACCENT : "rgba(0,0,0,0.1)",
+              justifyContent: "center",
+              position: "relative",
+              ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+            } as any}
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: 3,
+                left: dark ? 21 : 3,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: "white",
+                alignItems: "center",
+                justifyContent: "center",
+                ...(Platform.OS === "web"
+                  ? ({
+                      transition: "left .25s",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                    } as any)
+                  : {}),
+              }}
+            >
               <Text style={{ fontSize: 11 }}>{dark ? "🌙" : "☀️"}</Text>
             </View>
           </Pressable>
-        )}
 
-    <svg width="20" height="20" viewBox="0 0 24 24">
-      <circle cx={12} cy={12} r={10} fill="none" stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} strokeWidth="2"/>
-      <circle cx={12} cy={12} r={10} fill="none" stroke="#6366f1" strokeWidth="2"
-        strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
-        strokeLinecap="round" transform="rotate(-90 12 12)"
-        style={{ transition: "stroke-dasharray 0.5s linear" } as any}/>
-      <circle cx={12} cy={12} r={2} fill="#6366f1"/>
-    </svg>
-    <View>
-      <Text style={{ fontSize: 13, fontWeight: "800", color: txtPri, letterSpacing: -0.3,
-        ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) }}>
-        {time}
-      </Text>
-      <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
-        {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-      </Text>
-    </View>
-  </View>
-) : (
-  <Text style={{ fontSize: 13, fontWeight: "600", color: txtSec }}>{time}</Text>
-)}
+          {/* Bell with sync dot (Match Dashboard) */}
+          <Pressable
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+            } as any}
+            onPress={() => setShowNotif((s) => !s)}
+          >
+            <Animated.View style={{ transform: [{ scale: bellAnim }] }}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+            </Animated.View>
+            
+            {/* ✅ SYNC DOT (matches dashboard.tsx) */}
+            <Animated.View
+              style={[
+                {
+                  position: "absolute",
+                  top: 7,
+                  right: 7,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: isSynced ? "#34d399" : "#f87171",
+                  transform: [{ scale: pulseAnim }],
+                  ...(Platform.OS === "web"
+                    ? ({ animation: "sk-pulse 2s infinite" } as any)
+                    : {}),
+                },
+              ]}
+            />
+            
+            {pendingTasks > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  backgroundColor: "#ef4444",
+                  borderRadius: 10,
+                  paddingHorizontal: 5,
+                  paddingVertical: 1,
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>
+                  {pendingTasks}
+                </Text>
+              </View>
+            )}
+            {showNotif && (
+              <NotifDropdown
+                dark={dark}
+                notifications={[]}
+                pendingTasks={pendingTasks}
+                streak={streak}
+                onClose={() => setShowNotif(false)}
+                onViewAll={() => {
+                  setShowNotif(false);
+                  router?.push("/notifications");
+                }}
+              />
+            )}
+          </Pressable>
+
+          {/* Avatar + profile dropdown (Match Dashboard) */}
+          <View style={{ position: "relative" }}>
+            <Pressable
+              onPress={() => setShowDrop((s) => !s)}
+              style={[
+                {
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+                Platform.OS === "web"
+                  ? ({
+                      background: "linear-gradient(135deg,#f97316,#ef4444)",
+                      boxShadow: "0 3px 14px rgba(239,68,68,0.35)",
+                      cursor: "pointer",
+                      outline: showDrop
+                        ? "3px solid #6366f1"
+                        : "3px solid transparent",
+                      transform: [{ scale: showDrop ? 1.1 : 1 }],
+                    } as any)
+                  : { backgroundColor: "#f97316" },
+              ]}
+            >
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 15 }}>
+                {(displayName || "U").charAt(0).toUpperCase()}
+              </Text>
+            </Pressable>
+            {showDrop && (
+              <ProfileDrop
+                dark={dark}
+                displayName={displayName}
+                email={email}
+                overallPct={overallPct}
+                streak={streak}
+                userRole={userRole}
+                onClose={() => setShowDrop(false)}
+                onToggleDark={toggleDark}
+                onShowV2={() => showSuccess("🚀 Coming in v2 — stay tuned!")}
+                router={router}
+                onLogoutReset={resetNotificationState}
+              />
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
+
 const tbSt = StyleSheet.create({
-  wrap:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 28, height: 70, borderBottomWidth: 1, flexShrink: 0,
-    ...(Platform.OS === "web" ? { position: "sticky", top: 0, zIndex: 200 } as any : {}),
+  wrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    height: 70,
+    borderBottomWidth: 1,
+    flexShrink: 0,
+    ...(Platform.OS === "web"
+      ? ({ position: "sticky", top: 0, zIndex: 200 } as any)
+      : {}),
   },
-  title:   { fontSize: 20, fontWeight: "900", letterSpacing: -0.4, ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) },
-  backBtn:  { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12, borderWidth: 1, ...(Platform.OS === "web" ? { cursor: "pointer", transition: "opacity .15s" } as any : {}) },
-  hambBtn:  { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}) },
+  title: {
+    fontSize: 20,
+    fontWeight: "900",
+    letterSpacing: -0.4,
+    ...(Platform.OS === "web"
+      ? ({ fontFamily: "Outfit,sans-serif" } as any)
+      : {}),
+  },
+  hambBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+  },
   hambLine: { height: 2, borderRadius: 99 },
 });
 
@@ -334,6 +1307,11 @@ export default function Profile() {
   const router  = useRouter();
   const authCtx = useContext(AuthContext);
   const taskCtx = useContext(TaskContext);
+
+  if (!authCtx || !authCtx.user || !taskCtx) return null;
+
+  const { user, userData } = authCtx;
+  const { goals, getOverallProgress } = taskCtx;
 
   const [darkMode,    setDarkMode]    = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -350,10 +1328,20 @@ export default function Profile() {
   const [pwdError,     setPwdError]     = useState("");
   const [pwdSuccess,   setPwdSuccess]   = useState(false);
   const [savingPwd,    setSavingPwd]    = useState(false);
-  useEffect(() => { loadTheme().then(setDarkMode); }, []);
-
+  
+  /* ✅ ADD THESE FOR SYNC DOT (Match Dashboard) */
+  const [isSynced, setIsSynced] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
   /* Live streak from Firestore — same as dashboard */
   const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    loadTheme().then(setDarkMode);
+    const unsub = listenToNetwork(setIsSynced);
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     if (!authCtx?.user?.uid) return;
     const userRef = doc(db, "users", authCtx.user.uid);
@@ -367,6 +1355,24 @@ export default function Profile() {
     });
     return unsub;
   }, [authCtx?.user?.uid]);
+
+  /* ✅ ADD PULSE ANIMATION (Match Dashboard) */
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.6,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, []);
 
   /* Sync nameInput whenever Firebase Auth displayName changes */
   useEffect(() => {
@@ -385,7 +1391,6 @@ export default function Profile() {
   const slideAnim   = useRef(new Animated.Value(40)).current;
   const scaleAvatar = useRef(new Animated.Value(0.7)).current;
   const hdrScale    = useRef(new Animated.Value(0.96)).current;
-  const pulseAnim   = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -394,24 +1399,11 @@ export default function Profile() {
       Animated.spring(hdrScale,    { toValue: 1, useNativeDriver: true, tension: 80, friction: 9 }),
       Animated.spring(scaleAvatar, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8, delay: 120 }),
     ]).start();
-    Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.08, duration: 1600, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1,    duration: 1600, useNativeDriver: true }),
-    ])).start();
   }, []);
 
   /* ── ALL hooks must be before any conditional return ── */
   const { width: screenW } = useWindowDimensions();
   const isWide = Platform.OS === "web" && screenW >= 960;
-
-  const user = authCtx?.user;
-  if (!user) {
-    return (
-      <View style={[styles.loadWrap, { backgroundColor: darkMode ? "#080d18" : "#eef1f8" }]}>
-        <Text style={{ color: darkMode ? "#fff" : "#0f172a", fontSize: 15 }}>Loading...</Text>
-      </View>
-    );
-  }
 
   /* ── Handlers — 100% original logic unchanged ── */
   const changePassword = async () => {
@@ -471,18 +1463,19 @@ export default function Profile() {
   };
 
   /* ── Derived data — original unchanged ── */
-  const displayName = user.displayName || user.email || "User";
+  /* ✅ KEY FIX: Use userData from AuthContext like dashboard.tsx */
+  const displayName = userData?.displayName || user?.displayName || user?.email || "User";
   const initials    = displayName.charAt(0).toUpperCase();
-  const email       = user.email || "";
+  const email       = user?.email || "";
 
-  const totalGoals     = taskCtx?.goals?.length ?? 0;
-  const completedTasks = taskCtx?.goals?.reduce(
+  const totalGoals     = goals?.length ?? 0;
+  const completedTasks = goals?.reduce(
     (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length, 0
   ) ?? 0;
-  const totalTasks = taskCtx?.goals?.reduce(
+  const totalTasks = goals?.reduce(
     (a: number, g: any) => a + g.tasks.length, 0
   ) ?? 0;
-  const overallPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const overallPct = getOverallProgress();
 
   /* ── Theme — upgraded to match dashboard ── */
   const dark          = !!darkMode;
@@ -496,6 +1489,13 @@ export default function Profile() {
   const cardSh = Platform.OS === "web"
     ? { boxShadow: dark ? "0 2px 16px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.05)" }
     : { elevation: 3 };
+
+  /* Toggle dark mode */
+  const toggleDark = async () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    await saveTheme(next);
+  };
 
   /* STATS — streak now live */
   const STATS = [
@@ -939,8 +1939,21 @@ export default function Profile() {
             completedTasks={completedTasks} totalTasks={totalTasks} />
         )}
         <View style={wSt.center}>
-          <TopBar dark={dark} setDarkMode={setDarkMode}  router={router} displayName={displayName}
-            sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <TopBar
+            dark={dark}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            toggleDark={toggleDark}
+            router={router}
+            displayName={displayName}
+            email={email}
+            streak={streak}
+            overallPct={overallPct}
+            userRole={userData?.role || role}
+            goals={goals}
+            isSynced={isSynced}
+            pulseAnim={pulseAnim}
+          />
           {mainContent}
         </View>
       </View>

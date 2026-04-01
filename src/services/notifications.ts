@@ -25,7 +25,6 @@ export async function scheduleDailyReminder(hour: number, minute: number) {
   });
 }
 
-
 export async function requestWebNotificationPermission() {
   if (Platform.OS !== "web") return false;
 
@@ -35,11 +34,22 @@ export async function requestWebNotificationPermission() {
   return permission === "granted";
 }
 
+let lastNotificationTime = 0;
+
 export function sendWebTestNotification(
   pendingTasks?: number,
-  streak?: number
+  streak?: number,
 ) {
   if (Platform.OS !== "web") return;
+
+  // ✅ DO NOT notify if nothing important
+  if (!pendingTasks && !streak) return;
+
+  const now = Date.now();
+
+  if (now - lastNotificationTime < 300000) return;
+
+  lastNotificationTime = now;
 
   let message = "Keep going 💪";
 

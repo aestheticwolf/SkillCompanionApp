@@ -313,19 +313,35 @@ function Sidebar({
   const txtPrim = dark ? "#eef2ff" : "#0f172a";
   const txtMute = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
 
-const pendingCount = goals.reduce((acc: number, goal: any) => {
-  return acc + goal.tasks.filter((t: any) =>
-    t && t.title && t.title.trim() !== "" &&
-    !(t.completed === true || t.completed === "true" || t.completed === 1 || t.isCompleted === true)
-  ).length;
-}, 0);
+  const pendingCount = goals.reduce((acc: number, goal: any) => {
+    return (
+      acc +
+      goal.tasks.filter(
+        (t: any) =>
+          t &&
+          t.title &&
+          t.title.trim() !== "" &&
+          !(
+            t.completed === true ||
+            t.completed === "true" ||
+            t.completed === 1 ||
+            t.isCompleted === true
+          ),
+      ).length
+    );
+  }, 0);
 
-const NAV = [
-  { icon: "🏠", label: "Dashboard", route: "/dashboard" },
-  { icon: "📊", label: "Analytics", route: "/analytics" },
-  { icon: "🔔", label: "Reminders", route: "/notifications", badge: pendingCount },
-  { icon: "⚙️", label: "Settings", route: null, v2: true },
-];
+  const NAV = [
+    { icon: "🏠", label: "Dashboard", route: "/dashboard" },
+    { icon: "📊", label: "Analytics", route: "/analytics" },
+    {
+      icon: "🔔",
+      label: "Reminders",
+      route: "/notifications",
+      badge: pendingCount,
+    },
+    { icon: "⚙️", label: "Settings", route: "/settings" },
+  ];
 
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -349,18 +365,22 @@ const NAV = [
           <SkillPathLogo size={48} />
         </View>
         <View>
-         <Text style={[sidebarSt.logoName,
-  Platform.OS === "web"
-    ? ({
-        background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        backgroundClip: "text",
-      } as any)
-    : { color: "#FF5C5C" },
-]}>
-  SkillPath
-</Text>
+          <Text
+            style={[
+              sidebarSt.logoName,
+              Platform.OS === "web"
+                ? ({
+                    background:
+                      "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  } as any)
+                : { color: "#FF5C5C" },
+            ]}
+          >
+            SkillPath
+          </Text>
           <Text style={[sidebarSt.logoSub, { color: txtMute }]}>
             Learning Companion
           </Text>
@@ -374,13 +394,13 @@ const NAV = [
         return (
           <Pressable
             key={i}
-           onPress={() => {
-  if (n.v2) {
-    showComingSoon();
-    return;
-  }
-  n.route && router.push(n.route);
-}}
+            onPress={() => {
+              // if (n.v2) {
+              //   showComingSoon();
+              //   return;
+              // }
+              n.route && router.push(n.route);
+            }}
             style={({ pressed }) => [
               sidebarSt.navItem,
               active && {
@@ -388,24 +408,24 @@ const NAV = [
                   ? "rgba(99,102,241,0.14)"
                   : "rgba(99,102,241,0.08)",
               },
-              n.v2 && { opacity: 0.55 },
+              // n.v2 && { opacity: 0.55 },
               pressed && { opacity: 0.75 },
             ]}
           >
             <Text style={{ fontSize: 16 }}>{n.icon}</Text>
             <Text
-              style={[
-                sidebarSt.navTx,
-                {
-                  color: active ? "#6366f1" : n.v2 ? txtMute : txtPrim,
-                  fontWeight: active ? "700" : "500",
-                },
-              ]}
-            >
-              {n.label}
-            </Text>
+  style={[
+    sidebarSt.navTx,
+    {
+      color: active ? "#6366f1" : txtPrim,   // 👈 FIX
+      fontWeight: active ? "700" : "500",
+    },
+  ]}
+>
+  {n.label}
+</Text>
             {active && <View style={sidebarSt.activeBar} />}
-            {n.v2 && (
+            {/* {n.v2 && (
               <View
                 style={{
                   backgroundColor: "rgba(99,102,241,0.12)",
@@ -420,12 +440,12 @@ const NAV = [
                   v2
                 </Text>
               </View>
-            )}
-            {!n.v2 && !!n.badge && (
+            )} */}
+            {/* {!n.v2 && !!n.badge && (
               <View style={sidebarSt.badge}>
                 <Text style={sidebarSt.badgeTx}>{n.badge}</Text>
               </View>
-            )}
+            )} */}
           </Pressable>
         );
       })}
@@ -470,9 +490,23 @@ const NAV = [
             </View>
           </View>
           <View>
-            <Text style={[sidebarSt.progDone, { color: txtPrim }]}>
-              {completedTasks}/{totalTasks}
-            </Text>
+          <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+  <Text style={[sidebarSt.progDone, { color: txtPrim }]}>
+    {completedTasks}
+  </Text>
+
+  <Text
+  style={{
+    fontSize: 13,
+    fontWeight: "500",       
+    color: txtPrim,           
+    opacity: 0.9,             
+    marginLeft: 2,
+  }}
+>
+  /{totalTasks}
+</Text>
+</View>
             <Text style={[sidebarSt.progSub, { color: txtMute }]}>
               tasks done
             </Text>
@@ -620,11 +654,16 @@ const sidebarSt = StyleSheet.create({
   progPct: { fontSize: 11, fontWeight: "800" },
   progDone: {
     fontSize: 20,
-    fontWeight: "900",
+    fontWeight: "800",
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
       : {}),
   },
+  progLight: {
+  fontSize: 13,
+  fontWeight: "500",
+  opacity: 0.7,
+},
   progSub: { fontSize: 11, fontWeight: "500" },
 
   userRow: {
@@ -675,6 +714,8 @@ function ProfileDrop({
   onToggleDark,
   onShowV2,
   router,
+  onLogoutReset,
+  skillScore,
 }: any) {
   const t = {
     bg: dark ? "#111827" : "#ffffff",
@@ -720,11 +761,13 @@ function ProfileDrop({
     {
       icon: "⚙️",
       label: "Settings",
-      sub: "Coming in v2 ✨",
+      sub: "Customize your experience",
       fn: () => {
-        onShowV2();
+        //
+        router.push("/settings");
+        onClose();
       },
-      v2: true,
+      // v2: true,
     },
     {
       icon: dark ? "☀️" : "🌙",
@@ -749,9 +792,10 @@ function ProfileDrop({
       label: "Log Out",
       sub: "Sign out of account",
       fn: () => {
-        router.replace("/login");
-        onClose();
-      },
+  onLogoutReset();
+  router.replace("/login");
+  onClose();
+},
       danger: true,
     },
   ];
@@ -889,7 +933,7 @@ function ProfileDrop({
           {[
             { v: `${streak}🔥`, l: "Streak" },
             { v: `${overallPct}%`, l: "Progress" },
-            { v: `${Math.min(9999, 0)}⭐`, l: "Score" },
+            { v: `${skillScore || 0}⭐`, l: "Score" },
           ].map((s, i) => (
             <View
               key={i}
@@ -1060,7 +1104,6 @@ function ProfileDrop({
   );
 }
 
-
 /* ════════════════════════════════
    NOTIFICATION DROPDOWN (TopBar)
 ════════════════════════════════ */
@@ -1072,7 +1115,7 @@ function NotifDropdown({
   onClose,
   onViewAll,
 }: any) {
-  const bg     = dark ? "#111827" : "#ffffff";
+  const bg = dark ? "#111827" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.55)" : "rgba(15,23,42,0.5)";
@@ -1090,24 +1133,28 @@ function NotifDropdown({
 
   const NOTIF_ITEMS = [
     ...(pendingTasks > 0
-      ? [{
-          id: "pending",
-          icon: "📌",
-          title: "Pending Tasks",
-          body: `You have ${pendingTasks} task${pendingTasks > 1 ? "s" : ""} waiting`,
-          color: "#f97316",
-          unread: true,
-        }]
+      ? [
+          {
+            id: "pending",
+            icon: "📌",
+            title: "Pending Tasks",
+            body: `You have ${pendingTasks} task${pendingTasks > 1 ? "s" : ""} waiting`,
+            color: "#f97316",
+            unread: true,
+          },
+        ]
       : []),
     ...(streak > 0
-      ? [{
-          id: "streak",
-          icon: "🔥",
-          title: `${streak} Day Streak!`,
-          body: "Keep it up — don't break the chain",
-          color: "#ef4444",
-          unread: streak > 0 && pendingTasks === 0,
-        }]
+      ? [
+          {
+            id: "streak",
+            icon: "🔥",
+            title: `${streak} Day Streak!`,
+            body: "Keep it up — don't break the chain",
+            color: "#ef4444",
+            unread: streak > 0 && pendingTasks === 0,
+          },
+        ]
       : []),
     {
       id: "sys",
@@ -1352,6 +1399,7 @@ function TopBar({
   totalTasks,
   completedTasks,
   goals,
+  skillScore,
 }: any) {
   const bg = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
@@ -1360,8 +1408,14 @@ function TopBar({
 
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const lastNotifiedCount = useRef(0);
+  const { user } = useContext(AuthContext);
+  const hasNotified = useRef(false);
   const bellAnim = useRef(new Animated.Value(1)).current;
+
+
+const resetNotificationState = () => {
+  hasNotified.current = false;
+};
 
   const [time, setTime] = useState(() =>
     new Date().toLocaleTimeString("en-US", {
@@ -1420,50 +1474,55 @@ function TopBar({
     setNotifications(newNotifs);
   }, [pendingTasks, streak, totalTasks]);
 
-   useEffect(() => {
-    if (pendingTasks === 0) return;
-    if (pendingTasks <= lastNotifiedCount.current) {
-      lastNotifiedCount.current = pendingTasks;
-      return;
-    }
-    lastNotifiedCount.current = pendingTasks;
+useEffect(() => {
+  if (!user) return;
 
-    Animated.sequence([
-      Animated.timing(bellAnim, {
-        toValue: 1.3,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(bellAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  // ✅ only notify if actual pending work
+  if (pendingTasks === 0) return;
 
-    const triggerNotification = async () => {
-      if (Platform.OS === "web") {
-        const granted = await requestWebNotificationPermission();
-        if (granted) {
-          sendWebTestNotification(pendingTasks, streak);
-        }
-      } else {
-        const granted = await requestNotificationPermission();
-        if (granted) {
-          await scheduleDailyReminder(9, 0);
-        }
+  // ✅ only once per session
+  if (hasNotified.current) return;
+
+  hasNotified.current = true;
+
+  Animated.sequence([
+    Animated.timing(bellAnim, {
+      toValue: 1.3,
+      duration: 200,
+      useNativeDriver: true,
+    }),
+    Animated.timing(bellAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }),
+  ]).start();
+
+  const triggerNotification = async () => {
+    if (Platform.OS === "web") {
+      const granted = await requestWebNotificationPermission();
+      if (granted) {
+        sendWebTestNotification(pendingTasks, streak);
       }
-    };
+    } else {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        await scheduleDailyReminder(9, 0);
+      }
+    }
+  };
 
     triggerNotification();
-  }, [pendingTasks]);
+  }, [pendingTasks, user]);
 
   useEffect(() => {
     const tm = setInterval(() => {
-  const now = new Date();
-  setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
-  setSeconds(now.getSeconds());
-}, 1000);
+      const now = new Date();
+      setTime(
+        now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      );
+      setSeconds(now.getSeconds());
+    }, 1000);
 
     return () => clearInterval(tm);
   }, []);
@@ -1548,36 +1607,67 @@ function TopBar({
       </View>
       <View style={topBarSt.right}>
         {Platform.OS === "web" ? (
-  <View style={{
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 12, borderWidth: 1, borderColor: border,
-  }}>
-    <svg width="20" height="20" viewBox="0 0 24 24">
-      <circle cx={12} cy={12} r={10} fill="none"
-        stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
-        strokeWidth="2"/>
-      <circle cx={12} cy={12} r={10} fill="none"
-        stroke="#6366f1" strokeWidth="2"
-        strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
-        strokeLinecap="round"
-        transform="rotate(-90 12 12)"
-        style={{ transition: "stroke-dasharray 0.5s linear" } as any}/>
-      <circle cx={12} cy={12} r={2} fill="#6366f1"/>
-    </svg>
-    <View>
-      <Text style={{ fontSize: 13, fontWeight: "800", color: txtPri, letterSpacing: -0.3,
-        ...(Platform.OS === "web" ? { fontFamily: "Outfit,sans-serif" } as any : {}) }}>
-        {time}
-      </Text>
-      <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
-        {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-      </Text>
-    </View>
-  </View>
-) : (
-  <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
-)}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: border,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
+                strokeWidth="2"
+              />
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth="2"
+                strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
+                strokeLinecap="round"
+                transform="rotate(-90 12 12)"
+                style={{ transition: "stroke-dasharray 0.5s linear" } as any}
+              />
+              <circle cx={12} cy={12} r={2} fill="#6366f1" />
+            </svg>
+            <View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "800",
+                  color: txtPri,
+                  letterSpacing: -0.3,
+                  ...(Platform.OS === "web"
+                    ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                    : {}),
+                }}
+              >
+                {time}
+              </Text>
+              <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={[topBarSt.time, { color: txtSec }]}>{time}</Text>
+        )}
         {/* Dark mode toggle pill */}
         {Platform.OS === "web" ? (
           <Pressable
@@ -1634,8 +1724,7 @@ function TopBar({
           </View>
         )}
 
-        
-       {/* Bell */}
+        {/* Bell */}
         <Pressable
           style={topBarSt.notifBtn}
           onPress={() => setShowNotif((s) => !s)}
@@ -1725,6 +1814,8 @@ function TopBar({
               }}
               onShowV2={onShowV2}
               router={router}
+              onLogoutReset={resetNotificationState}
+              skillScore={skillScore} 
             />
           )}
         </View>
@@ -1757,21 +1848,22 @@ const topBarSt = StyleSheet.create({
   },
   sub: { fontSize: 12, fontWeight: "500", marginTop: 1 },
   right: { flexDirection: "row", alignItems: "center", gap: 10 },
- time: {
-  fontSize: 13,
-  fontWeight: "700",
-  ...(Platform.OS === "web"
-    ? ({
-        padding: "6px 14px",
-        borderRadius: 99,
-        border: "1.5px solid rgba(99,102,241,0.18)",
-        background: "linear-gradient(135deg,rgba(99,102,241,0.07),rgba(167,139,250,0.05))",
-        color: "#6366f1",
-        letterSpacing: "0.02em",
-        fontFamily: "Outfit,sans-serif",
-      } as any)
-    : {}),
-},
+  time: {
+    fontSize: 13,
+    fontWeight: "700",
+    ...(Platform.OS === "web"
+      ? ({
+          padding: "6px 14px",
+          borderRadius: 99,
+          border: "1.5px solid rgba(99,102,241,0.18)",
+          background:
+            "linear-gradient(135deg,rgba(99,102,241,0.07),rgba(167,139,250,0.05))",
+          color: "#6366f1",
+          letterSpacing: "0.02em",
+          fontFamily: "Outfit,sans-serif",
+        } as any)
+      : {}),
+  },
   toggleWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
   notifBtn: {
     width: 40,
@@ -2193,25 +2285,30 @@ function HeatMap({
       const key = dt.toLocaleDateString("en-CA");
       const year = new Date(key).getFullYear();
 
-      const rawCount = year === selectedYear ? activityLog[key] || 0 : 0;
+      const rawCount =
+        year === selectedYear ? Number(activityLog?.[key] || 0) : 0;
 
-      const count =
-        rawCount === 0
-          ? 0
-          : rawCount <= 2
-            ? 1
-            : rawCount <= 5
-              ? 2
-              : rawCount <= 10
-                ? 3
-                : rawCount <= 20
-                  ? 4
-                  : rawCount <= 30
-                    ? 5
-                    : 6;
+      const value = rawCount;
+
+      // const count =
+      //   rawCount === 0
+      //     ? 0
+      //     : rawCount <= 2
+      //       ? 1
+      //       : rawCount <= 5
+      //         ? 2
+      //         : rawCount <= 10
+      //           ? 3
+      //           : rawCount <= 20
+      //             ? 4
+      //             : rawCount <= 30
+      //               ? 5
+      //               : 6;
+
       const todayStr = today.toLocaleDateString("en-CA");
+
       const isToday = key === todayStr;
-      cells.push({ date: key, count, month: dt.getMonth(), isToday });
+      cells.push({ date: key, count: value, month: dt.getMonth(), isToday });
       if (dt.getMonth() !== lastMonth && d === 0) {
         months.push({
           label: dt.toLocaleString("default", { month: "short" }),
@@ -2226,25 +2323,20 @@ function HeatMap({
 
   const getColor = (count: number, isToday?: boolean) => {
     if (isToday) {
-      if (count === 0) return "#fee2e2"; // very light red
-      if (count === 1) return "#fca5a5";
-      if (count <= 3) return "#ef4444";
-      if (count <= 5) return "#dc2626";
-      return "#b91c1c"; // strong dark red
+      if (count === 0) return "#fee2e2";
+      if (count <= 3) return "#fca5a5";
+      if (count <= 8) return "#ef4444";
+      if (count <= 15) return "#dc2626";
+      return "#b91c1c";
     }
-
     if (count === 0)
       return dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-
-    if (count === 1)
-      return dark ? "rgba(99,102,241,0.25)" : "rgba(99,102,241,0.2)";
-
     if (count <= 3)
-      return dark ? "rgba(99,102,241,0.45)" : "rgba(99,102,241,0.4)";
-
-    if (count <= 5)
-      return dark ? "rgba(99,102,241,0.65)" : "rgba(99,102,241,0.6)";
-
+      return dark ? "rgba(99,102,241,0.20)" : "rgba(99,102,241,0.15)";
+    if (count <= 8)
+      return dark ? "rgba(99,102,241,0.42)" : "rgba(99,102,241,0.35)";
+    if (count <= 15)
+      return dark ? "rgba(99,102,241,0.68)" : "rgba(99,102,241,0.58)";
     return "#6366f1";
   };
 
@@ -2351,31 +2443,14 @@ function HeatMap({
           >
             Less
           </Text>
-          {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
+          {[0, 2, 5, 12, 20].map((v, i) => (
             <View
               key={i}
               style={{
                 width: 12,
                 height: 12,
                 borderRadius: 3,
-                backgroundColor:
-                  v === 0
-                    ? dark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(0,0,0,0.06)"
-                    : v < 0.3
-                      ? dark
-                        ? "rgba(99,102,241,0.3)"
-                        : "rgba(99,102,241,0.25)"
-                      : v < 0.6
-                        ? dark
-                          ? "rgba(99,102,241,0.5)"
-                          : "rgba(99,102,241,0.45)"
-                        : v < 0.8
-                          ? dark
-                            ? "rgba(99,102,241,0.7)"
-                            : "rgba(99,102,241,0.65)"
-                          : "#6366f1",
+                backgroundColor: getColor(v),
               }}
             />
           ))}
@@ -2414,19 +2489,23 @@ function HeatMap({
               Today
             </Text>
             {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map(
-  (color, i) => (
-    <View
-      key={i}
-      className={Platform.OS === "web" && i === 4 ? "sk-legend-today-dot" : undefined}
-      style={{
-        width: 12,
-        height: 12,
-        borderRadius: 3,
-        backgroundColor: color,
-      }}
-    />
-  ),
-)}
+              (color, i) => (
+                <View
+                  key={i}
+                  className={
+                    Platform.OS === "web" && i === 4
+                      ? "sk-legend-today-dot"
+                      : undefined
+                  }
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 3,
+                    backgroundColor: color,
+                  }}
+                />
+              ),
+            )}
           </View>
 
           <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
@@ -2506,33 +2585,33 @@ function HeatMap({
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{
-  display: "flex",
-  flexDirection: "row",
-  gap: GAP,
-  width: WEEKS * (CELL + GAP),
-  overflow: "visible" as any,
-}}
+          display: "flex",
+          flexDirection: "row",
+          gap: GAP,
+          width: WEEKS * (CELL + GAP),
+          overflow: "visible" as any,
+        }}
         contentContainerStyle={{
-  flexDirection: "row",
-  gap: GAP,
-  paddingRight: 20,
-  paddingTop: 8,
-  paddingBottom: 8,
-  overflow: "visible",
-}}
+          flexDirection: "row",
+          gap: GAP,
+          paddingRight: 20,
+          paddingTop: 8,
+          paddingBottom: 8,
+          overflow: "visible",
+        }}
       >
         {Array.from({ length: WEEKS }, (_, w) => (
-         <View
-  key={w}
-  style={{
-    flexDirection: "column",
-    gap: GAP,
-    width: CELL,
-    minWidth: CELL,
-    alignItems: "center",
-    overflow: "visible" as any,
-  }}
->
+          <View
+            key={w}
+            style={{
+              flexDirection: "column",
+              gap: GAP,
+              width: CELL,
+              minWidth: CELL,
+              alignItems: "center",
+              overflow: "visible" as any,
+            }}
+          >
             {Array.from({ length: 7 }, (_, d) => {
               const cell: any = cells[w * 7 + d] || {
                 count: 0,
@@ -2572,17 +2651,18 @@ function HeatMap({
                       overflow: "visible",
 
                       ...(cell.isToday
-  ? {
-      outline: "none",
-      borderRadius: 4,
-      background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
-      animation: "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
-      zIndex: 10,
-      perspective: "200px",
-      transformStyle: "preserve-3d",
-      willChange: "transform, box-shadow",
-    }
-  : {}),
+                        ? {
+                            outline: "none",
+                            borderRadius: 4,
+                            background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
+                            animation:
+                              "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
+                            zIndex: 10,
+                            perspective: "200px",
+                            transformStyle: "preserve-3d",
+                            willChange: "transform, box-shadow",
+                          }
+                        : {}),
 
                       ...(cell.count > 0 &&
                         !cell.isToday && {
@@ -4340,11 +4420,12 @@ function AddTaskModal({
       }),
     ]).start(() => {
       try {
-       addTaskFn(goalId, task.trim());
+        addTaskFn(goalId, task.trim());
         showSuccess("Task added 🎉");
         if (Platform.OS === "web") {
           requestWebNotificationPermission().then((ok) => {
-            if (ok) new Notification("SkillPath", { body: "New task added 📝" });
+            if (ok)
+              new Notification("SkillPath", { body: "New task added 📝" });
           });
         }
         onClose();
@@ -4754,15 +4835,39 @@ export default function Dashboard() {
 
   if (!taskCtx || !authCtx || !authCtx.user) return null;
 
-const { user, userData } = authCtx;
+  const { user, userData } = authCtx;
 
-const displayName =
-  userData?.displayName ||
-  user?.displayName ||
-  user?.email ||
-  "User";
-const userRole = userData?.role || "Learner";
-const streak = userData?.streak || 0;
+  const getActivityForDate = (dateStr: string) => {
+    return activityLog[dateStr] || 0;
+  };
+
+  const getColor = (value: number) => {
+    if (value === 0) return "#e5e7eb";
+    if (value < 5) return "#c7d2fe";
+    if (value < 10) return "#818cf8";
+    if (value < 20) return "#6366f1";
+    return "#4f46e5";
+  };
+
+  const displayName =
+    userData?.displayName || user?.displayName || user?.email || "User";
+
+  const generateDates = () => {
+    const dates = [];
+    const today = new Date();
+
+    for (let i = 90; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+
+      const formatted = d.toISOString().split("T")[0];
+      dates.push(formatted);
+    }
+
+    return dates;
+  };
+
+  const heatmapDates = generateDates();
 
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
   const intervalRef = useRef<any>(null);
@@ -4774,8 +4879,9 @@ const streak = userData?.streak || 0;
   const [hoveredTask, setHoveredTask] = useState<string | null>(null);
   // const [streak, setStreak] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [streak, setStreak] = useState(0);
   const [activityLog, setActivityLog] = useState<Record<string, number>>({});
-  // const [userRole, setUserRole] = useState("Intern Developer");
+  const [userRole, setUserRole] = useState("Intern Developer");
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showAddTaskGoalId, setShowAddTaskGoalId] = useState<string | null>(
     null,
@@ -4835,13 +4941,19 @@ const streak = userData?.streak || 0;
   /* Streak + activityLog from Firestore */
   useEffect(() => {
     const userRef = doc(db, "users", user.uid);
+
     const unsub = onSnapshot(userRef, (snap) => {
       if (snap.exists()) {
-        // setStreak(snap.data().streak || 0);
-        // setActivityLog(snap.data().activityLog || {});
-        // setUserRole(snap.data().role || "Intern Developer");
+        const data = snap.data();
+
+        setStreak(data.streak || 0);
+
+        setActivityLog({ ...(data.activityLog || {}) });
+
+        setUserRole(data.role || "Intern Developer");
       }
     });
+
     return unsub;
   }, []);
 
@@ -4881,8 +4993,18 @@ const streak = userData?.streak || 0;
   const recBorder = dark ? "#38BDF8" : COLORS.primary;
   const recText = dark ? "#CBD5F5" : "#334155";
   const cardBorder = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+const overallPct = getOverallProgress();
 
-  const overallPct = getOverallProgress();
+
+const totalGoals = goals.length;
+const completedTasks = goals.reduce(
+  (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length,
+  0,
+);
+const totalTasks = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
+
+const skillScore = Math.min(9999, completedTasks * 50 + totalGoals * 120 + streak * 15);
+  
   const getInsight = () => {
     if (overallPct === 100)
       return "Perfect score! 🏆 You've completed everything. Start a new challenge!";
@@ -4909,14 +5031,11 @@ const streak = userData?.streak || 0;
 
           if (granted) {
             if (!intervalRef.current) {
-              intervalRef.current = setInterval(
-                () => {
-                  if (hasPendingTasks()) {
-                    sendWebTestNotification();
-                  }
-                },
-                30 * 1000,
-              );
+              intervalRef.current = setInterval(() => {
+                if (hasPendingTasks()) {
+                  sendWebTestNotification();
+                }
+              }, 30 * 1000);
             }
           }
         }
@@ -4936,13 +5055,8 @@ const streak = userData?.streak || 0;
 
   const userEmail = user.email || "";
   // const initials = displayName.charAt(0).toUpperCase();
-  const completedTasks = goals.reduce(
-    (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length,
-    0,
-  );
   const todayKey = new Date().toISOString().split("T")[0];
   const activityToday = (activityLog[todayKey] || 0) > 0;
-  const totalTasks = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
 
   /* ── Responsive breakpoints (CSS-style media queries via useWindowDimensions) ── */
   const { width: screenW } = useWindowDimensions();
@@ -4964,7 +5078,17 @@ const streak = userData?.streak || 0;
       : { elevation: 3 };
 
   /* ── Mobile header (compact) ── */
-  const MobileHeader = () => (
+  const MobileHeader = ({ 
+  dark, 
+  darkMode, 
+  setDarkMode, 
+  displayName, 
+  overallPct, 
+  completedTasks, 
+  totalGoals, 
+  streak,
+  skillScore,
+}: any) => (
     <Animated.View
       style={[
         styles.mHdr,
@@ -5246,16 +5370,19 @@ const streak = userData?.streak || 0;
                       </Text>
                     </View>
                   </View>
-                 <Pressable
-  onPress={() => {
-    taskCtx.deleteGoal(g.id);
-    showDelete("Goal removed successfully");
-    if (Platform.OS === "web") {
-      requestWebNotificationPermission().then((ok) => {
-        if (ok) new Notification("SkillPath", { body: `Goal "${g.name}" deleted 🗑` });
-      });
-    }
-  }}
+                  <Pressable
+                    onPress={() => {
+                      taskCtx.deleteGoal(g.id);
+                      showDelete("Goal removed successfully");
+                      if (Platform.OS === "web") {
+                        requestWebNotificationPermission().then((ok) => {
+                          if (ok)
+                            new Notification("SkillPath", {
+                              body: `Goal "${g.name}" deleted 🗑`,
+                            });
+                        });
+                      }
+                    }}
                     style={({ pressed }) => [
                       styles.delGoalBtn,
                       pressed && { opacity: 0.55 },
@@ -5338,7 +5465,9 @@ const streak = userData?.streak || 0;
                           { merge: true },
                         );
                       }
-                     const msg = t.completed ? "Task marked incomplete" : "Task completed 🎉";
+                      const msg = t.completed
+                        ? "Task marked incomplete"
+                        : "Task completed 🎉";
                       showSuccess(msg);
                       if (Platform.OS === "web") {
                         requestWebNotificationPermission().then((ok) => {
@@ -5387,7 +5516,10 @@ const streak = userData?.streak || 0;
                           showDelete("Task removed");
                           if (Platform.OS === "web") {
                             requestWebNotificationPermission().then((ok) => {
-                              if (ok) new Notification("SkillPath", { body: "Task removed 🗑" });
+                              if (ok)
+                                new Notification("SkillPath", {
+                                  body: "Task removed 🗑",
+                                });
                             });
                           }
                         }}
@@ -5441,42 +5573,43 @@ const streak = userData?.streak || 0;
         /* ══ DESKTOP LAYOUT (960px+) ══ */
         <View style={styles.wideRoot}>
           {/* Sidebar — collapsible on desktop */}
-          {Platform.OS === "web" ? (
-            <View
-              className="sk-sidebar"
-              style={
-                {
-                  width: sidebarOpen ? 260 : 0,
-                  minWidth: sidebarOpen ? 260 : 0,
-                  overflow: "hidden",
-                } as any
-              }
-            >
-              <Sidebar
-                dark={dark}
-                router={router}
-                isSynced={isSynced}
-                overallPct={overallPct}
-                displayName={userData?.displayName || "User"}
-                goals={goals}
-                completedTasks={completedTasks}
-                totalTasks={totalTasks}
-                userRole={userData?.role || "Learner"}
-              />
-            </View>
-          ) : (
-            <Sidebar
-              dark={dark}
-              router={router}
-              isSynced={isSynced}
-              overallPct={overallPct}
-              displayName={userData?.displayName || "User"}
-              goals={goals}
-              completedTasks={completedTasks}
-              totalTasks={totalTasks}
-              userRole={userData?.role || "Learner"}
-            />
-          )}
+          {Platform.OS === "web" && (
+  <View
+    className="sk-sidebar"
+    style={
+      {
+        width: sidebarOpen ? 260 : 0,
+        minWidth: sidebarOpen ? 260 : 0,
+        overflow: "hidden",
+      } as any
+    }
+  >
+    <Sidebar
+      dark={dark}
+      router={router}
+      isSynced={isSynced}
+      overallPct={overallPct}
+      displayName={userData?.displayName || "User"}
+      goals={goals}
+      completedTasks={completedTasks}
+      totalTasks={totalTasks}
+      userRole={userData?.role || "Learner"}
+    />
+  </View>
+)}
+{Platform.OS !== "web" && (
+  <Sidebar
+    dark={dark}
+    router={router}
+    isSynced={isSynced}
+    overallPct={overallPct}
+    displayName={userData?.displayName || "User"}
+    goals={goals}
+    completedTasks={completedTasks}
+    totalTasks={totalTasks}
+    userRole={userData?.role || "Learner"}
+  />
+)}
 
           {/* Center + Right */}
           <View style={styles.wideCenter}>
@@ -5499,6 +5632,7 @@ const streak = userData?.streak || 0;
               totalTasks={totalTasks}
               completedTasks={completedTasks}
               goals={goals}
+              skillScore={skillScore} 
             />
 
             <ScrollView
@@ -5710,7 +5844,17 @@ const streak = userData?.streak || 0;
       ) : (
         /* ══ MOBILE / NARROW LAYOUT ══ */
         <View style={styles.wrapper}>
-          <MobileHeader />
+          <MobileHeader 
+  dark={dark}
+  darkMode={darkMode}
+  setDarkMode={setDarkMode}
+  displayName={displayName}
+  overallPct={overallPct}
+  completedTasks={completedTasks}
+  totalGoals={goals.length}
+  streak={streak}
+  skillScore={skillScore} 
+/>
 
           {/* Rec card */}
           <Animated.View

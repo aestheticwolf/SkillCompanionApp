@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -17,8 +18,8 @@ import { AuthContext } from "../src/context/AuthContext";
 import { TaskContext } from "../src/context/TaskContext";
 import { db } from "../src/services/firebase";
 import { listenToNetwork } from "../src/services/network";
-import { showComingSoon } from "../src/services/toast";
-import { loadTheme } from "../src/services/uiPreferences";
+import { showComingSoon, showSuccess } from "../src/services/toast";
+import { loadTheme, saveTheme } from "../src/services/uiPreferences";
 
 /* ── Web CSS ── */
 if (Platform.OS === "web" && typeof document !== "undefined") {
@@ -27,7 +28,7 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
     const s = document.createElement("style");
     s.id = id;
     s.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600:700:800&family=Outfit:wght@700:800:900&display=swap');
       @keyframes sk-np-fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
       @keyframes sk-np-pulse{0%,100%{opacity:1}50%{opacity:.3}}
       @keyframes sk-np-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
@@ -36,8 +37,8 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       .sk-np-hov:hover{transform:translateX(3px);box-shadow:0 4px 20px rgba(0,0,0,0.1)}
       .sk-np-chip{transition:all .15s;cursor:pointer}
       .sk-np-chip:hover{transform:translateY(-1px)}
-      .sk-np-del{transition:opacity .15s;cursor:pointer}
-      .sk-np-del:hover{opacity:0.6}
+      .sk-np-del{transition:opacity .15s,transform .15s;cursor:pointer}
+      .sk-np-del:hover{opacity:0.6;transform:scale(1.1)}
       .sk-np-sidebar-nav{transition:background .15s;cursor:pointer}
       .sk-np-sidebar-nav:hover{background:rgba(99,102,241,0.06)}
     `;
@@ -56,6 +57,7 @@ const GOAL_COLORS = [
   "#ec4899",
 ];
 const SIDEBAR_W = 260;
+const ACCENT = "#6366f1";
 
 type NotifCategory = "all" | "task" | "streak" | "goal" | "system";
 type NotifItem = {
@@ -67,10 +69,685 @@ type NotifItem = {
   color: string;
   category: Exclude<NotifCategory, "all">;
   read: boolean;
+  dismissible: boolean; // ✅ NEW: Can be permanently dismissed
 };
 
 /* ════════════════════════════════
-   SIDEBAR (matches dashboard style)
+   PROFILE DROPDOWN
+════════════════════════════════ */
+function ProfileDrop({
+  dark,
+  displayName,
+  email,
+  overallPct,
+  streak,
+  userRole,
+  skillScore,
+  onClose,
+  onToggleDark,
+  onShowV2,
+  router,
+  onLogoutReset,
+}: any) {
+  const t = {
+    bg: dark ? "#111827" : "#ffffff",
+    bdr: dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)",
+    text: dark ? "#eef2ff" : "#0f172a",
+    sub: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.5)",
+    muted: dark ? "rgba(238,242,255,0.2)" : "rgba(15,23,42,0.2)",
+    inp: dark ? "rgba(255,255,255,0.07)" : "#f5f7ff",
+    card: dark ? "rgba(255,255,255,0.04)" : "#ffffff",
+    sh: dark ? "0 8px 40px rgba(0,0,0,.7)" : "0 8px 40px rgba(0,0,0,.15)",
+    ov: dark ? "rgba(0,0,0,.72)" : "rgba(0,0,0,.38)",
+  };
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const items: any[] = [
+    {
+      icon: "👤",
+      label: "My Profile",
+      sub: `${displayName} • ${userRole || "Intern Developer"}`,
+      fn: () => {
+        router.push("/profile");
+        onClose();
+      },
+    },
+    {
+      icon: "📊",
+      label: "My Analytics",
+      sub: "View detailed progress",
+      fn: () => {
+        router.push("/analytics");
+        onClose();
+      },
+    },
+    {
+      icon: "🎯",
+      label: "Learning Path",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "⚙️",
+      label: "Settings",
+      sub: "Customize your experience",
+      fn: () => {
+        router.push("/settings");
+        onClose();
+      },
+    },
+    {
+      icon: dark ? "☀️" : "🌙",
+      label: dark ? "Light Mode" : "Dark Mode",
+      sub: dark ? "Switch to light" : "Switch to dark",
+      fn: () => {
+        onToggleDark();
+      },
+      toggle: true,
+    },
+    {
+      icon: "📤",
+      label: "Share App",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "🚪",
+      label: "Log Out",
+      sub: "Sign out of account",
+      fn: () => {
+        onLogoutReset();
+        router.replace("/login");
+        onClose();
+      },
+      danger: true,
+    },
+  ];
+
+  const dropRef = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const dropStyle: any =
+    Platform.OS === "web"
+      ? {
+          position: "absolute" as any,
+          top: "calc(100% + 10px)",
+          right: 0,
+          width: 280,
+          zIndex: 9999,
+          background: t.bg,
+          border: `1px solid ${t.bdr}`,
+          borderRadius: 22,
+          padding: 8,
+          boxShadow: t.sh,
+          animation: "sk-fadeUp .2s ease both",
+        }
+      : {};
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? (dropStyle as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 280,
+              backgroundColor: dark ? "#111827" : "#fff",
+              borderRadius: 22,
+              padding: 8,
+              zIndex: 9999,
+            }
+      }
+    >
+      {/* User card */}
+      <View
+        style={{
+          padding: 14,
+          borderRadius: 16,
+          backgroundColor: "rgba(99,102,241,0.07)",
+          borderWidth: 1,
+          borderColor: "rgba(99,102,241,0.14)",
+          marginBottom: 6,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              ...(Platform.OS === "web"
+                ? ({
+                    background: "linear-gradient(135deg,#f97316,#ef4444)",
+                    boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
+                  } as any)
+                : { backgroundColor: "#f97316" }),
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900", fontSize: 20 }}>
+              {initials}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "800",
+                color: t.text,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              {displayName}
+            </Text>
+            <Text style={{ fontSize: 12, color: t.sub, marginTop: 1 }}>
+              {email || "No email"}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#34d399",
+                  ...(Platform.OS === "web"
+                    ? ({ animation: "sk-pulse 1.5s infinite" } as any)
+                    : {}),
+                }}
+              />
+              <Text
+                style={{ fontSize: 11, color: "#34d399", fontWeight: "700" }}
+              >
+                Active learner
+              </Text>
+            </View>
+          </View>
+        </View>
+        {/* Stats row */}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {[
+            { v: `${streak}🔥`, l: "Streak" },
+            { v: `${overallPct}%`, l: "Progress" },
+            { v: `${skillScore || 0}⭐`, l: "Score" },
+          ].map((s, i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                backgroundColor: dark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.04)",
+                borderRadius: 10,
+                padding: 8,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: dark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "800",
+                  color: t.text,
+                  ...(Platform.OS === "web"
+                    ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                    : {}),
+                }}
+              >
+                {s.v}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: t.sub,
+                  marginTop: 1,
+                  fontWeight: "500",
+                }}
+              >
+                {s.l}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Menu items */}
+      {items.map((item, i) => (
+        <Pressable
+          key={i}
+          onPress={item.fn}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              padding: 10,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              backgroundColor: pressed
+                ? item.danger
+                  ? "rgba(239,68,68,0.09)"
+                  : dark
+                    ? "rgba(255,255,255,0.07)"
+                    : "rgba(99,102,241,0.06)"
+                : "transparent",
+              borderTopWidth: i === items.length - 1 ? 1 : 0,
+              borderTopColor: t.bdr,
+              marginTop: i === items.length - 1 ? 4 : 0,
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 16, width: 24, textAlign: "center" }}>
+            {item.icon}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: item.danger ? "#ef4444" : item.v2 ? t.sub : t.text,
+                }}
+              >
+                {item.label}
+              </Text>
+              {item.v2 && (
+                <View
+                  style={{
+                    backgroundColor: "rgba(99,102,241,0.12)",
+                    borderRadius: 99,
+                    paddingHorizontal: 5,
+                    paddingVertical: 1,
+                  }}
+                >
+                  <Text
+                    style={{ fontSize: 9, fontWeight: "800", color: "#6366f1" }}
+                  >
+                    v2
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={{
+                fontSize: 11,
+                color: item.v2
+                  ? "#a78bfa"
+                  : item.danger
+                    ? "rgba(239,68,68,0.5)"
+                    : t.sub,
+                marginTop: 1,
+                fontWeight: "500",
+              }}
+            >
+              {item.sub}
+            </Text>
+          </View>
+          {item.badge && (
+            <View
+              style={{
+                backgroundColor: "#ef4444",
+                borderRadius: 20,
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: "800", color: "white" }}>
+                {item.badge}
+              </Text>
+            </View>
+          )}
+          {item.toggle && (
+            <View
+              style={{
+                width: 36,
+                height: 20,
+                borderRadius: 99,
+                backgroundColor: dark ? "#6366f1" : "#cbd5e1",
+                position: "relative",
+              }}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: dark ? 17 : 3,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: "white",
+                  ...(Platform.OS === "web"
+                    ? ({
+                        transition: "left .2s",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                      } as any)
+                    : {}),
+                }}
+              />
+            </View>
+          )}
+          {!item.toggle && !item.badge && (
+            <Text style={{ fontSize: 14, color: t.muted }}>›</Text>
+          )}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/* ════════════════════════════════
+   NOTIFICATION DROPDOWN
+════════════════════════════════ */
+function NotifDropdown({
+  dark,
+  notifications,
+  pendingTasks,
+  streak,
+  onClose,
+  onViewAll,
+}: any) {
+  const bg = dark ? "#111827" : "#ffffff";
+  const border = dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "rgba(15,23,42,0.5)";
+  const dropRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const NOTIF_ITEMS = [
+    ...(pendingTasks > 0
+      ? [
+          {
+            id: "pending",
+            icon: "📌",
+            title: "Pending Tasks",
+            body: `You have ${pendingTasks} task${pendingTasks > 1 ? "s" : ""} waiting`,
+            color: "#f97316",
+            unread: true,
+          },
+        ]
+      : []),
+    ...(streak > 0
+      ? [
+          {
+            id: "streak",
+            icon: "🔥",
+            title: `${streak} Day Streak!`,
+            body: "Keep it up — don't break the chain",
+            color: "#ef4444",
+            unread: streak > 0 && pendingTasks === 0,
+          },
+        ]
+      : []),
+    {
+      id: "sys",
+      icon: "🚀",
+      title: "SkillPath Active",
+      body: "Your learning session is synced",
+      color: "#6366f1",
+      unread: false,
+    },
+  ];
+
+  const unread = NOTIF_ITEMS.filter((n) => n.unread).length;
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? ({
+              position: "absolute",
+              top: "calc(100% + 12px)",
+              right: 0,
+              width: 320,
+              zIndex: 9999,
+              background: bg,
+              border: `1px solid ${border}`,
+              borderRadius: 20,
+              overflow: "hidden",
+              boxShadow: dark
+                ? "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)"
+                : "0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)",
+              animation: "sk-fadeUp .18s ease both",
+            } as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 300,
+              backgroundColor: bg,
+              borderRadius: 20,
+              zIndex: 9999,
+              overflow: "hidden",
+            }
+      }
+    >
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: border,
+          ...(Platform.OS === "web"
+            ? ({
+                background: dark
+                  ? "linear-gradient(135deg,rgba(99,102,241,0.12),rgba(0,0,0,0))"
+                  : "linear-gradient(135deg,rgba(99,102,241,0.06),rgba(0,0,0,0))",
+              } as any)
+            : {}),
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: "rgba(99,102,241,0.12)",
+              alignItems: "center",
+              justifyContent: "center",
+              ...(Platform.OS === "web"
+                ? ({ animation: "sk-breathe 3s ease-in-out infinite" } as any)
+                : {}),
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🔔</Text>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "800",
+                color: txtPri,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              Notifications
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: "500", color: txtSec }}>
+              {unread > 0 ? `${unread} unread` : "All caught up 🎉"}
+            </Text>
+          </View>
+        </View>
+        {unread > 0 && (
+          <View
+            style={{
+              backgroundColor: "#ef4444",
+              borderRadius: 99,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 11, fontWeight: "800" }}>
+              {unread}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Items */}
+      <View style={{ paddingVertical: 8 }}>
+        {NOTIF_ITEMS.map((item, i) => (
+          <View
+            key={item.id}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 11,
+              marginHorizontal: 8,
+              borderRadius: 12,
+              marginBottom: 2,
+              backgroundColor: item.unread
+                ? dark
+                  ? "rgba(99,102,241,0.07)"
+                  : "rgba(99,102,241,0.04)"
+                : "transparent",
+              borderWidth: item.unread ? 1 : 0,
+              borderColor: item.unread
+                ? "rgba(99,102,241,0.14)"
+                : "transparent",
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 11,
+                backgroundColor: item.color + "18",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginBottom: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: txtPri,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                {item.unread && (
+                  <View
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 4,
+                      backgroundColor: item.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </View>
+              <Text
+                style={{ fontSize: 11, fontWeight: "500", color: txtSec }}
+                numberOfLines={1}
+              >
+                {item.body}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Footer */}
+      <Pressable
+        onPress={onViewAll}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          paddingVertical: 13,
+          borderTopWidth: 1,
+          borderTopColor: border,
+          backgroundColor: pressed
+            ? dark
+              ? "rgba(99,102,241,0.1)"
+              : "rgba(99,102,241,0.06)"
+            : "transparent",
+          ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+        })}
+      >
+        <Text style={{ fontSize: 13, fontWeight: "700", color: "#6366f1" }}>
+          View all notifications
+        </Text>
+        <Text style={{ fontSize: 13, color: "#6366f1" }}>→</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/* ════════════════════════════════
+   SIDEBAR
 ════════════════════════════════ */
 function NotifSidebar({
   dark,
@@ -78,11 +755,16 @@ function NotifSidebar({
   isSynced,
   displayName,
   unreadCount,
+  userRole,
+  overallPct,
+  completedTasks,
+  totalTasks,
 }: any) {
   const bg = dark ? "#141720" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtMut = dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)";
+  const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
 
   const NAV = [
     { icon: "🏠", label: "Dashboard", route: "/dashboard" },
@@ -93,44 +775,28 @@ function NotifSidebar({
       route: "/notifications",
       badge: unreadCount,
     },
-    { icon: "⚙️", label: "Settings", route: null, v2: true },
+    { icon: "⚙️", label: "Settings", route: "/settings" },
   ];
 
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <View
-      style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}
-    >
-      {/* Logo */}
-      <View style={sbSt.logoRow}>
-        <View
-          style={[
-            sbSt.logoIcon,
-            Platform.OS === "web"
-              ? ({ animation: "sk-np-breathe 3s ease-in-out infinite" } as any)
-              : {},
-          ]}
-        >
-          <SkillPathLogo size={48} />
-        </View>
-        <View>
-          <Text
-            style={[
-              sbSt.logoName,
-              Platform.OS === "web"
-                ? ({
-                    background:
-                      "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  } as any)
-                : { color: "#FF5C5C" },
-            ]}
-          >
-            SkillPath
-          </Text>
+    <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
+         <View style={sbSt.logoRow}>
+           <View style={[sbSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
+             <SkillPathLogo size={48} />
+           </View>
+           <View>
+            <Text style={[sbSt.logoName,
+     Platform.OS === "web"
+       ? ({
+           background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)",
+           WebkitBackgroundClip: "text",
+           WebkitTextFillColor: "transparent",
+           backgroundClip: "text",
+         } as any)
+       : { color: "#FF5C5C" },
+   ]}>SkillPath</Text>
           <Text style={[sbSt.logoSub, { color: txtMut }]}>
             Learning Companion
           </Text>
@@ -146,10 +812,6 @@ function NotifSidebar({
             key={i}
             className={Platform.OS === "web" ? "sk-np-sidebar-nav" : undefined}
             onPress={() => {
-              if (n.v2) {
-                showComingSoon();
-                return;
-              }
               if (n.route) router.push(n.route);
             }}
             style={({ pressed }) => [
@@ -159,7 +821,6 @@ function NotifSidebar({
                   ? "rgba(99,102,241,0.14)"
                   : "rgba(99,102,241,0.08)",
               },
-              n.v2 && { opacity: 0.55 },
               pressed && { opacity: 0.75 },
             ]}
           >
@@ -168,7 +829,7 @@ function NotifSidebar({
               style={[
                 sbSt.navTx,
                 {
-                  color: active ? "#6366f1" : n.v2 ? txtMut : txtPri,
+                  color: active ? ACCENT : txtPri,
                   fontWeight: active ? "700" : "500",
                 },
               ]}
@@ -176,27 +837,83 @@ function NotifSidebar({
               {n.label}
             </Text>
             {active && <View style={sbSt.activeBar} />}
-            {n.v2 && (
-              <View style={sbSt.v2pill}>
-                <Text
-                  style={{ fontSize: 9, fontWeight: "700", color: "#6366f1" }}
-                >
-                  v2
-                </Text>
-              </View>
-            )}
-            {!n.v2 && !!n.badge && n.badge > 0 && (
-              <View style={sbSt.badge}>
-                <Text style={sbSt.badgeTx}>{n.badge}</Text>
-              </View>
-            )}
           </Pressable>
         );
       })}
 
       <View style={{ flex: 1 }} />
 
-      {/* User row */}
+      {/* ✅ OVERALL PROGRESS CARD - MOVED HERE (before User row) */}
+      <View
+        style={[
+          sbSt.progCard,
+          {
+            backgroundColor: dark
+              ? "rgba(99,102,241,0.08)"
+              : "rgba(99,102,241,0.06)",
+            borderColor: border,
+          },
+        ]}
+      >
+        <Text style={[sbSt.progLabel, { color: ACCENT }]}>
+          OVERALL PROGRESS
+        </Text>
+        <View style={sbSt.progRingRow}>
+          <View
+            style={[
+              sbSt.progRing,
+              Platform.OS === "web"
+                ? ({
+                    background: `conic-gradient(${ACCENT} ${overallPct * 3.6}deg, ${dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"} 0deg)`,
+                  } as any)
+                : { borderWidth: 5, borderColor: ACCENT },
+            ]}
+          >
+            <View
+              style={[
+                sbSt.progRingInner,
+                { backgroundColor: dark ? "#0a0f20" : "#f5f7ff" },
+              ]}
+            >
+              <Text style={[sbSt.progPercent, { color: ACCENT }]}>
+                {overallPct}%
+              </Text>
+            </View>
+          </View>
+          <View style={sbSt.progStats}>
+            <Text style={[sbSt.progTasks, { color: txtPri }]}>
+  {completedTasks}
+  <Text style={{ fontSize: 13, fontWeight: "500", color: txtSec }}>
+    /{totalTasks}
+  </Text>
+</Text>
+            <Text style={[sbSt.progLabelSmall, { color: txtSec }]}>
+              tasks done
+            </Text>
+          </View>
+        </View>
+        <View
+          style={{
+            height: 6,
+            borderRadius: 99,
+            backgroundColor: dark
+              ? "rgba(255,255,255,0.07)"
+              : "rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              height: "100%",
+              width: `${overallPct}%`,
+              borderRadius: 99,
+              backgroundColor: ACCENT,
+            }}
+          />
+        </View>
+      </View>
+
+      {/* ✅ USER ROW - MOVED HERE (after Overall Progress) */}
       <View style={[sbSt.userRow, { borderColor: border }]}>
         <View
           style={[
@@ -214,7 +931,9 @@ function NotifSidebar({
           <Text style={[sbSt.userName, { color: txtPri }]} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={[sbSt.userSub, { color: txtMut }]}>Active learner</Text>
+          <Text style={[sbSt.userSub, { color: txtMut }]}>
+            {userRole || "Software Developer"}
+          </Text>
         </View>
         <View
           style={[
@@ -293,19 +1012,6 @@ const sbSt = StyleSheet.create({
       ? ({ boxShadow: "0 0 8px rgba(99,102,241,0.5)" } as any)
       : {}),
   },
-  v2pill: {
-    backgroundColor: "rgba(99,102,241,0.12)",
-    borderRadius: 99,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  badge: {
-    backgroundColor: "#ef4444",
-    borderRadius: 99,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  badgeTx: { color: "white", fontSize: 10, fontWeight: "800" },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -326,121 +1032,62 @@ const sbSt = StyleSheet.create({
   userName: { fontSize: 13, fontWeight: "700" },
   userSub: { fontSize: 11, fontWeight: "500" },
   dot: { width: 8, height: 8, borderRadius: 4 },
+
+  /* ✅ ADD THESE MISSING PROGRESS CARD STYLES */
+  progCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+  },
+  progLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 12,
+    textTransform: "uppercase" as const,
+  },
+  progRingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+ progRing: {
+  width: 52,
+  height: 52,
+  borderRadius: 26,
+  alignItems: "center",        // ✅ FIX
+  justifyContent: "center",    // ✅ FIX
+},
+progRingInner: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+progPercent: {
+  fontSize: 11,
+  fontWeight: "800",
+},
+  progStats: {
+    flex: 1,
+  },
+ 
+progTasks: {
+  fontSize: 20,
+  fontWeight: "900",
+},
+
+  progLabelSmall: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+  },
 });
-
-/* ── Live Clock for TopBar ── */
-function LiveClock({ dark }: { dark: boolean }) {
-  const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
-  const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
-
-  const [time, setTime] = useState(() =>
-    new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  );
-  const [date, setDate] = useState(() =>
-    new Date().toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-  );
-  const [seconds, setSeconds] = useState(() => new Date().getSeconds());
-
-  useEffect(() => {
-    const tm = setInterval(() => {
-      const now = new Date();
-      setTime(
-        now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-      );
-      setDate(
-        now.toLocaleDateString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        }),
-      );
-      setSeconds(now.getSeconds());
-    }, 1000);
-    return () => clearInterval(tm);
-  }, []);
-
-  const pct = seconds / 60;
-  const r = 10,
-    cx = 12,
-    cy = 12;
-  const circ = 2 * Math.PI * r;
-  const dash = pct * circ;
-
-  return (
-    <View
-      style={[
-        {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
-          paddingHorizontal: 14,
-          paddingVertical: 9,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: border,
-        },
-        Platform.OS === "web"
-          ? ({
-              background: dark
-                ? "rgba(255,255,255,0.03)"
-                : "rgba(99,102,241,0.03)",
-            } as any)
-          : {},
-      ]}
-    >
-      {Platform.OS === "web" && (
-        <svg width="24" height="24" viewBox="0 0 24 24">
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
-            strokeWidth="2"
-          />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth="2"
-            strokeDasharray={`${dash} ${circ}`}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${cx} ${cy})`}
-            style={{ transition: "stroke-dasharray 0.5s linear" } as any}
-          />
-          <circle cx={cx} cy={cy} r={2} fill="#6366f1" />
-        </svg>
-      )}
-      <View>
-        <Text
-          style={{
-            fontSize: 14,
-            fontWeight: "800",
-            color: dark ? "#eef2ff" : "#0f172a",
-            letterSpacing: -0.3,
-            ...(Platform.OS === "web"
-              ? ({ fontFamily: "Outfit,sans-serif" } as any)
-              : {}),
-          }}
-        >
-          {time}
-        </Text>
-        <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
-          {date}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 /* ════════════════════════════════
    MAIN PAGE
@@ -452,9 +1099,8 @@ export default function NotificationsPage() {
 
   if (!authCtx || !authCtx.user || !taskCtx) return null;
 
-  const user = authCtx.user;
-  const { userData } = authCtx;
-  const { goals } = taskCtx;
+  const { user, userData } = authCtx;
+  const { goals, getOverallProgress } = taskCtx;
 
   const [darkMode, setDarkMode] = useState<boolean | null>(null);
   const [isSynced, setIsSynced] = useState(false);
@@ -462,6 +1108,11 @@ export default function NotificationsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeFilter, setActiveFilter] = useState<NotifCategory>("all");
   const [notifications, setNotifications] = useState<NotifItem[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [isLoadingDismissed, setIsLoadingDismissed] = useState(true);
+
+  /* SYNC DOT */
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -480,6 +1131,56 @@ export default function NotificationsPage() {
     return unsub;
   }, [user.uid]);
 
+  /* Load dismissed notifications from storage */
+  useEffect(() => {
+    const loadDismissed = async () => {
+      try {
+        const storage =
+          Platform.OS === "web"
+            ? {
+                getItem: (key: string) =>
+                  Promise.resolve(localStorage.getItem(key)),
+                setItem: (key: string, value: string) =>
+                  Promise.resolve(localStorage.setItem(key, value)),
+              }
+            : AsyncStorage;
+
+        const stored = await storage.getItem(`dismissed_notifs_${user.uid}`);
+        if (stored) {
+          const ids = JSON.parse(stored) as string[];
+          setDismissedIds(new Set(ids));
+        }
+      } catch (e) {
+        console.log("Failed to load dismissed notifications");
+      } finally {
+        setIsLoadingDismissed(false);
+      }
+    };
+    loadDismissed();
+  }, [user.uid]);
+
+  /* Save dismissed notifications to storage */
+  const saveDismissed = async (ids: Set<string>) => {
+    try {
+      const storage =
+        Platform.OS === "web"
+          ? {
+              getItem: (key: string) =>
+                Promise.resolve(localStorage.getItem(key)),
+              setItem: (key: string, value: string) =>
+                Promise.resolve(localStorage.setItem(key, value)),
+            }
+          : AsyncStorage;
+
+      await storage.setItem(
+        `dismissed_notifs_${user.uid}`,
+        JSON.stringify([...ids]),
+      );
+    } catch (e) {
+      console.log("Failed to save dismissed notifications");
+    }
+  };
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -494,13 +1195,29 @@ export default function NotificationsPage() {
         friction: 10,
       }),
     ]).start();
+
+    /* PULSE ANIMATION */
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.6,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
   }, []);
 
-  /* Build notifications from real data */
+  /* Build notifications from real data - ONLY dynamic ones */
   useEffect(() => {
     const notifs: NotifItem[] = [];
 
-    // Pending tasks → unread
+    // ✅ TASK notifications - Always show when pending (can't be dismissed permanently)
     goals.forEach((g: any, gi: number) => {
       g.tasks.forEach((t: any) => {
         if (
@@ -523,13 +1240,14 @@ export default function NotificationsPage() {
             color: GOAL_COLORS[gi % GOAL_COLORS.length],
             category: "task",
             read: false,
+            dismissible: false, // ✅ Can't permanently dismiss task notifications
           });
         }
       });
     });
 
-    // Streak
-    if (streak > 0) {
+    // ✅ STREAK notification - Only show when streak > 0 (can be dismissed)
+    if (streak > 0 && !dismissedIds.has("streak-info")) {
       notifs.unshift({
         id: "streak-info",
         icon: "🔥",
@@ -542,16 +1260,19 @@ export default function NotificationsPage() {
         color: "#f97316",
         category: "streak",
         read: notifs.length === 0,
+        dismissible: true, // ✅ Can be dismissed
       });
     }
 
-    // Goal completions → read
+    // ✅ GOAL completion notifications - Only show when goal completed AND not dismissed
     goals.forEach((g: any, gi: number) => {
       const done = g.tasks.filter((t: any) => t.completed).length;
       const total = g.tasks.length;
-      if (total > 0 && done === total) {
+      const goalNotifId = `goal-done-${g.id}`;
+
+      if (total > 0 && done === total && !dismissedIds.has(goalNotifId)) {
         notifs.unshift({
-          id: `goal-done-${g.id}`,
+          id: goalNotifId,
           icon: "🏆",
           title: "Goal Completed!",
           body: `All tasks in "${g.name}" are done. Excellent work!`,
@@ -559,24 +1280,29 @@ export default function NotificationsPage() {
           color: GOAL_COLORS[gi % GOAL_COLORS.length],
           category: "goal",
           read: true,
+          dismissible: true, // ✅ Can be dismissed
         });
       }
     });
 
-    // System
-    notifs.push({
-      id: "sys-welcome",
-      icon: "🚀",
-      title: "Welcome to SkillPath",
-      body: "Track your learning goals and stay consistent every day.",
-      time: "Earlier",
-      color: "#6366f1",
-      category: "system",
-      read: true,
-    });
+    // ✅ SYSTEM welcome notification - Can be dismissed
+    const sysNotifId = "sys-welcome";
+    if (!dismissedIds.has(sysNotifId)) {
+      notifs.push({
+        id: sysNotifId,
+        icon: "🚀",
+        title: "Welcome to SkillPath",
+        body: "Track your learning goals and stay consistent every day.",
+        time: "Earlier",
+        color: "#6366f1",
+        category: "system",
+        read: true,
+        dismissible: true, // ✅ Can be dismissed
+      });
+    }
 
     setNotifications(notifs);
-  }, [goals, streak]);
+  }, [goals, streak, dismissedIds]);
 
   /* Derived */
   const dark = !!darkMode;
@@ -589,8 +1315,44 @@ export default function NotificationsPage() {
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
 
-  const displayName = user.displayName || user.email || "User";
+  const totalTasks = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
+  const completedTasks = goals.reduce(
+    (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length,
+    0,
+  );
+
+  const skillScore = Math.min(9999, completedTasks * 50 + goals.length * 120 + streak * 15);
+
+  /* Use userData from AuthContext */
+  const displayName =
+    userData?.displayName || user?.displayName || user?.email || "User";
+  const userEmail = user?.email || "";
+
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const pendingTaskCount = goals.reduce((acc: number, goal: any) => {
+    return (
+      acc +
+      goal.tasks.filter(
+        (t: any) =>
+          t &&
+          t.title &&
+          t.title.trim() !== "" &&
+          !(
+            t.completed === true ||
+            t.completed === "true" ||
+            t.completed === 1 ||
+            t.isCompleted === true
+          ),
+      ).length
+    );
+  }, 0);
+
+  const toggleDark = async () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    await saveTheme(next);
+  };
 
   const FILTERS: { key: NotifCategory; label: string; icon: string }[] = [
     { key: "all", label: "All", icon: "🔔" },
@@ -607,12 +1369,31 @@ export default function NotificationsPage() {
 
   const markAllRead = () =>
     setNotifications((p) => p.map((n) => ({ ...n, read: true })));
+
   const markRead = (id: string) =>
     setNotifications((p) =>
       p.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
-  const deleteNotif = (id: string) =>
-    setNotifications((p) => p.filter((n) => n.id !== id));
+
+  /* ✅ Dismiss notification permanently */
+  const dismissNotif = async (id: string) => {
+    const newDismissed = new Set(dismissedIds);
+    newDismissed.add(id);
+    setDismissedIds(newDismissed);
+    await saveDismissed(newDismissed);
+  };
+
+  /* Clear all dismissible notifications */
+  const clearAll = async () => {
+    const newDismissed = new Set(dismissedIds);
+    const count = notifications.filter((n) => n.dismissible).length;
+    notifications
+      .filter((n) => n.dismissible)
+      .forEach((n) => newDismissed.add(n.id));
+    setDismissedIds(newDismissed);
+    await saveDismissed(newDismissed);
+    showSuccess(`Cleared ${count} notification${count > 1 ? "s" : ""}`);
+  };
 
   /* ── Notification card ── */
   const NotifCard = ({ item, index }: { item: NotifItem; index: number }) => (
@@ -722,13 +1503,15 @@ export default function NotificationsPage() {
           {!item.read && (
             <View style={[nSt.unreadDot, { backgroundColor: item.color }]} />
           )}
-          <Pressable
-            className={Platform.OS === "web" ? "sk-np-del" : undefined}
-            onPress={() => deleteNotif(item.id)}
-            style={({ pressed }) => [nSt.delBtn, pressed && { opacity: 0.5 }]}
-          >
-            <Text style={{ color: txtSec, fontSize: 13 }}>✕</Text>
-          </Pressable>
+          {item.dismissible && (
+            <Pressable
+              className={Platform.OS === "web" ? "sk-np-del" : undefined}
+              onPress={() => dismissNotif(item.id)}
+              style={({ pressed }) => [nSt.delBtn, pressed && { opacity: 0.5 }]}
+            >
+              <Text style={{ color: txtSec, fontSize: 13 }}>✕</Text>
+            </Pressable>
+          )}
         </View>
       </Pressable>
     </Animated.View>
@@ -795,76 +1578,314 @@ export default function NotificationsPage() {
     return <View style={nSt.filterRow}>{chips}</View>;
   };
 
-  /* ── Top bar (wide) ── */
-  const WideTopBar = () => (
-    <View
-      style={[
-        nSt.topBar,
-        {
-          backgroundColor: dark ? "#0a0f20" : "#ffffff",
-          borderBottomColor: border,
-        },
-        Platform.OS === "web"
-          ? ({ position: "sticky", top: 0, zIndex: 200 } as any)
-          : {},
-      ]}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <Pressable
-          onPress={() => setSidebarOpen((s) => !s)}
-          style={[
-            nSt.hambBtn,
-            {
-              backgroundColor: sidebarOpen
-                ? dark
-                  ? "rgba(99,102,241,0.14)"
-                  : "rgba(99,102,241,0.08)"
-                : "transparent",
-              borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-            },
-          ]}
-        >
-          <View style={{ gap: 4 }}>
-            {([18, 14, 10] as number[]).map((w, i) => (
-              <View
-                key={i}
-                style={{
-                  height: 2,
-                  width: w,
-                  borderRadius: 99,
-                  backgroundColor: dark
-                    ? "rgba(238,242,255,0.6)"
-                    : "rgba(15,23,42,0.5)",
-                }}
-              />
-            ))}
+  /* ── Top bar (wide)  ════ */
+  const WideTopBar = () => {
+    const [showDrop, setShowDrop] = useState(false);
+    const [showNotif2, setShowNotif2] = useState(false);
+    const bellAnim = useRef(new Animated.Value(1)).current;
+    const [time, setTime] = useState(() =>
+      new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    );
+    const [seconds, setSeconds] = useState(() => new Date().getSeconds());
+
+    useEffect(() => {
+      const tm = setInterval(() => {
+        const now = new Date();
+        setTime(
+          now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        );
+        setSeconds(now.getSeconds());
+      }, 1000);
+      return () => clearInterval(tm);
+    }, []);
+
+    return (
+      <View
+        style={[
+          nSt.topBar,
+          {
+            backgroundColor: dark ? "#0a0f20" : "#ffffff",
+            borderBottomColor: border,
+          },
+          Platform.OS === "web"
+            ? ({ position: "sticky", top: 0, zIndex: 200 } as any)
+            : {},
+        ]}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Pressable
+            onPress={() => setSidebarOpen((s) => !s)}
+            style={[
+              nSt.hambBtn,
+              {
+                backgroundColor: sidebarOpen
+                  ? dark
+                    ? "rgba(99,102,241,0.14)"
+                    : "rgba(99,102,241,0.08)"
+                  : "transparent",
+                borderColor: dark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.08)",
+              },
+            ]}
+          >
+            <View style={{ gap: 4 }}>
+              {[
+                { w: sidebarOpen ? 14 : 18 },
+                { w: 14 },
+                { w: sidebarOpen ? 18 : 10 },
+              ].map((line, i) => (
+                <View
+                  key={i}
+                  style={[
+                    nSt.hambLine,
+                    {
+                      backgroundColor: sidebarOpen
+                        ? ACCENT
+                        : dark
+                          ? "rgba(238,242,255,0.6)"
+                          : "rgba(15,23,42,0.5)",
+                      width: line.w,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          </Pressable>
+          <View>
+            <Text style={[nSt.pageTitle, { color: txtPri }]}>
+              Notifications
+            </Text>
+            <Text style={[nSt.pageSub, { color: txtSec }]}>
+              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up 🎉"}
+            </Text>
           </View>
-        </Pressable>
-        <View>
-          <Text style={[nSt.pageTitle, { color: txtPri }]}>Notifications</Text>
-          <Text style={[nSt.pageSub, { color: txtSec }]}>
-            {unreadCount > 0 ? `${unreadCount} unread` : "All caught up 🎉"}
-          </Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          {/* Clock — web only */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 9,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: border,
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.03)"
+                : "rgba(99,102,241,0.03)",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}
+                strokeWidth="2"
+              />
+              <circle
+                cx={12}
+                cy={12}
+                r={10}
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth="2"
+                strokeDasharray={`${(seconds / 60) * 62.8} 62.8`}
+                strokeLinecap="round"
+                transform="rotate(-90 12 12)"
+                style={{ transition: "stroke-dasharray 0.5s linear" } as any}
+              />
+              <circle cx={12} cy={12} r={2} fill="#6366f1" />
+            </svg>
+            <View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "800",
+                  color: txtPri,
+                  letterSpacing: -0.3,
+                }}
+              >
+                {time}
+              </Text>
+              <Text style={{ fontSize: 10, fontWeight: "500", color: txtSec }}>
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+          </View>
+
+          {/* Dark mode toggle — web only */}
+          <Pressable
+            onPress={toggleDark}
+            style={
+              {
+                width: 44,
+                height: 26,
+                borderRadius: 99,
+                backgroundColor: dark ? ACCENT : "rgba(0,0,0,0.1)",
+                justifyContent: "center",
+                position: "relative",
+                ...(Platform.OS === "web"
+                  ? ({ cursor: "pointer" } as any)
+                  : {}),
+              } as any
+            }
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: 3,
+                left: dark ? 21 : 3,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: "white",
+                alignItems: "center",
+                justifyContent: "center",
+                ...(Platform.OS === "web"
+                  ? ({
+                      transition: "left .25s",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                    } as any)
+                  : {}),
+              }}
+            >
+              <Text style={{ fontSize: 11 }}>{dark ? "🌙" : "☀️"}</Text>
+            </View>
+          </Pressable>
+
+          {/* Bell with sync dot*/}
+          <Pressable
+            style={
+              {
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+              } as any
+            }
+            onPress={() => setShowNotif2((s) => !s)}
+          >
+            <Animated.View style={{ transform: [{ scale: bellAnim }] }}>
+              <Text style={{ fontSize: 18 }}>🔔</Text>
+            </Animated.View>
+
+            {/* SYNC DOT  */}
+            <Animated.View
+              style={[
+                {
+                  position: "absolute",
+                  top: 7,
+                  right: 7,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: isSynced ? "#34d399" : "#f87171",
+                  transform: [{ scale: pulseAnim }],
+                  ...(Platform.OS === "web"
+                    ? ({ animation: "sk-pulse 2s infinite" } as any)
+                    : {}),
+                },
+              ]}
+            />
+
+            {pendingTaskCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  backgroundColor: "#ef4444",
+                  borderRadius: 10,
+                  paddingHorizontal: 5,
+                  paddingVertical: 1,
+                }}
+              >
+                <Text
+                  style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}
+                >
+                  {pendingTaskCount}
+                </Text>
+              </View>
+            )}
+            {showNotif2 && (
+              <NotifDropdown
+                dark={dark}
+                notifications={[]}
+                pendingTasks={pendingTaskCount}
+                streak={streak}
+                onClose={() => setShowNotif2(false)}
+                onViewAll={() => setShowNotif2(false)}
+              />
+            )}
+          </Pressable>
+
+          {/* Avatar + profile dropdown (Match Dashboard) */}
+          <View style={{ position: "relative" }}>
+            <Pressable
+              onPress={() => setShowDrop((s) => !s)}
+              style={[
+                {
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+                Platform.OS === "web"
+                  ? ({
+                      background: "linear-gradient(135deg,#f97316,#ef4444)",
+                      boxShadow: "0 3px 14px rgba(239,68,68,0.35)",
+                      cursor: "pointer",
+                      outline: showDrop
+                        ? "3px solid #6366f1"
+                        : "3px solid transparent",
+                      transform: [{ scale: showDrop ? 1.1 : 1 }],
+                    } as any)
+                  : { backgroundColor: "#f97316" },
+              ]}
+            >
+              <Text style={{ color: "white", fontWeight: "900", fontSize: 15 }}>
+                {(displayName || "U").charAt(0).toUpperCase()}
+              </Text>
+            </Pressable>
+            {showDrop && (
+              <ProfileDrop
+                dark={dark}
+                displayName={displayName}
+                email={userEmail}
+                overallPct={getOverallProgress()}
+                streak={streak}
+                skillScore={skillScore}
+                userRole={userData?.role || "Learner"}
+                onClose={() => setShowDrop(false)}
+                onToggleDark={toggleDark}
+                onShowV2={() => showComingSoon()}
+                router={router}
+                onLogoutReset={() => {}}
+              />
+            )}
+          </View>
         </View>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <LiveClock dark={dark} />
-        <Pressable
-          onPress={async () => { setDarkMode(!dark); const { saveTheme } = require("../src/services/uiPreferences"); await saveTheme(!dark); }}
-          style={{ width: 44, height: 26, borderRadius: 99, backgroundColor: dark ? "#6366f1" : "rgba(0,0,0,0.1)", justifyContent: "center", position: "relative" } as any}
-        >
-          <View style={{ position: "absolute", top: 3, left: dark ? 21 : 3, width: 20, height: 20, borderRadius: 10, backgroundColor: "white", alignItems: "center", justifyContent: "center", transition: "left .25s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } as any}>
-            <Text style={{ fontSize: 11 }}>{dark ? "🌙" : "☀️"}</Text>
-          </View>
-        </Pressable>
-        {unreadCount > 0 && (
-          <Pressable onPress={markAllRead} style={nSt.markAllBtn}>
-            <Text style={nSt.markAllTx}>Mark all read</Text>
-          </Pressable>
-        )}
-      </View>
-    </View>
-  );
+    );
+  };
 
   /* ── Stat cards ── */
   const StatsRow = () => (
@@ -917,6 +1938,109 @@ export default function NotificationsPage() {
     </View>
   );
 
+  /* ── Overall Progress Card ── */
+  const OverallProgressCard = () => {
+    const overallPct = getOverallProgress();
+    const totalTasks = goals.reduce(
+      (a: number, g: any) => a + g.tasks.length,
+      0,
+    );
+    const completedTasks = goals.reduce(
+      (a: number, g: any) => a + g.tasks.filter((t: any) => t.completed).length,
+      0,
+    );
+
+    return (
+  <View
+    style={[
+      nSt.progressCard,
+      {
+        backgroundColor: cardBg,
+        borderColor: border,
+      },
+      Platform.OS === "web"
+        ? ({
+            boxShadow: dark
+              ? "0 4px 20px rgba(0,0,0,0.3)"
+              : "0 4px 16px rgba(99,102,241,0.12)",
+          } as any)
+        : {},
+    ]}
+  >
+    <Text style={[nSt.progressTitle, { color: ACCENT }]}>
+      OVERALL PROGRESS
+    </Text>
+
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+      {/* RING */}
+      <View
+        style={[
+          nSt.progressRing,
+          Platform.OS === "web"
+            ? ({
+                background: `conic-gradient(${ACCENT} ${
+                  overallPct * 3.6
+                }deg, ${
+                  dark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.07)"
+                } 0deg)`,
+              } as any)
+            : { borderWidth: 5, borderColor: ACCENT },
+        ]}
+      >
+        <View
+          style={[
+            nSt.progressRingInner,
+            { backgroundColor: dark ? "#0a0f20" : "#f5f7ff" },
+          ]}
+        >
+          <Text style={{ fontSize: 11, fontWeight: "800", color: ACCENT }}>
+            {overallPct}%
+          </Text>
+        </View>
+      </View>
+
+      {/* TEXT */}
+      <View>
+        <Text style={{ fontSize: 20, fontWeight: "900", color: txtPri }}>
+          {completedTasks}
+          <Text style={{ fontSize: 13, fontWeight: "500", color: txtSec }}>
+            /{totalTasks}
+          </Text>
+        </Text>
+
+        <Text style={{ fontSize: 11, fontWeight: "500", color: txtSec }}>
+          tasks done
+        </Text>
+      </View>
+    </View>
+
+    {/* BAR */}
+    <View
+      style={{
+        height: 5,
+        borderRadius: 99,
+        backgroundColor: dark
+          ? "rgba(255,255,255,0.07)"
+          : "rgba(0,0,0,0.07)",
+        overflow: "hidden",
+        marginTop: 10,
+      }}
+    >
+      <View
+        style={{
+          height: "100%",
+          width: `${overallPct}%`,
+          backgroundColor: ACCENT,
+          borderRadius: 99,
+        }}
+      />
+    </View>
+  </View>
+);
+  };
+
   /* ── Empty state ── */
   const EmptyState = () => (
     <View
@@ -964,8 +2088,12 @@ export default function NotificationsPage() {
               dark={dark}
               router={router}
               isSynced={isSynced}
-              displayName={userData?.displayName || "User"}
+              displayName={displayName}
               unreadCount={unreadCount}
+              userRole={userData?.role || "Software Developer"}
+              overallPct={getOverallProgress()}
+              completedTasks={completedTasks}
+              totalTasks={totalTasks}
             />
           </View>
 
@@ -997,13 +2125,57 @@ export default function NotificationsPage() {
                       ? "All Notifications"
                       : `${FILTERS.find((f) => f.key === activeFilter)?.label} Notifications`}
                   </Text>
-                  {filtered.length > 0 && (
-                    <Text
-                      style={{ fontSize: 12, fontWeight: "500", color: txtSec }}
-                    >
-                      {filtered.length} item{filtered.length !== 1 ? "s" : ""}
-                    </Text>
-                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    {filtered.length > 0 && (
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "500",
+                          color: txtSec,
+                        }}
+                      >
+                        {filtered.length} item{filtered.length !== 1 ? "s" : ""}
+                      </Text>
+                    )}
+                    {/*  CLEAR ALL BUTTON */}
+                    {filtered.some(
+                      (n) => n.dismissible && !dismissedIds.has(n.id),
+                    ) && (
+                      <Pressable
+                        onPress={clearAll}
+                        style={({ pressed }) => ({
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          backgroundColor: pressed
+                            ? dark
+                              ? "rgba(239,68,68,0.2)"
+                              : "rgba(239,68,68,0.1)"
+                            : "transparent",
+                          borderWidth: 1,
+                          borderColor: dark
+                            ? "rgba(239,68,68,0.3)"
+                            : "rgba(239,68,68,0.2)",
+                        })}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "700",
+                            color: "#ef4444",
+                          }}
+                        >
+                          Clear All
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
                 {filtered.length === 0 ? (
                   <EmptyState />
@@ -1130,6 +2302,7 @@ const nSt = StyleSheet.create({
     borderWidth: 1,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
   },
+  hambLine: { height: 2, borderRadius: 99 },
   pageTitle: {
     fontSize: 20,
     fontWeight: "900",
@@ -1269,4 +2442,55 @@ const nSt = StyleSheet.create({
     borderWidth: 1,
     marginTop: 8,
   },
+
+ progressCard: {
+  borderRadius: 16,   
+  padding: 16,        
+  borderWidth: 1,
+  marginBottom: 20,  
+},
+  progressTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 16,
+    textTransform: "uppercase" as const,
+  },
+progressContent: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 12,            // was 16 ❗
+  marginBottom: 10,   // was 16 ❗
+},
+  progressRingContainer: {
+    width: 68,
+    height: 68,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressRing: {
+  width: 52,          
+  height: 52,
+  borderRadius: 26,
+},
+  progressRingInner: {
+  width: 40,          // was 54 ❗
+  height: 40,
+  borderRadius: 20,
+},
+  progressPercent: {
+  fontSize: 11,       // was 14 ❗
+  fontWeight: "800",
+},
+  progressStats: {
+    flex: 1,
+  },
+  progressTasks: {
+  fontSize: 20,       // was 24 ❗
+  fontWeight: "900",
+},
+ progressLabel: {
+  fontSize: 11,       // was 12 ❗
+  marginTop: 1,
+},
 });

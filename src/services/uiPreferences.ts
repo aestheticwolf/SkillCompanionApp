@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 const THEME_KEY = "DARK_MODE";
 
-/* 🔥 NEW: instantly set theme on web before app loads */
+
 if (Platform.OS === "web" && typeof document !== "undefined") {
   try {
     const existing =
@@ -18,7 +18,7 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
   } catch {}
 }
 
-/* 🔥 NEW: helper (does NOT break anything) */
+
 function stampDomTheme(isDark: boolean) {
   if (Platform.OS === "web" && typeof document !== "undefined") {
     document.documentElement.dataset.skTheme = isDark ? "dark" : "light";
@@ -29,7 +29,7 @@ function stampDomTheme(isDark: boolean) {
 export const saveTheme = async (value: boolean) => {
   await AsyncStorage.setItem(THEME_KEY, value.toString());
 
-  // 🔥 NEW: also store readable format (optional but useful)
+
   await AsyncStorage.setItem("theme", value ? "dark" : "light");
 
   stampDomTheme(value);
