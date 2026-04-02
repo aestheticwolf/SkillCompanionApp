@@ -784,7 +784,7 @@ function NotifSidebar({
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
          <View style={sbSt.logoRow}>
            <View style={[sbSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
-             <SkillPathLogo size={48} />
+             <SkillPathLogo size={48} dark={dark} />
            </View>
            <View>
             <Text style={[sbSt.logoName,
@@ -1124,15 +1124,20 @@ export default function NotificationsPage() {
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) setStreak(snap.data().streak || 0);
-    });
-    return unsub;
-  }, [user.uid]);
+ useEffect(() => {
+  if (!user) return;
+
+  const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+    if (snap.exists()) setStreak(snap.data().streak || 0);
+  });
+
+  return unsub;
+}, [user]);
 
   /* Load dismissed notifications from storage */
   useEffect(() => {
+      if (!user) return;
+
     const loadDismissed = async () => {
       try {
         const storage =
@@ -1324,8 +1329,8 @@ export default function NotificationsPage() {
   const skillScore = Math.min(9999, completedTasks * 50 + goals.length * 120 + streak * 15);
 
   /* Use userData from AuthContext */
-  const displayName =
-    userData?.displayName || user?.displayName || user?.email || "User";
+ const displayName =
+  userData?.displayName || user?.displayName || user?.email || "User";
   const userEmail = user?.email || "";
 
   const unreadCount = notifications.filter((n) => !n.read).length;

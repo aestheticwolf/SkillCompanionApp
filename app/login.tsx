@@ -82,6 +82,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
   const [focusedField, setFocusedField] = useState<"email"|"password"|null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+const eyeAnim = useRef(new Animated.Value(0)).current;
 
   /* ── Animations ── */
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -98,6 +100,25 @@ export default function Login() {
       Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, tension: 65, friction: 7, delay: 150 }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    Animated.sequence([
+      Animated.timing(eyeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(eyeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, 10000);
+
+  return () => clearInterval(interval);
+}, []);
 
   /* ── Handler — 100% original logic ── */
   const handleLogin = async () => {
@@ -247,26 +268,61 @@ export default function Login() {
             {/* Password input */}
             <Animated.View style={{ transform: [{ scale: pwScale }] }}>
               <View style={[styles.inputWrap,
-                focusedField === "password" && styles.inputWrapFocused,
-                Platform.OS === "web" && focusedField === "password"
-                  ? { boxShadow: `0 0 0 3px ${ACCENT}22`, transition: "box-shadow .2s,border-color .2s" } as any : {},
-              ]}>
-                <Text style={[styles.inputIcon, { opacity: focusedField === "password" || password ? 1 : 0.45 }]}>🔒</Text>
-                <TextInput
-                  style={[styles.input,
-                    Platform.OS === "web" ? { outline: "none", fontFamily: "Plus Jakarta Sans,sans-serif" } as any : {},
-                  ]}
-                  placeholder="Password"
-                  placeholderTextColor="rgba(99,102,241,0.4)"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  onFocus={() => onFocus("password", pwScale)}
-                  onBlur={() => onBlur(pwScale)}
-                  onSubmitEditing={handleLogin}
-                />
-              </View>
-            </Animated.View>
+  focusedField === "password" && styles.inputWrapFocused,
+]}>
+  
+  {/* Lock icon */}
+  <Text style={[styles.inputIcon, { opacity: focusedField === "password" || password ? 1 : 0.45 }]}>
+    🔒
+  </Text>
+
+  {/* Input */}
+  <TextInput
+    style={styles.input}
+    placeholder="Password"
+    placeholderTextColor="rgba(99,102,241,0.4)"
+    secureTextEntry={!showPassword}
+    value={password}
+    onChangeText={setPassword}
+    onFocus={() => onFocus("password", pwScale)}
+    onBlur={() => onBlur(pwScale)}
+    onSubmitEditing={handleLogin}
+  />
+
+ 
+<Pressable onPress={() => setShowPassword(!showPassword)}>
+  <Animated.View
+    style={{
+      width: 22,
+      height: 14,
+      borderRadius: 10,
+      borderWidth: 1.5,
+      borderColor: "#6366f1",
+      justifyContent: "center",
+      alignItems: "center",
+      transform: [
+        {
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        },
+      ],
+    }}
+  >
+    <View
+      style={{
+        width: showPassword ? 6 : 12,
+        height: 2,
+        backgroundColor: "#6366f1",
+        transform: [{ rotate: showPassword ? "0deg" : "45deg" }],
+      }}
+    />
+  </Animated.View>
+</Pressable>
+
+</View>
+</Animated.View>
 
             {/* Login button */}
             <Animated.View style={{ transform: [{ scale: btnScale }] }}>

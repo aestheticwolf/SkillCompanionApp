@@ -96,6 +96,9 @@ export default function Signup() {
   const [roleOpen,     setRoleOpen]     = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [focusedField, setFocusedField] = useState<"name"|"email"|"password"|"role"|null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+const eyeAnim = useRef(new Animated.Value(0)).current;
+
 
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const slideAnim  = useRef(new Animated.Value(40)).current;
@@ -112,6 +115,28 @@ export default function Signup() {
       Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, tension: 65, friction: 7, delay: 150 }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+  const loop = Animated.loop(
+    Animated.sequence([
+      Animated.timing(eyeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(eyeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.delay(9000),
+    ])
+  );
+
+  loop.start();
+
+  return () => loop.stop();
+}, []);
 
   const filteredRoles = ROLE_SUGGESTIONS.filter(r =>
     r.label.toLowerCase().includes(roleInput.toLowerCase())
@@ -269,7 +294,7 @@ export default function Signup() {
               </View>
             </Animated.View>
 
-            {/* Password */}
+            {/* Password
             <Animated.View style={{ transform: [{ scale: pwScale }] }}>
               <View style={[styles.inputWrap,
                 focusedField === "password" && styles.inputFocused,
@@ -279,12 +304,71 @@ export default function Signup() {
                 <TextInput
                   style={[styles.inp, IS_WEB ? { outline: "none", fontFamily: "Plus Jakarta Sans,sans-serif" } as any : {}]}
                   placeholder="Password (min. 6 characters)" placeholderTextColor="rgba(99,102,241,0.4)"
-                  secureTextEntry value={password} onChangeText={setPassword}
+                  secureTextEntry={!showPassword} value={password} onChangeText={setPassword}
                   onFocus={() => onFocus("password", pwScale)} onBlur={() => onBlur(pwScale)}
                   onSubmitEditing={handleSignup}
-                />
-              </View>
-            </Animated.View>
+                /> */}
+
+                {/* Password */}
+<Animated.View style={{ transform: [{ scale: pwScale }] }}>
+  <View style={[styles.inputWrap,
+    focusedField === "password" && styles.inputFocused,
+    IS_WEB && focusedField === "password"
+      ? { boxShadow: `0 0 0 3px ${ACCENT}22` } as any
+      : {},
+  ]}>
+
+    {/* Lock icon */}
+    <Text style={[styles.icon, { opacity: focusedField === "password" || password ? 1 : 0.45 }]}>
+      🔒
+    </Text>
+
+    {/* Input */}
+    <TextInput
+      style={[styles.inp, IS_WEB ? { outline: "none", fontFamily: "Plus Jakarta Sans,sans-serif" } as any : {}]}
+      placeholder="Password (min. 6 characters)"
+      placeholderTextColor="rgba(99,102,241,0.4)"
+      secureTextEntry={!showPassword}  
+      value={password}
+      onChangeText={setPassword}
+      onFocus={() => onFocus("password", pwScale)}
+      onBlur={() => onBlur(pwScale)}
+      onSubmitEditing={handleSignup}
+    />
+
+    <Pressable onPress={() => setShowPassword(!showPassword)}>
+      <Animated.View
+        style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+          transform: [
+            {
+              scale: eyeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.15],
+              }),
+            },
+          ],
+        }}
+      >
+        <View
+          style={{
+            width: showPassword ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showPassword ? "0deg" : "45deg" }],
+          }}
+        />
+      </Animated.View>
+    </Pressable>
+
+  </View>
+</Animated.View>
 
             {/* Password strength */}
             {password.length > 0 && (

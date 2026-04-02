@@ -14,7 +14,9 @@ import { auth } from "@/src/services/firebase";
 
 import { getGoals } from "../services/firestore";
 
-import { doc, getDoc } from "firebase/firestore";
+// import { doc, getDoc } from "firebase/firestore";
+
+import { doc, onSnapshot } from "firebase/firestore";
 
 import { db } from "../services/firebase";
 
@@ -71,34 +73,35 @@ export function AuthProvider({
 
   /* Auth Listener */
   useEffect(() => {
-    const unsub =
-      onAuthStateChanged(
-        auth,
-        async (u) => {
-          setUser(u);
+  let unsubUser: any;
 
-          if (u) {
-  await loadGoals(u.uid);
+  const unsub = onAuthStateChanged(auth, async (u) => {
+    setUser(u);
 
+    if (u) {
+      await loadGoals(u.uid);
 
-  const ref = doc(db, "users", u.uid);
-  const snap = await getDoc(ref);
+      const ref = doc(db, "users", u.uid);
 
-  if (snap.exists()) {
-    setUserData(snap.data());
-  }
-
-} else {
-  setGoals([]);
-  setUserData(null);
-}
-
-          setLoading(false);
+      unsubUser = onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+          setUserData(snap.data());
         }
-      );
+      });
 
-    return unsub;
-  }, []);
+    } else {
+      setGoals([]);
+      setUserData(null);
+    }
+
+    setLoading(false);
+  });
+
+  return () => {
+    unsub();
+    if (unsubUser) unsubUser();
+  };
+}, []);
 
   return (
     <AuthContext.Provider

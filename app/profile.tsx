@@ -1,6 +1,7 @@
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   Pressable,
   Alert,
@@ -808,7 +809,7 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
       <View style={sbSt.logoRow}>
         <View style={[sbSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
-          <SkillPathLogo size={48} />
+          <SkillPathLogo size={48} dark={dark} />
         </View>
         <View>
           <Text style={[sbSt.logoName,
@@ -1316,6 +1317,7 @@ export default function Profile() {
   const [darkMode,    setDarkMode]    = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [role,        setRole]        = useState("Intern Developer");
+  const roleFromContext = userData?.role || role;
   const [editingRole,  setEditingRole]  = useState(false);
   const [roleInput,    setRoleInput]    = useState("Intern Developer");
   const [editingName,  setEditingName]  = useState(false);
@@ -1329,12 +1331,18 @@ export default function Profile() {
   const [pwdSuccess,   setPwdSuccess]   = useState(false);
   const [savingPwd,    setSavingPwd]    = useState(false);
   
-  /* ✅ ADD THESE FOR SYNC DOT (Match Dashboard) */
+  /* SYNC DOT  */
   const [isSynced, setIsSynced] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
   /* Live streak from Firestore — same as dashboard */
   const [streak, setStreak] = useState(0);
+
+  const [showCurrent, setShowCurrent] = useState(false);
+const [showNew, setShowNew] = useState(false);
+const [showConfirm, setShowConfirm] = useState(false);
+
+const eyeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadTheme().then(setDarkMode);
@@ -1384,7 +1392,7 @@ export default function Profile() {
     if (dn && dn !== authCtx?.user?.email) {
       setNameInput(dn);
     }
-  }, [authCtx?.user?.displayName]);
+ }, [authCtx?.user?.displayName, authCtx?.userData?.displayName]);
 
   /* ── Animations — original preserved ── */
   const fadeAnim    = useRef(new Animated.Value(0)).current;
@@ -1400,6 +1408,28 @@ export default function Profile() {
       Animated.spring(scaleAvatar, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8, delay: 120 }),
     ]).start();
   }, []);
+
+
+  useEffect(() => {
+  const loop = Animated.loop(
+    Animated.sequence([
+      Animated.timing(eyeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(eyeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.delay(9000),
+    ])
+  );
+
+  loop.start();
+  return () => loop.stop();
+}, []);
 
   /* ── ALL hooks must be before any conditional return ── */
   const { width: screenW } = useWindowDimensions();
@@ -1451,6 +1481,9 @@ export default function Profile() {
     try {
       await updateProfile(user, { displayName: trimmed });
       /* Also persist to Firestore so it syncs across screens */
+
+      await user.reload();
+
       if (authCtx?.user?.uid) {
         await setDoc(doc(db, "users", authCtx.user.uid), { displayName: trimmed }, { merge: true });
       }
@@ -1463,8 +1496,9 @@ export default function Profile() {
   };
 
   /* ── Derived data — original unchanged ── */
-  /* ✅ KEY FIX: Use userData from AuthContext like dashboard.tsx */
-  const displayName = userData?.displayName || user?.displayName || user?.email || "User";
+  /* KEY FIX: Use userData from AuthContext like dashboard.tsx */
+const displayName =
+  userData?.displayName || user?.displayName || user?.email || "User";
   const initials    = displayName.charAt(0).toUpperCase();
   const email       = user?.email || "";
 
@@ -1568,7 +1602,7 @@ export default function Profile() {
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#34d399",
                 ...(Platform.OS === "web" ? { animation: "sk-pulse 1.5s infinite" } as any : {}),
               }} />
-              <Text style={styles.roleTx}>👨‍💻 {role}</Text>
+              <Text style={styles.roleTx}>👨‍💻 {roleFromContext}</Text>
             </View>
           </View>
 
@@ -1816,38 +1850,337 @@ export default function Profile() {
                         <Text style={{ fontSize: 12, fontWeight: "600", color: "#ef4444", flex: 1 }}>{pwdError}</Text>
                       </View>
                     )}
+                  
                     {/* Current password */}
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>Current Password</Text>
-                    {Platform.OS === "web" ? (
-                      <input type="password" value={currentPwd} onChange={(e: any) => setCurrentPwd(e.target.value)} placeholder="Enter current password"
-                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 12, outline: "none", fontFamily: "inherit" } as any} />
-                    ) : (
-                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 }}>
-                        <Text style={{ color: textSecondary, fontSize: 14 }}>{currentPwd ? "••••••••" : "Enter current password"}</Text>
-                      </View>
-                    )}
-                    {/* New password */}
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>New Password</Text>
-                    {Platform.OS === "web" ? (
-                      <input type="password" value={newPwd} onChange={(e: any) => setNewPwd(e.target.value)} placeholder="Min 6 characters"
-                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 12, outline: "none", fontFamily: "inherit" } as any} />
-                    ) : (
-                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 }}>
-                        <Text style={{ color: textSecondary, fontSize: 14 }}>{newPwd ? "••••••••" : "Min 6 characters"}</Text>
-                      </View>
-                    )}
-                    {/* Confirm password */}
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>Confirm New Password</Text>
-                    {Platform.OS === "web" ? (
-                      <input type="password" value={confirmPwd} onChange={(e: any) => setConfirmPwd(e.target.value)}
-                        onKeyDown={(e: any) => { if (e.key === "Enter") changePassword(); }}
-                        placeholder="Repeat new password"
-                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, background: dark ? "rgba(255,255,255,0.05)" : "#f8faff", color: dark ? "#eef2ff" : "#0f172a", fontSize: 14, marginBottom: 16, outline: "none", fontFamily: "inherit" } as any} />
-                    ) : (
-                      <View style={{ backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff", borderRadius: 10, borderWidth: 1, borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 }}>
-                        <Text style={{ color: textSecondary, fontSize: 14 }}>{confirmPwd ? "••••••••" : "Repeat new password"}</Text>
-                      </View>
-                    )}
+<Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>
+  Current Password
+</Text>
+
+{Platform.OS === "web" ? (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1.5,
+borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    backgroundColor: dark ? "rgba(255,255,255,0.05)" : "#f8faff",
+    paddingRight: 10,
+    marginBottom: 12
+  }}>
+    <input
+      type={showCurrent ? "text" : "password"}
+      value={currentPwd}
+      onChange={(e: any) => setCurrentPwd(e.target.value)}
+      placeholder="Enter current password"
+      style={{
+        flex: 1,
+        padding: "10px 14px",
+        border: "none",
+        outline: "none",
+        background: "transparent",
+        color: dark ? "#eef2ff" : "#0f172a",
+        fontSize: 14,
+      } as any}
+    />
+
+    <Pressable onPress={() => setShowCurrent(!showCurrent)}>
+      <Animated.View style={{
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showCurrent ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showCurrent ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+) : (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    paddingHorizontal: 14,
+    marginBottom: 12
+  }}>
+    <TextInput
+      style={{ flex: 1, color: textSecondary, fontSize: 14 }}
+      placeholder="Enter current password"
+      secureTextEntry={!showCurrent}
+      value={currentPwd}
+      onChangeText={setCurrentPwd}
+    />
+
+    <Pressable onPress={() => setShowCurrent(!showCurrent)}>
+      <Animated.View style={{
+        marginLeft: 8,
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showCurrent ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showCurrent ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+)}
+
+{/* New password */}
+<Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>
+  New Password
+</Text>
+
+{Platform.OS === "web" ? (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1.5,
+borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    backgroundColor: dark ? "rgba(255,255,255,0.05)" : "#f8faff",
+    paddingRight: 10,
+    marginBottom: 12
+  }}>
+    <input
+      type={showNew ? "text" : "password"}
+      value={newPwd}
+      onChange={(e: any) => setNewPwd(e.target.value)}
+      placeholder="Min 6 characters"
+      style={{
+        flex: 1,
+        padding: "10px 14px",
+        border: "none",
+        outline: "none",
+        background: "transparent",
+        color: dark ? "#eef2ff" : "#0f172a",
+        fontSize: 14,
+      } as any}
+    />
+
+    <Pressable onPress={() => setShowNew(!showNew)}>
+      <Animated.View style={{
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showNew ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showNew ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+) : (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    paddingHorizontal: 14,
+    marginBottom: 12
+  }}>
+    <TextInput
+      style={{ flex: 1, color: textSecondary, fontSize: 14 }}
+      placeholder="Min 6 characters"
+      secureTextEntry={!showNew}
+      value={newPwd}
+      onChangeText={setNewPwd}
+    />
+
+    <Pressable onPress={() => setShowNew(!showNew)}>
+      <Animated.View style={{
+        marginLeft: 8,
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showNew ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showNew ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+)}
+
+{/* Confirm password */}
+<Text style={{ fontSize: 11, fontWeight: "700", color: textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 6 }}>
+  Confirm New Password
+</Text>
+
+{Platform.OS === "web" ? (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    borderWidth: 1.5,
+borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    backgroundColor: dark ? "rgba(255,255,255,0.05)" : "#f8faff",
+    paddingRight: 10,
+    marginBottom: 16
+  }}>
+    <input
+      type={showConfirm ? "text" : "password"}
+      value={confirmPwd}
+      onChange={(e: any) => setConfirmPwd(e.target.value)}
+      onKeyDown={(e: any) => { if (e.key === "Enter") changePassword(); }}
+      placeholder="Repeat new password"
+      style={{
+        flex: 1,
+        padding: "10px 14px",
+        border: "none",
+        outline: "none",
+        background: "transparent",
+        color: dark ? "#eef2ff" : "#0f172a",
+        fontSize: 14,
+      } as any}
+    />
+
+    <Pressable onPress={() => setShowConfirm(!showConfirm)}>
+      <Animated.View style={{
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showConfirm ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showConfirm ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+) : (
+  <View style={{
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: dark ? "rgba(255,255,255,0.06)" : "#f8faff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+    paddingHorizontal: 14,
+    marginBottom: 16
+  }}>
+    <TextInput
+      style={{ flex: 1, color: textSecondary, fontSize: 14 }}
+      placeholder="Repeat new password"
+      secureTextEntry={!showConfirm}
+      value={confirmPwd}
+      onChangeText={setConfirmPwd}
+    />
+
+    <Pressable onPress={() => setShowConfirm(!showConfirm)}>
+      <Animated.View style={{
+        marginLeft: 8,
+        transform: [{
+          scale: eyeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.15],
+          }),
+        }],
+      }}>
+        <View style={{
+          width: 22,
+          height: 14,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: "#6366f1",
+          justifyContent: "center",
+          alignItems: "center",
+        }}>
+          <View style={{
+            width: showConfirm ? 6 : 12,
+            height: 2,
+            backgroundColor: "#6366f1",
+            transform: [{ rotate: showConfirm ? "0deg" : "45deg" }],
+          }} />
+        </View>
+      </Animated.View>
+    </Pressable>
+  </View>
+)}
                     {/* Strength indicator */}
                     {newPwd.length > 0 && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 14 }}>

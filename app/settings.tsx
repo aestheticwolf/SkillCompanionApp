@@ -966,7 +966,7 @@ function Sidebar({
               : {},
           ]}
         >
-          <SkillPathLogo size={48} />
+         <SkillPathLogo size={48} dark={dark} />
         </View>
         <View>
           <Text
@@ -1661,6 +1661,7 @@ export default function Settings() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [streak, setStreak] = useState(0);
   const [userRole, setUserRole] = useState("Intern Developer");
+  const roleFromContext = userData?.role || userRole;
   const [savedIndicator, setSavedIndicator] = useState<string | null>(null);
 
 
@@ -1689,7 +1690,7 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
-    if (!authCtx.user?.uid) return;
+    if (!authCtx.user) return;
     const unsub = onSnapshot(doc(db, "users", authCtx.user.uid), (snap) => {
       if (snap.exists()) {
         const d = snap.data();
@@ -1711,7 +1712,7 @@ export default function Settings() {
       }
     });
     return unsub;
-  }, [authCtx.user?.uid]);
+  }, [authCtx.user]);
 
   useEffect(() => {
     Animated.parallel([
@@ -1790,9 +1791,9 @@ export default function Settings() {
     completedTasks * 50 + totalGoals * 120 + streak * 15
   );
 
-  /* ✅ KEY FIX: Use userData from AuthContext like dashboard.tsx */
-  const displayName =
-    userData?.displayName || user?.displayName || user?.email || "User";
+  /*  KEY FIX: Use userData from AuthContext like dashboard.tsx */
+const displayName =
+  userData?.displayName || user?.displayName || user?.email || "User";
   const userEmail = user?.email || "";
 
   /* Theme */

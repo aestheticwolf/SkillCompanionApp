@@ -154,7 +154,7 @@ const NAV = [
     <View style={[sbSt.wrap, { backgroundColor: bg, borderRightColor: border }]}>
       <View style={sbSt.logoRow}>
         <View style={[sbSt.logoIcon, Platform.OS === "web" ? { animation: "sk-glow 3s ease-in-out infinite" } as any : {}]}>
-          <SkillPathLogo size={48} />
+         <SkillPathLogo size={48} dark={dark} />
         </View>
         <View>
          <Text style={[sbSt.logoName,
@@ -1387,16 +1387,20 @@ export default function Analytics() {
   }, []);
 
   /* Live Firestore — streak + role */
-  useEffect(() => {
-    const userRef = doc(db, "users", authCtx.user!.uid);
-    const unsub = onSnapshot(userRef, (snap) => {
-      if (snap.exists()) {
-        setStreak(snap.data().streak || 0);
-        setUserRole(snap.data().role || "Intern Developer");
-      }
-    });
-    return unsub;
-  }, []);
+useEffect(() => {
+  if (!user) return;
+
+  const userRef = doc(db, "users", user.uid);
+
+  const unsub = onSnapshot(userRef, (snap) => {
+    if (snap.exists()) {
+      setStreak(snap.data().streak || 0);
+      setUserRole(snap.data().role || "Intern Developer");
+    }
+  });
+
+  return unsub;
+}, [user]);
 
   /*  PULSE ANIMATION */
   useEffect(() => {
@@ -1437,8 +1441,9 @@ export default function Analytics() {
   const overallPct = getOverallProgress();
   const skillScore = Math.min(9999, completedTasks * 50 + totalGoals * 120 + streak * 15);
 
-  /* ✅ KEY FIX: Use userData from AuthContext like dashboard.tsx */
-  const displayName = userData?.displayName || user?.displayName || user?.email || "User";
+  /*  KEY FIX: Use userData from AuthContext like dashboard.tsx */
+const displayName =
+  userData?.displayName || user?.displayName || user?.email || "User";
   const userEmail = user?.email || "";
 
   /* Toggle dark mode */

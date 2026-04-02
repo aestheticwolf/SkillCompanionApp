@@ -153,9 +153,10 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
   }, []);
 
   if (Platform.OS === "web") {
-    const ring = transparent
-      ? (dark ? "#0a0f20" : "#2e1a47")
-      : (dark ? "#0d1424" : "white");
+    // const ring = transparent
+    //   ? (dark ? "#0a0f20" : "#2e1a47")
+    //   : (dark ? "#0a0f20" : "white");
+    const ring = dark ? "#0d1424" : "white";
 
     const PATH = "M16 74 C 26 68, 34 56, 46 46 C 58 36, 66 26, 82 22";
 
