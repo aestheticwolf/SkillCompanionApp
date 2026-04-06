@@ -952,6 +952,7 @@ function Sidebar({
   const NAV = [
     { icon: "🏠", label: "Dashboard", route: "/dashboard" },
     { icon: "📊", label: "Analytics", route: "/analytics" },
+    { icon: "🎯", label: "Goals",       route: "/goals" },
     { icon: "🔔", label: "Reminders", route: "/notifications" },
     { icon: "⚙️", label: "Settings", route: "/settings", active: true },
   ];

@@ -802,6 +802,7 @@ function Sidebar({ dark, router, overallPct, completedTasks, totalTasks }: any) 
   const NAV = [
   { icon: "🏠", label: "Dashboard", route: "/dashboard", active: false },
   { icon: "📊", label: "Analytics",  route: "/analytics", active: false },
+  { icon: "🎯", label: "Goals",       route: "/goals" },
   { icon: "🔔", label: "Reminders",  route: "/notifications", active: false },
   { icon: "⚙️", label: "Settings",   route: "/settings", active: false },
 ];

@@ -769,6 +769,7 @@ function NotifSidebar({
   const NAV = [
     { icon: "🏠", label: "Dashboard", route: "/dashboard" },
     { icon: "📊", label: "Analytics", route: "/analytics" },
+    { icon: "🎯", label: "Goals",       route: "/goals" },
     {
       icon: "🔔",
       label: "Reminders",
@@ -1222,7 +1223,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const notifs: NotifItem[] = [];
 
-    // ✅ TASK notifications - Always show when pending (can't be dismissed permanently)
+    // TASK notifications - Always show when pending (can't be dismissed permanently)
     goals.forEach((g: any, gi: number) => {
       g.tasks.forEach((t: any) => {
         if (
@@ -1245,13 +1246,13 @@ export default function NotificationsPage() {
             color: GOAL_COLORS[gi % GOAL_COLORS.length],
             category: "task",
             read: false,
-            dismissible: false, // ✅ Can't permanently dismiss task notifications
+            dismissible: false, //  Can't permanently dismiss task notifications
           });
         }
       });
     });
 
-    // ✅ STREAK notification - Only show when streak > 0 (can be dismissed)
+    // STREAK notification - Only show when streak > 0 (can be dismissed)
     if (streak > 0 && !dismissedIds.has("streak-info")) {
       notifs.unshift({
         id: "streak-info",
@@ -1265,11 +1266,11 @@ export default function NotificationsPage() {
         color: "#f97316",
         category: "streak",
         read: notifs.length === 0,
-        dismissible: true, // ✅ Can be dismissed
+        dismissible: true, //  Can be dismissed
       });
     }
 
-    // ✅ GOAL completion notifications - Only show when goal completed AND not dismissed
+    //  GOAL completion notifications - Only show when goal completed AND not dismissed
     goals.forEach((g: any, gi: number) => {
       const done = g.tasks.filter((t: any) => t.completed).length;
       const total = g.tasks.length;
@@ -1285,12 +1286,12 @@ export default function NotificationsPage() {
           color: GOAL_COLORS[gi % GOAL_COLORS.length],
           category: "goal",
           read: true,
-          dismissible: true, // ✅ Can be dismissed
+          dismissible: true, //  Can be dismissed
         });
       }
     });
 
-    // ✅ SYSTEM welcome notification - Can be dismissed
+    //  SYSTEM welcome notification - Can be dismissed
     const sysNotifId = "sys-welcome";
     if (!dismissedIds.has(sysNotifId)) {
       notifs.push({
@@ -1302,7 +1303,7 @@ export default function NotificationsPage() {
         color: "#6366f1",
         category: "system",
         read: true,
-        dismissible: true, // ✅ Can be dismissed
+        dismissible: true, //  Can be dismissed
       });
     }
 
@@ -1380,7 +1381,7 @@ export default function NotificationsPage() {
       p.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
 
-  /* ✅ Dismiss notification permanently */
+  /*  Dismiss notification permanently */
   const dismissNotif = async (id: string) => {
     const newDismissed = new Set(dismissedIds);
     newDismissed.add(id);
