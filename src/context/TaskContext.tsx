@@ -15,7 +15,6 @@ import {
   updateGoal as updateGoalFirestore,
 } from "../services/firestoreTasks";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /* Types */
 
@@ -40,7 +39,7 @@ type TaskContextType = {
   toggleTask: (goalId: string, taskId: string) => Promise<void>;
 
   deleteGoal: (goalId: string) => Promise<void>;
-  deleteTask: (goalId: string, taskId: string) => void;
+  deleteTask: (goalId: string, taskId: string) => Promise<void>;
 
   getOverallProgress: () => number;
   getGoalProgress: (goalId: string) => number;
@@ -85,191 +84,189 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     await updateGoalFirestore(authCtx.user.uid, goalId, data);
   };
 
-
   const updateTask = async (
-  goalId: string,
-  taskId: string,
-  newTitle: string
-) => {
-  if (!authCtx?.user) return;
+    goalId: string,
+    taskId: string,
+    newTitle: string,
+  ) => {
+    if (!authCtx?.user) return;
 
-  let updatedTasks: Task[] = [];
+    let updatedTasks: Task[] = [];
 
-  setGoals((prev) =>
-    prev.map((g) => {
-      if (g.id === goalId) {
-        updatedTasks = g.tasks.map((t) =>
-          t.id === taskId ? { ...t, title: newTitle } : t
-        );
-        return { ...g, tasks: updatedTasks };
-      }
-      return g;
-    })
-  );
+    setGoals((prev) =>
+      prev.map((g) => {
+        if (g.id === goalId) {
+          updatedTasks = g.tasks.map((t) =>
+            t.id === taskId ? { ...t, title: newTitle } : t,
+          );
+          return { ...g, tasks: updatedTasks };
+        }
+        return g;
+      }),
+    );
 
-  await updateGoalFirestore(authCtx.user.uid, goalId, {
-    tasks: updatedTasks,
-  });
-};
+    await updateGoalFirestore(authCtx.user.uid, goalId, {
+      tasks: updatedTasks,
+    });
+  };
 
-      /* Add Task */
+  /* Add Task */
 
-    const addTask = async (goalId: string, title: string) => {
-  if (!authCtx?.user) return;
+  const addTask = async (goalId: string, title: string) => {
+    if (!authCtx?.user) return;
 
-  const goal = goals.find((g) => g.id === goalId);
-  if (!goal) return;
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
 
-  const updatedTasks = [
-    ...goal.tasks,
-    {
-      id: Date.now().toString(),
-      title,
-      completed: false,
-    },
-  ];
+    const updatedTasks = [
+      ...goal.tasks,
+      {
+        id: Date.now().toString(),
+        title,
+        completed: false,
+      },
+    ];
 
-  //UPDATE UI 
-  setGoals((prev) =>
-    prev.map((g) =>
-      g.id === goalId ? { ...g, tasks: updatedTasks } : g
-    )
-  );
+    //UPDATE UI
+    setGoals((prev) =>
+      prev.map((g) => (g.id === goalId ? { ...g, tasks: updatedTasks } : g)),
+    );
 
-  // FIRESTORE
-  await updateGoalFirestore(authCtx.user.uid, goalId, {
-    tasks: updatedTasks,
-  });
-};
+    // FIRESTORE
+    await updateGoalFirestore(authCtx.user.uid, goalId, {
+      tasks: updatedTasks,
+    });
+  };
 
+  const toggleTask = async (goalId: string, taskId: string) => {
+    if (!authCtx?.user) return;
 
-const toggleTask = async (goalId: string, taskId: string) => {
-  if (!authCtx?.user) return;
+    let updatedTasks: Task[] = [];
 
-  let updatedTasks: Task[] = [];
+    setGoals((prev) =>
+      prev.map((g) => {
+        if (g.id === goalId) {
+          updatedTasks = g.tasks.map((t) =>
+            t.id === taskId ? { ...t, completed: !t.completed } : t,
+          );
+          return { ...g, tasks: updatedTasks };
+        }
+        return g;
+      }),
+    );
 
-  setGoals((prev) =>
-    prev.map((g) => {
-      if (g.id === goalId) {
-        updatedTasks = g.tasks.map((t) =>
-          t.id === taskId ? { ...t, completed: !t.completed } : t
-        );
-        return { ...g, tasks: updatedTasks };
-      }
-      return g;
-    })
-  );
+    await updateGoalFirestore(authCtx.user.uid, goalId, {
+      tasks: updatedTasks,
+    });
+  };
 
-  await updateGoalFirestore(authCtx.user.uid, goalId, {
-    tasks: updatedTasks,
-  });
-};
+  const getRecommendation = () => {
+    const overall = getOverallProgress();
+    if (goals.length === 0)
+      return "🌱 Start by creating your first learning goal to begin your journey.";
+    if (overall === 0)
+      return "🚀 Begin with one small task today — every journey starts with a single step.";
+    if (overall < 25)
+      return "💪 Good start! Consistency is your superpower — keep going.";
+    if (overall < 50)
+      return "🔥 Nice momentum. Try completing 2 tasks daily for faster growth.";
+    if (overall < 75)
+      return "⚡ You're halfway there! Keep pushing forward — the finish line is in sight.";
+    if (overall < 100)
+      return "🏆 Excellent progress! You're almost there — finish strong!";
+    return "✨ Perfect score! You've completed everything. Start a new advanced skill.";
+  };
 
-    const getRecommendation = () => {
-      const overall = getOverallProgress();
-      if (goals.length === 0)
-        return "🌱 Start by creating your first learning goal to begin your journey.";
-      if (overall === 0)
-        return "🚀 Begin with one small task today — every journey starts with a single step.";
-      if (overall < 25)
-        return "💪 Good start! Consistency is your superpower — keep going.";
-      if (overall < 50)
-        return "🔥 Nice momentum. Try completing 2 tasks daily for faster growth.";
-      if (overall < 75)
-        return "⚡ You're halfway there! Keep pushing forward — the finish line is in sight.";
-      if (overall < 100)
-        return "🏆 Excellent progress! You're almost there — finish strong!";
-      return "✨ Perfect score! You've completed everything. Start a new advanced skill.";
-    };
+  /* Load from Firestore */
 
-    /* Load from Firestore */
-
-    useEffect(() => {
-      if (!authCtx?.user) {
-        setGoals([]);
-        return;
-      }
-
-      loadGoals();
-    }, [authCtx?.user]);
-
-   const loadGoals = async () => {
-  if (!authCtx?.user) return;
-
-  try {
-    setLoading(true);
-
-    const data = await getUserGoals(authCtx.user.uid);
-
-    if (data) {
-      setGoals(data as Goal[]);
+  useEffect(() => {
+    if (!authCtx?.user) {
+      setGoals([]);
+      return;
     }
 
-  } catch (err) {
-    console.log("Load error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+    loadGoals();
+  }, [authCtx?.user]);
 
-    /* Add Goal — UPDATED to accept and store icon */
+  const loadGoals = async () => {
+    if (!authCtx?.user) return;
 
-    const addGoal = async (name: string, icon: string = "🎯") => {
-      if (!authCtx?.user) return;
+    try {
+      setLoading(true);
 
-      await addUserGoal(authCtx.user.uid, name, icon);
+      const data = await getUserGoals(authCtx.user.uid);
 
-      await loadGoals();
+      if (data) {
+        setGoals(data as Goal[]);
+      }
+    } catch (err) {
+      console.log("Load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* Add Goal — UPDATED to accept and store icon */
+
+  const addGoal = async (name: string, icon: string = "🎯") => {
+    if (!authCtx?.user) return;
+
+    await addUserGoal(authCtx.user.uid, name, icon);
+
+    await loadGoals();
+  };
+
+  const getOverallProgress = () => {
+    let total = 0;
+    let completed = 0;
+
+    goals.forEach((g) => {
+      total += g.tasks.length;
+      completed += g.tasks.filter((t) => t.completed).length;
+    });
+
+    if (total === 0) return 0;
+    return Math.round((completed / total) * 100);
+  };
+
+  const getGoalProgress = (goalId: string) => {
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal || goal.tasks.length === 0) return 0;
+
+    const completed = goal.tasks.filter((t) => t.completed).length;
+    return Math.round((completed / goal.tasks.length) * 100);
+  };
+
+  const getStats = () => {
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    goals.forEach((g) => {
+      totalTasks += g.tasks.length;
+      completedTasks += g.tasks.filter((t) => t.completed).length;
+    });
+
+    return {
+      totalGoals: goals.length,
+      totalTasks,
+      completedTasks,
+      pendingTasks: totalTasks - completedTasks,
     };
+  };
 
+  const hasPendingTasks = () => {
+    return goals.some((g) => g.tasks.some((t) => !t.completed));
+  };
 
-    const getOverallProgress = () => {
-      let total = 0;
-      let completed = 0;
+  const deleteGoal = async (goalId: string) => {
+    if (!authCtx?.user) return;
 
-      goals.forEach((g) => {
-        total += g.tasks.length;
-        completed += g.tasks.filter((t) => t.completed).length;
-      });
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+    // Sync to Firestore
+    await deleteGoalFirestore(authCtx.user.uid, goalId);
+  };
 
-      if (total === 0) return 0;
-      return Math.round((completed / total) * 100);
-    };
-
-    const getGoalProgress = (goalId: string) => {
-      const goal = goals.find((g) => g.id === goalId);
-      if (!goal || goal.tasks.length === 0) return 0;
-
-      const completed = goal.tasks.filter((t) => t.completed).length;
-      return Math.round((completed / goal.tasks.length) * 100);
-    };
-
-    const getStats = () => {
-      let totalTasks = 0;
-      let completedTasks = 0;
-
-      goals.forEach((g) => {
-        totalTasks += g.tasks.length;
-        completedTasks += g.tasks.filter((t) => t.completed).length;
-      });
-
-      return {
-        totalGoals: goals.length,
-        totalTasks,
-        completedTasks,
-        pendingTasks: totalTasks - completedTasks,
-      };
-    };
-
-    const hasPendingTasks = () => {
-      return goals.some((g) => g.tasks.some((t) => !t.completed));
-    };
-
-    const deleteGoal = async (goalId: string) => {
-  
-    };
-
-    const deleteTask = (goalId: string, taskId: string) => {
+  const deleteTask = async (goalId: string, taskId: string) => {
   if (!authCtx?.user) return;
 
   let updatedTasks: Task[] = [];
@@ -284,30 +281,30 @@ const toggleTask = async (goalId: string, taskId: string) => {
     })
   );
 
-  updateGoalFirestore(authCtx.user.uid, goalId, {
+  await updateGoalFirestore(authCtx.user.uid, goalId, {
     tasks: updatedTasks,
   });
 };
 
-    return (
-      <TaskContext.Provider
-        value={{
-          goals,
-          addGoal,
-          addTask,
-          toggleTask,
-          deleteGoal,
-          deleteTask,
-          getOverallProgress,
-          getGoalProgress,
-          getRecommendation,
-          getStats,
-          hasPendingTasks,
-          updateGoal,
-          updateTask,
-        }}
-      >
-        {children}
-      </TaskContext.Provider>
-    );
-  };
+  return (
+    <TaskContext.Provider
+      value={{
+        goals,
+        addGoal,
+        addTask,
+        toggleTask,
+        deleteGoal,
+        deleteTask,
+        getOverallProgress,
+        getGoalProgress,
+        getRecommendation,
+        getStats,
+        hasPendingTasks,
+        updateGoal,
+        updateTask,
+      }}
+    >
+      {children}
+    </TaskContext.Provider>
+  );
+}

@@ -233,11 +233,296 @@ function TopBar({dark,open,setOpen,toggleDark,router,name,pending}:any) {
   );
 }
 
+
+/* ════════════════════════════════
+   CONFIRM DELETE MODAL
+════════════════════════════════ */
+function ConfirmDeleteModal({
+  dark,
+  title,
+  subtitle,
+  itemName,
+  itemIcon,
+  onConfirm,
+  onCancel,
+}: {
+  dark: boolean;
+  title: string;
+  subtitle: string;
+  itemName: string;
+  itemIcon: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+
+   const { width } = useWindowDimensions(); 
+  const isMobile = Platform.OS !== "web" || width < 480; 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(32)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const btnScale1 = useRef(new Animated.Value(1)).current;
+  const btnScale2 = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 75, friction: 10 }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 75, friction: 10 }),
+    ]).start();
+    setTimeout(() => {
+      Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, tension: 140, friction: 7 }).start();
+    }, 160);
+  }, []);
+
+  const dismiss = (cb: () => void) => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 170, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 18, duration: 170, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.93, duration: 170, useNativeDriver: true }),
+    ]).start(() => cb());
+  };
+
+  const shake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const tapBtn = (anim: Animated.Value, cb: () => void) => {
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 0.95, useNativeDriver: true, tension: 300, friction: 5 }),
+      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 5 }),
+    ]).start(() => dismiss(cb));
+  };
+
+  const card = dark ? "#0d1424" : "#ffffff";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "#475569";
+  const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+
+return (
+  <View style={[
+    StyleSheet.absoluteFill, 
+    { 
+      zIndex: 99999,
+      position: Platform.OS === "web" ? "fixed" as any : "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }
+  ] as any}>
+    {/* Blurred backdrop */}
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          backgroundColor: dark ? "rgba(0,0,0,0.75)" : "rgba(15,23,42,0.45)",
+          opacity: fadeAnim,
+          ...(Platform.OS === "web"
+            ? ({ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" } as any)
+            : {}),
+        },
+      ]}
+    >
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => { shake(); }} />
+    </Animated.View>
+
+      <View
+  style={{ 
+    flex: 1, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    padding: isMobile ? 20 : 24,
+  }}
+  pointerEvents="box-none"
+>
+  <Animated.View
+    style={[
+      {
+        width: isMobile ? "92%" : 420,
+        maxWidth: isMobile ? 420 : 420,
+        backgroundColor: card,
+        borderRadius: isMobile ? 22 : 26,
+        padding: isMobile ? 22 : 28,
+              borderWidth: 1,
+              borderColor: "rgba(239,68,68,0.2)",
+              borderTopColor: "#ef4444",
+              borderTopWidth: 3,
+              ...(Platform.OS === "web"
+                ? ({
+                    boxShadow: dark
+                      ? "0 28px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(239,68,68,0.1)"
+                      : "0 28px 60px rgba(0,0,0,0.14), 0 0 0 1px rgba(239,68,68,0.08)",
+                  } as any)
+                : { elevation: 28 }),
+            },
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim },
+                { translateX: shakeAnim },
+              ],
+            },
+          ]}
+        >
+          {/* Icon */}
+          <Animated.View style={{ alignSelf: "center", marginBottom: 20, transform: [{ scale: iconScale }] }}>
+           <View
+  style={{
+    width: isMobile ? 64 : 76,
+    height: isMobile ? 64 : 76,
+    borderRadius: isMobile ? 20 : 24,
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: "rgba(239,68,68,0.1)",
+                borderWidth: 1.5, borderColor: "rgba(239,68,68,0.25)",
+                ...(Platform.OS === "web"
+                  ? ({ boxShadow: "0 0 0 10px rgba(239,68,68,0.06), 0 8px 24px rgba(239,68,68,0.2)" } as any)
+                  : {}),
+              }}
+            >
+              <Text style={{ fontSize: isMobile ? 28 : 34 }}>🗑️</Text>
+            </View>
+          </Animated.View>
+
+          {/* Text */}
+          <Text
+  style={{
+    fontSize: isMobile ? 18 : 21, fontWeight: "800", color: txtPri,
+              textAlign: "center", marginBottom: 8, letterSpacing: -0.4,
+              ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+            }}
+          >
+            {title}
+          </Text>
+       <Text
+  style={{
+    fontSize: isMobile ? 12 : 13,
+    lineHeight: isMobile ? 17 : 19, fontWeight: "500", color: txtSec,
+              textAlign: "center",marginBottom: 18,
+            }}
+          >
+            {subtitle}
+          </Text>
+
+          {/* Item pill */}
+         <View
+  style={{
+    backgroundColor: "rgba(239,68,68,0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.2)",
+    borderRadius: isMobile ? 12 : 14,
+    paddingHorizontal: isMobile ? 14 : 18,
+    paddingVertical: isMobile ? 11 : 13,
+              marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: isMobile ? 18 : 20 }}>{itemIcon}</Text>
+<Text
+  style={{ 
+    fontSize: isMobile ? 13 : 14,  fontWeight: "700", color: "#ef4444", flex: 1 }}
+              numberOfLines={2}
+            >
+              {itemName}
+            </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(239,68,68,0.12)",
+                paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
+              }}
+            >
+              <Text style={{ fontSize: 10, color: "#ef4444", fontWeight: "700" }}>Delete</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
+
+          {/* Buttons */}
+          <View style={{ gap: 10 }}>
+            <Animated.View style={{ transform: [{ scale: btnScale1 }] }}>
+              <Pressable
+  onPress={() => tapBtn(btnScale1, onConfirm)}
+  style={({ pressed }) => ({
+    paddingVertical: isMobile ? 13 : 15,
+    borderRadius: isMobile ? 12 : 14, alignItems: "center",
+                  backgroundColor: "#ef4444", opacity: pressed ? 0.88 : 1,
+                  ...(Platform.OS === "web"
+                    ? ({
+                        background: "linear-gradient(135deg,#ef4444,#dc2626)",
+                        boxShadow: "0 6px 20px rgba(239,68,68,0.4)",
+                        cursor: "pointer", transition: "all .15s",
+                      } as any)
+                    : {}),
+                })}
+              >
+                <Text style={{
+  color: "white",
+  fontWeight: "800",
+  fontSize: isMobile ? 14 : 15,  
+  letterSpacing: 0.1,
+  ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+}}>
+  🗑️  Yes, Delete
+</Text>
+              </Pressable>
+            </Animated.View>
+
+            <Animated.View style={{ transform: [{ scale: btnScale2 }] }}>
+              <Pressable
+                onPress={() => tapBtn(btnScale2, onCancel)}
+                style={({ pressed }) => ({
+                  paddingVertical: 13, borderRadius: 14, alignItems: "center",
+                  backgroundColor: pressed
+                    ? dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"
+                    : dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                  borderWidth: 1, borderColor: border,
+                  ...(Platform.OS === "web" ? ({ cursor: "pointer", transition: "all .15s" } as any) : {}),
+                })}
+              >
+               <Text style={{ 
+  color: txtSec, 
+  fontWeight: "600", 
+  fontSize: isMobile ? 13 : 14  
+}}>
+  Cancel, Keep It
+</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
 /* ══ GOAL MODAL ══ */
-function GoalModal({goal,accent,gIdx,dark,onClose,onDelGoal,onDelTask,onEditGoal,onEditTask,router}:any) {
+function GoalModal({
+  goal, accent, gIdx, dark, onClose, onDelGoal, onDelTask,
+  onEditGoal, onEditTask, router,
+  setConfirmDeleteGoal,  
+  setConfirmDeleteTask, 
+}: {
+  goal: any; accent: string; gIdx: number; dark: boolean;
+  onClose: () => void;
+  onDelGoal: () => void;
+  onDelTask: (goalId: string, taskId: string, taskTitle: string, goalName: string) => void;
+  onEditGoal: (goalId: string, newName: string) => Promise<void>;
+  onEditTask: (goalId: string, taskId: string, newTitle: string) => Promise<void>;
+  router: any;
+  setConfirmDeleteGoal: (v: any) => void;  
+  setConfirmDeleteTask: (v: any) => void;  
+}) {
   const [editName,setEditName]=useState(false);
   const [nameDraft,setNameDraft]=useState(goal.name);
   const [editTaskId,setEditTaskId]=useState<string|null>(null);
+
+
   const [taskDraft,setTaskDraft]=useState("");
   const [saving,setSaving]=useState(false);
   const fa=useRef(new Animated.Value(0)).current;
@@ -326,11 +611,28 @@ function GoalModal({goal,accent,gIdx,dark,onClose,onDelGoal,onDelTask,onEditGoal
                   style={({pressed})=>({width:34,height:34,borderRadius:10,backgroundColor:pressed?"rgba(99,102,241,0.2)":"rgba(99,102,241,0.1)",alignItems:"center",justifyContent:"center"})}>
                   <Text style={{fontSize:14}}>{editName?"✓":"✏️"}</Text>
                 </Pressable>
-                <Pressable onPress={()=>dismiss(()=>onDelGoal(goal.id))}
-                  className={Platform.OS==="web"?"g3-del":undefined}
-                  style={({pressed})=>({width:34,height:34,borderRadius:10,backgroundColor:pressed?"rgba(239,68,68,0.25)":"rgba(239,68,68,0.1)",alignItems:"center",justifyContent:"center"})}>
-                  <Text style={{fontSize:14}}>🗑️</Text>
-                </Pressable>
+                <Pressable 
+  onPress={() => {
+    dismiss(() => {
+      setConfirmDeleteGoal({
+        goalId: goal.id,
+        goalName: goal.name,
+        goalIcon: goal.icon || GE[gIdx % GE.length],
+      });
+    });
+  }}
+  className={Platform.OS === "web" ? "g3-del" : undefined}
+  style={({ pressed }) => ({
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: pressed ? "rgba(239,68,68,0.25)" : "rgba(239,68,68,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  })}
+>
+  <Text style={{ fontSize: 14 }}>🗑️</Text>
+</Pressable>
                 <Pressable onPress={()=>dismiss()}
                   style={({pressed})=>({width:34,height:34,borderRadius:10,backgroundColor:pressed?(dark?"rgba(255,255,255,0.14)":"rgba(0,0,0,0.09)"):(dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)"),alignItems:"center",justifyContent:"center"})}>
                   <Text style={{color:ts,fontSize:16,fontWeight:"700"}}>✕</Text>
@@ -377,11 +679,27 @@ function GoalModal({goal,accent,gIdx,dark,onClose,onDelGoal,onDelTask,onEditGoal
                         style={({pressed})=>({width:28,height:28,borderRadius:8,backgroundColor:pressed?"rgba(99,102,241,0.2)":"rgba(99,102,241,0.1)",alignItems:"center",justifyContent:"center"})}>
                         <Text style={{fontSize:11}}>{editTaskId===t.id?"✓":"✏️"}</Text>
                       </Pressable>
-                      <Pressable onPress={()=>onDelTask(goal.id,t.id)}
-                        className={Platform.OS==="web"?"g3-del":undefined}
-                        style={({pressed})=>({width:28,height:28,borderRadius:8,backgroundColor:pressed?"rgba(239,68,68,0.25)":"rgba(239,68,68,0.1)",alignItems:"center",justifyContent:"center"})}>
-                        <Text style={{fontSize:11,color:"#ef4444"}}>✕</Text>
-                      </Pressable>
+                     <Pressable 
+  onPress={() => {
+    setConfirmDeleteTask({
+      goalId: goal.id,
+      taskId: t.id,
+      taskTitle: t.title,
+      goalName: goal.name,
+    });
+  }}
+  className={Platform.OS === "web" ? "g3-del" : undefined}
+  style={({ pressed }) => ({
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: pressed ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  })}
+>
+  <Text style={{ fontSize: 11, color: "#ef4444" }}>✕</Text>
+</Pressable>
                     </View>
                   </View>
                 ))}
@@ -396,19 +714,37 @@ function GoalModal({goal,accent,gIdx,dark,onClose,onDelGoal,onDelTask,onEditGoal
                   <Text style={{fontSize:11,fontWeight:"700",color:"#34d399",letterSpacing:.5,textTransform:"uppercase" as const}}>Completed · {cTasks.length}</Text>
                 </View>
                 {cTasks.map((t:any,ti:number)=>(
-                  <View key={t.id} style={{flexDirection:"row",alignItems:"center",gap:10,padding:13,borderRadius:12,marginBottom:7,
-                    backgroundColor:"rgba(52,211,153,0.04)",borderWidth:1,borderColor:"rgba(52,211,153,0.15)",opacity:.75,
-                    ...(Platform.OS==="web"?{animation:`g3-slide .2s ease ${ti*.03}s both`} as any:{})}}>
-                    <View style={{width:18,height:18,borderRadius:5,backgroundColor:"#34d399",borderColor:"#34d399",borderWidth:1.5,alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <Text style={{color:"white",fontSize:8,fontWeight:"800"}}>✓</Text>
-                    </View>
-                    <Text style={{flex:1,fontSize:13,fontWeight:"500",color:ts,textDecorationLine:"line-through"}} numberOfLines={1}>{t.title}</Text>
-                    <Pressable onPress={()=>onDelTask(goal.id,t.id)}
-                      className={Platform.OS==="web"?"g3-del":undefined}
-                      style={({pressed})=>({width:28,height:28,borderRadius:8,backgroundColor:pressed?"rgba(239,68,68,0.2)":"rgba(239,68,68,0.08)",alignItems:"center",justifyContent:"center"})}>
-                      <Text style={{fontSize:11,color:"#ef4444"}}>✕</Text>
-                    </Pressable>
-                  </View>
+            <View key={t.id} style={{flexDirection:"row",alignItems:"center",gap:10,padding:13,borderRadius:12,marginBottom:7,
+  backgroundColor:"rgba(52,211,153,0.04)",borderWidth:1,borderColor:"rgba(52,211,153,0.15)",opacity:.75,
+  ...(Platform.OS==="web"?{animation:`g3-slide .2s ease ${ti*.03}s both`} as any:{})}}>
+  <View style={{width:18,height:18,borderRadius:5,backgroundColor:"#34d399",borderColor:"#34d399",borderWidth:1.5,alignItems:"center",justifyContent:"center",flexShrink:0}}>
+    <Text style={{color:"white",fontSize:8,fontWeight:"800"}}>✓</Text>
+  </View>
+  <Text style={{flex:1,fontSize:13,fontWeight:"500",color:ts,textDecorationLine:"line-through"}} numberOfLines={1}>{t.title}</Text>
+  
+  {/* for delete */}
+  <Pressable 
+    onPress={() => {
+      setConfirmDeleteTask({
+        goalId: goal.id,
+        taskId: t.id,
+        taskTitle: t.title,
+        goalName: goal.name,
+      });
+    }}
+    className={Platform.OS === "web" ? "g3-del" : undefined}
+    style={({ pressed }) => ({
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: pressed ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
+    })}
+  >
+    <Text style={{ fontSize: 11, color: "#ef4444" }}>✕</Text>
+  </Pressable>
+</View>
                 ))}
               </View>
             )}
@@ -452,6 +788,19 @@ export default function GoalsPage() {
   const [filter,setFilter]=useState<FT>("all");
   const [modalId,setModalId]=useState<string|null>(null);
 
+  const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<{
+  goalId: string;
+  goalName: string;
+  goalIcon: string;
+} | null>(null);
+
+const [confirmDeleteTask, setConfirmDeleteTask] = useState<{
+  goalId: string;
+  taskId: string;
+  taskTitle: string;
+  goalName: string;
+} | null>(null);
+
   const fa=useRef(new Animated.Value(0)).current;
   const sa=useRef(new Animated.Value(18)).current;
 
@@ -473,32 +822,37 @@ export default function GoalsPage() {
   const toggleDark=async()=>{const n=!dark;setDark(n);await saveTheme(n);};
 
   /* ── Firestore edit helpers ── */
-  const updateGoals=async(updated:any[])=>{
-    await setDoc(doc(db,"users",user.uid),{goals:updated},{merge:true});
-  };
-  const handleEditGoal=async(goalId:string,newName:string)=>{
-    try{
-      const updated=goals.map((g:any)=>g.id===goalId?{...g,name:newName}:g);
-      await updateGoals(updated);
-      showSuccess("Goal updated ✓");
-    }catch{showError("Failed to update goal");}
-  };
-  const handleEditTask=async(goalId:string,taskId:string,newTitle:string)=>{
-    try{
-      const updated=goals.map((g:any)=>g.id===goalId?{...g,tasks:g.tasks.map((t:any)=>t.id===taskId?{...t,title:newTitle}:t)}:g);
-      await updateGoals(updated);
-      showSuccess("Task updated ✓");
-    }catch{showError("Failed to update task");}
-  };
-  const handleDelGoal=(id:string)=>{
-    if((taskCtx as any).deleteGoal)(taskCtx as any).deleteGoal(id);
-    showDelete("Goal removed");
-    if(modalId===id)setModalId(null);
-  };
-  const handleDelTask=(goalId:string,taskId:string)=>{
-    if((taskCtx as any).deleteTask)(taskCtx as any).deleteTask(goalId,taskId);
-    showDelete("Task removed");
-  };
+/* ── Firestore edit helpers ── */
+const handleEditGoal = async (goalId: string, newName: string) => {
+  try {
+    // ✅ Use TaskContext method to ensure all components sync
+    await taskCtx.updateGoal(goalId, { name: newName });
+    showSuccess("Goal updated ✓");
+  } catch {
+    showError("Failed to update goal");
+  }
+};
+
+const handleEditTask = async (goalId: string, taskId: string, newTitle: string) => {
+  try {
+    
+    await taskCtx.updateTask(goalId, taskId, newTitle);
+    showSuccess("Task updated ✓");
+  } catch {
+    showError("Failed to update task");
+  }
+};
+
+const handleDelGoal = (id: string) => {
+  if ((taskCtx as any).deleteGoal) (taskCtx as any).deleteGoal(id);
+  showDelete("Goal removed");
+  if (modalId === id) setModalId(null);
+};
+
+const handleDelTask = (goalId: string, taskId: string) => {
+  if ((taskCtx as any).deleteTask) (taskCtx as any).deleteTask(goalId, taskId);
+  showDelete("Task removed");
+};
 
   /* ── Computed ── */
   const totalGoals=goals.length;
@@ -661,19 +1015,64 @@ export default function GoalsPage() {
                       <View pointerEvents="none" style={{position:"absolute",top:-24,right:-24,width:130,height:130,borderRadius:65,backgroundColor:accent,opacity:.04,filter:"blur(28px)"} as any}/>
                     )}
 
-                    {/* Delete X */}
-                    <Pressable className={Platform.OS==="web"?"g3-del":undefined}
-                      onPress={()=>handleDelGoal(g.id)}
-                      style={({pressed})=>({position:"absolute",top:14,right:14,zIndex:10,
-                        width:30,height:30,borderRadius:9,alignItems:"center",justifyContent:"center",
-                        backgroundColor:pressed?"rgba(239,68,68,0.28)":"rgba(239,68,68,0.12)",
-                      } as any)}>
-                      <Text style={{fontSize:11,color:"#ef4444",fontWeight:"800"}}>✕</Text>
-                    </Pressable>
+                   {/* Goal header action buttons*/}
+<View style={{ 
+  flexDirection: "row", 
+  gap: 8, 
+  alignItems: "center", 
+  justifyContent: "flex-end",
+  paddingHorizontal: 22,
+  paddingTop: 16,
+  paddingBottom: 8,
+}}>
+  <Pressable
+    className={Platform.OS === "web" ? "g3-btn" : undefined}
+    onPress={() => setModalId(g.id)}
+    style={({ pressed }) => ({
+      flexDirection: "row", 
+      alignItems: "center", 
+      gap: 6,
+      paddingHorizontal: 12, 
+      paddingVertical: 7, 
+      borderRadius: 10,
+      backgroundColor: pressed ? accent + "28" : accent + "18",
+      borderWidth: 1, 
+      borderColor: accent + "40",
+      ...(Platform.OS === "web" ? { transition: "all .15s", cursor: "pointer" } as any : {}),
+    })}
+  >
+    <Text style={{ fontSize: 12, color: accent }}>✏️</Text>
+    <Text style={{ fontSize: 12, fontWeight: "700", color: accent }}>Edit</Text>
+  </Pressable>
+
+  <Pressable
+    className={Platform.OS === "web" ? "g3-btn" : undefined}
+    onPress={() => setConfirmDeleteGoal({
+      goalId: g.id,
+      goalName: g.name,
+      goalIcon: g.icon || GE[idx % GE.length],
+    })}
+    style={({ pressed }) => ({
+      flexDirection: "row", 
+      alignItems: "center", 
+      gap: 6,
+      paddingHorizontal: 12, 
+      paddingVertical: 7, 
+      borderRadius: 10,
+      backgroundColor: pressed ? "rgba(239,68,68,0.28)" : "rgba(239,68,68,0.15)",
+      borderWidth: 1, 
+      borderColor: "rgba(239,68,68,0.35)",
+      ...(Platform.OS === "web" ? { transition: "all .15s", cursor: "pointer" } as any : {}),
+    })}
+  >
+    <Text style={{ fontSize: 12, color: "#ef4444", fontWeight: "700" }}>🗑 Delete</Text>
+  </Pressable>
+</View>
+
 
                     <View style={{padding:22}}>
                       {/* Icon + name */}
-                      <Pressable onPress={()=>setModalId(g.id)} style={{flexDirection:"row",alignItems:"center",gap:13,marginBottom:20,paddingRight:32}}>
+                      <Pressable onPress={()=>setModalId(g.id)} style={{flexDirection:"row",alignItems:"center",gap:13,marginBottom:20,paddingRight:0}}>
                         <View style={{width:50,height:50,borderRadius:15,backgroundColor:accent+"1c",alignItems:"center",justifyContent:"center",flexShrink:0,
                           ...(Platform.OS==="web"?{boxShadow:`0 4px 14px ${accent}28`} as any:{})}}>
                           <Text style={{fontSize:24}}>{g.icon||GE[idx%GE.length]}</Text>
@@ -721,23 +1120,17 @@ export default function GoalsPage() {
                       )}
 
                       {/* Action buttons */}
-                      <View style={{flexDirection:"row",gap:9}}>
-                        <Pressable onPress={()=>setModalId(g.id)}
-                          className={Platform.OS==="web"?"g3-chip":undefined}
-                          style={({pressed})=>({flex:1,paddingVertical:11,borderRadius:11,alignItems:"center",
-                            backgroundColor:pressed?accent:accent+"18",borderWidth:1.5,borderColor:accent+"40",
-                          })}>
-                          <Text style={{fontSize:12,fontWeight:"700",color:accent}}>👁 View</Text>
-                        </Pressable>
-                        <Pressable onPress={()=>setModalId(g.id)}
-                          className={Platform.OS==="web"?"g3-chip":undefined}
-                          style={({pressed})=>({paddingVertical:11,paddingHorizontal:18,borderRadius:11,alignItems:"center",
-                            backgroundColor:pressed?(isDark?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.05)"):(isDark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.03)"),
-                            borderWidth:1.5,borderColor:cb,
-                          })}>
-                          <Text style={{fontSize:12,fontWeight:"700",color:ts}}>✏️ Edit</Text>
-                        </Pressable>
-                      </View>
+                     <View style={{ flexDirection: "row", gap: 9 }}>
+  <Pressable onPress={() => setModalId(g.id)}
+    className={Platform.OS === "web" ? "g3-chip" : undefined}
+    style={({ pressed }) => ({
+      flex: 1, paddingVertical: 11, borderRadius: 11, alignItems: "center",
+      backgroundColor: pressed ? accent : accent + "18",
+      borderWidth: 1.5, borderColor: accent + "40",
+    })}>
+    <Text style={{ fontSize: 12, fontWeight: "700", color: accent }}>👁 View Details</Text>
+  </Pressable>
+</View>
                     </View>
                   </Animated.View>
                 );
@@ -747,17 +1140,11 @@ export default function GoalsPage() {
           <View style={{height:32}}/>
         </View>
       </ScrollView>
-
-      {/* MODAL */}
-      {mGoal&&(
-        <GoalModal goal={mGoal} accent={GC[mIdx%GC.length]} gIdx={mIdx} dark={isDark}
-          onClose={()=>setModalId(null)} onDelGoal={handleDelGoal} onDelTask={handleDelTask}
-          onEditGoal={handleEditGoal} onEditTask={handleEditTask} router={router}/>
-      )}
     </View>
   );
 
-  if(isWide) return(
+if(isWide) return(
+  <>
     <View style={{flex:1,flexDirection:"row",backgroundColor:bg} as any}>
       {Platform.OS==="web"?(
         <View className="g3-sidebar" style={{width:sidebarOpen?260:0,minWidth:sidebarOpen?260:0,overflow:"hidden"} as any}>
@@ -771,9 +1158,68 @@ export default function GoalsPage() {
         {content}
       </View>
     </View>
-  );
+    {/* Goal Modal at root level */}
+    {mGoal && (
+      <GoalModal
+        goal={mGoal}
+        accent={GC[mIdx % GC.length]}
+        gIdx={mIdx}
+        dark={isDark}
+        onClose={() => setModalId(null)}
+        onDelGoal={() => {
+          setModalId(null);
+          setConfirmDeleteGoal({
+            goalId: mGoal.id,
+            goalName: mGoal.name,
+            goalIcon: mGoal.icon || GE[mIdx % GE.length],
+          });
+        }}
+        onDelTask={(goalId, taskId, taskTitle, goalName) => {
+          setConfirmDeleteTask({ goalId, taskId, taskTitle, goalName });
+        }}
+        onEditGoal={handleEditGoal}
+        onEditTask={handleEditTask}
+        router={router}
+        setConfirmDeleteGoal={setConfirmDeleteGoal}
+        setConfirmDeleteTask={setConfirmDeleteTask}
+      />
+    )}
+    {/* Confirm Delete Goal Modal at root level */}
+    {confirmDeleteGoal && (
+      <ConfirmDeleteModal
+        dark={isDark}
+        title="Delete Goal?"
+        subtitle="This will permanently remove the goal and all its tasks. This action cannot be undone."
+        itemName={confirmDeleteGoal.goalName}
+        itemIcon={confirmDeleteGoal.goalIcon}
+        onConfirm={async () => {
+          await taskCtx.deleteGoal(confirmDeleteGoal.goalId);
+          setConfirmDeleteGoal(null);
+          showDelete("Goal deleted");
+        }}
+        onCancel={() => setConfirmDeleteGoal(null)}
+      />
+    )}
+    {/* Confirm Delete Task Modal at root level */}
+    {confirmDeleteTask && (
+      <ConfirmDeleteModal
+        dark={isDark}
+        title="Delete Task?"
+        subtitle="This task will be permanently removed from your goal."
+        itemName={confirmDeleteTask.taskTitle}
+        itemIcon="📝"
+        onConfirm={async () => {
+          await taskCtx.deleteTask(confirmDeleteTask.goalId, confirmDeleteTask.taskId);
+          setConfirmDeleteTask(null);
+          showDelete("Task deleted");
+        }}
+        onCancel={() => setConfirmDeleteTask(null)}
+      />
+    )}
+  </>
+);
 
-  return(
+    return(
     <View style={{flex:1,backgroundColor:bg}}>
       <View style={{flexDirection:"row",alignItems:"center",justifyContent:"space-between",
         paddingHorizontal:18,paddingTop:Platform.OS==="ios"?52:16,paddingBottom:14,
@@ -783,7 +1229,64 @@ export default function GoalsPage() {
         <Text style={{fontSize:18,fontWeight:"900",color:isDark?"#eef2ff":"#0f172a",...(Platform.OS==="web"?{fontFamily:"Outfit,sans-serif"} as any:{})}}>Goals</Text>
         <View style={{width:60}}/>
       </View>
-      {content}
+        {content}
+      {mGoal && (
+        <GoalModal
+          goal={mGoal}
+          accent={GC[mIdx % GC.length]}
+          gIdx={mIdx}
+          dark={isDark}
+          onClose={() => setModalId(null)}
+          onDelGoal={() => {
+            setModalId(null);
+            setConfirmDeleteGoal({
+              goalId: mGoal.id,
+              goalName: mGoal.name,
+              goalIcon: mGoal.icon || GE[mIdx % GE.length],
+            });
+          }}
+          onDelTask={(goalId, taskId, taskTitle, goalName) => {
+            setConfirmDeleteTask({ goalId, taskId, taskTitle, goalName });
+          }}
+          onEditGoal={handleEditGoal}
+          onEditTask={handleEditTask}
+          router={router}
+          setConfirmDeleteGoal={setConfirmDeleteGoal}
+          setConfirmDeleteTask={setConfirmDeleteTask}
+        />
+      )}
+      {/* Confirm Delete Goal Modal at root level */}
+      {confirmDeleteGoal && (
+        <ConfirmDeleteModal
+          dark={isDark}
+          title="Delete Goal?"
+          subtitle="This will permanently remove the goal and all its tasks. This action cannot be undone."
+          itemName={confirmDeleteGoal.goalName}
+          itemIcon={confirmDeleteGoal.goalIcon}
+          onConfirm={async () => {
+            await taskCtx.deleteGoal(confirmDeleteGoal.goalId);
+            setConfirmDeleteGoal(null);
+            showDelete("Goal deleted");
+          }}
+          onCancel={() => setConfirmDeleteGoal(null)}
+        />
+      )}
+      {/* Confirm Delete Task Modal at root level */}
+      {confirmDeleteTask && (
+        <ConfirmDeleteModal
+          dark={isDark}
+          title="Delete Task?"
+          subtitle="This task will be permanently removed from your goal."
+          itemName={confirmDeleteTask.taskTitle}
+          itemIcon="📝"
+          onConfirm={async () => {
+            await taskCtx.deleteTask(confirmDeleteTask.goalId, confirmDeleteTask.taskId);
+            setConfirmDeleteTask(null);
+            showDelete("Task deleted");
+          }}
+          onCancel={() => setConfirmDeleteTask(null)}
+        />
+      )}
     </View>
   );
 }

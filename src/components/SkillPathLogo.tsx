@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Platform, View } from "react-native";
 
 /* ── Unique ID counter so multiple logos on the same page
@@ -116,9 +116,13 @@ interface Props {
   dark?: boolean;
 }
 
-export default function SkillPathLogo({ size = 48, transparent = false, dark = false }: Props) {
+export default function SkillPathLogo({
+  size = 48,
+  transparent = false,
+  dark = false,
+}: Props) {
   /* Stable unique IDs per instance — prevents gradient ID collisions */
-  const uid  = useRef(`sp${++_logoCounter}`).current;
+  const uid = useRef(`sp${++_logoCounter}`).current;
   const pgId = `${uid}-pg`;
   const d1Id = `${uid}-d1`;
   const d2Id = `${uid}-d2`;
@@ -141,15 +145,29 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(val, { toValue: -4, duration: 1200, useNativeDriver: true }),
-          Animated.timing(val, { toValue:  0, duration: 1200, useNativeDriver: true }),
-        ])
+          Animated.timing(val, {
+            toValue: -4,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(val, {
+            toValue: 0,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ]),
       );
     const l1 = make(a1, 0);
     const l2 = make(a2, 300);
     const l3 = make(a3, 600);
-    l1.start(); l2.start(); l3.start();
-    return () => { l1.stop(); l2.stop(); l3.stop(); };
+    l1.start();
+    l2.start();
+    l3.start();
+    return () => {
+      l1.stop();
+      l2.stop();
+      l3.stop();
+    };
   }, []);
 
   if (Platform.OS === "web") {
@@ -167,46 +185,91 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
         height={size}
         viewBox="0 0 100 100"
         fill="none"
-        style={{ display: "block", flexShrink: 0, overflow: "visible" } as React.CSSProperties}
+        style={
+          {
+            display: "block",
+            flexShrink: 0,
+            overflow: "visible",
+          } as React.CSSProperties
+        }
       >
         <defs>
           {/* Main path gradient: coral → gold → teal → sky */}
-          <linearGradient id={pgId} x1="12" y1="76" x2="88" y2="22" gradientUnits="userSpaceOnUse">
-            <stop offset="0%"   stopColor="#FF5C5C"/>
-            <stop offset="40%"  stopColor="#FFCA3A"/>
-            <stop offset="75%"  stopColor="#14D9C5"/>
-            <stop offset="100%" stopColor="#38BDF8"/>
+          <linearGradient
+            id={pgId}
+            x1="12"
+            y1="76"
+            x2="88"
+            y2="22"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="#FF5C5C" />
+            <stop offset="40%" stopColor="#FFCA3A" />
+            <stop offset="75%" stopColor="#14D9C5" />
+            <stop offset="100%" stopColor="#38BDF8" />
           </linearGradient>
 
           {/* Dot 1: coral → orange */}
-          <linearGradient id={d1Id} x1="12" y1="70" x2="30" y2="52" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FF5C5C"/>
-            <stop offset="1" stopColor="#FF8B3D"/>
+          <linearGradient
+            id={d1Id}
+            x1="12"
+            y1="70"
+            x2="30"
+            y2="52"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="#FF5C5C" />
+            <stop offset="1" stopColor="#FF8B3D" />
           </linearGradient>
           {/* Dot 2: gold → lime */}
-          <linearGradient id={d2Id} x1="35" y1="55" x2="58" y2="35" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFCA3A"/>
-            <stop offset="1" stopColor="#72EF36"/>
+          <linearGradient
+            id={d2Id}
+            x1="35"
+            y1="55"
+            x2="58"
+            y2="35"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="#FFCA3A" />
+            <stop offset="1" stopColor="#72EF36" />
           </linearGradient>
           {/* Dot 3: teal → sky */}
-          <linearGradient id={d3Id} x1="62" y1="38" x2="84" y2="20" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#14D9C5"/>
-            <stop offset="1" stopColor="#38BDF8"/>
+          <linearGradient
+            id={d3Id}
+            x1="62"
+            y1="38"
+            x2="84"
+            y2="20"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stopColor="#14D9C5" />
+            <stop offset="1" stopColor="#38BDF8" />
           </linearGradient>
 
           {/* Shimmer highlight */}
-          <linearGradient id={shId} x1="12" y1="76" x2="88" y2="22" gradientUnits="userSpaceOnUse">
-            <stop offset="0%"   stopColor="rgba(255,255,255,0)"/>
-            <stop offset="45%"  stopColor="rgba(255,255,255,0)"/>
-            <stop offset="50%"  stopColor="rgba(255,255,255,0.92)"/>
-            <stop offset="55%"  stopColor="rgba(255,255,255,0)"/>
-            <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+          <linearGradient
+            id={shId}
+            x1="12"
+            y1="76"
+            x2="88"
+            y2="22"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="45%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="50%" stopColor="rgba(255,255,255,0.92)" />
+            <stop offset="55%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
 
           {!transparent && (
             <filter id={fxId} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="6" stdDeviation="8"
-                floodColor={dark ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.12)"}/>
+              <feDropShadow
+                dx="0"
+                dy="6"
+                stdDeviation="8"
+                floodColor={dark ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.12)"}
+              />
             </filter>
           )}
         </defs>
@@ -214,7 +277,9 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
         {/* Container circle */}
         {!transparent && (
           <circle
-            cx="50" cy="50" r="46"
+            cx="50"
+            cy="50"
+            r="46"
             fill={dark ? "#0d1424" : "white"}
             stroke={dark ? "rgba(255,255,255,0.09)" : "#eee"}
             strokeWidth="1.5"
@@ -233,13 +298,13 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
 
         {/* Colored path — draws in, then glows */}
         <path
-  className="sp-path-glow"
-  d={PATH}
-  stroke={`url(#${pgId})`}
-  strokeWidth="3.5"
-  strokeLinecap="round"
-  fill="none"
-/>
+          className="sp-path-glow"
+          d={PATH}
+          stroke={`url(#${pgId})`}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          fill="none"
+        />
 
         {/* Shimmer streak */}
         <path
@@ -253,29 +318,53 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
 
         {/* DOT 0 · coral→orange · bottom-left */}
         <g className="sp-d0">
-          <circle className="sp-rp-0" cx="18" cy="74" r="9" fill="none" stroke="#FF5C5C" strokeWidth="1"/>
-          <circle cx="18" cy="74" r="11" fill={ring}/>
-          <circle cx="18" cy="74" r="9"  fill={`url(#${d1Id})`}/>
-          <circle cx="18" cy="74" r="4"  fill="white" opacity="0.6"/>
-          <circle cx="15.5" cy="71.5" r="1.3" fill="white" opacity="0.45"/>
+          <circle
+            className="sp-rp-0"
+            cx="18"
+            cy="74"
+            r="9"
+            fill="none"
+            stroke="#FF5C5C"
+            strokeWidth="1"
+          />
+          <circle cx="18" cy="74" r="11" fill={ring} />
+          <circle cx="18" cy="74" r="9" fill={`url(#${d1Id})`} />
+          <circle cx="18" cy="74" r="4" fill="white" opacity="0.6" />
+          <circle cx="15.5" cy="71.5" r="1.3" fill="white" opacity="0.45" />
         </g>
 
         {/* DOT 1 · gold→lime · middle */}
         <g className="sp-d1">
-          <circle className="sp-rp-1" cx="48" cy="46" r="11" fill="none" stroke="#FFCA3A" strokeWidth="1"/>
-          <circle cx="48" cy="46" r="12.5" fill={ring}/>
-          <circle cx="48" cy="46" r="10"   fill={`url(#${d2Id})`}/>
-          <circle cx="48" cy="46" r="4.5"  fill="white" opacity="0.6"/>
-          <circle cx="45"  cy="43.5" r="1.5" fill="white" opacity="0.45"/>
+          <circle
+            className="sp-rp-1"
+            cx="48"
+            cy="46"
+            r="11"
+            fill="none"
+            stroke="#FFCA3A"
+            strokeWidth="1"
+          />
+          <circle cx="48" cy="46" r="12.5" fill={ring} />
+          <circle cx="48" cy="46" r="10" fill={`url(#${d2Id})`} />
+          <circle cx="48" cy="46" r="4.5" fill="white" opacity="0.6" />
+          <circle cx="45" cy="43.5" r="1.5" fill="white" opacity="0.45" />
         </g>
 
         {/* DOT 2 · teal→sky · top-right */}
         <g className="sp-d2">
-          <circle className="sp-rp-2" cx="81" cy="22" r="13" fill="none" stroke="#14D9C5" strokeWidth="1"/>
-          <circle cx="81" cy="22" r="14.5" fill={ring}/>
-          <circle cx="81" cy="22" r="12"   fill={`url(#${d3Id})`}/>
-          <circle cx="81" cy="22" r="5"    fill="white" opacity="0.6"/>
-          <circle cx="78"  cy="19.5" r="1.8" fill="white" opacity="0.45"/>
+          <circle
+            className="sp-rp-2"
+            cx="81"
+            cy="22"
+            r="13"
+            fill="none"
+            stroke="#14D9C5"
+            strokeWidth="1"
+          />
+          <circle cx="81" cy="22" r="14.5" fill={ring} />
+          <circle cx="81" cy="22" r="12" fill={`url(#${d3Id})`} />
+          <circle cx="81" cy="22" r="5" fill="white" opacity="0.6" />
+          <circle cx="78" cy="19.5" r="1.8" fill="white" opacity="0.45" />
           <path
             className="sp-star"
             d="M81 14 L82.2 18 L86 18.8 L82.8 21.4 L84 25.4 L81 23.2 L78 25.4 L79.2 21.4 L76 18.8 L79.8 18Z"
@@ -290,30 +379,53 @@ export default function SkillPathLogo({ size = 48, transparent = false, dark = f
   /* ── Native fallback ── */
   const nativeBg = dark ? "#0d1424" : "white";
   return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: nativeBg,
-      alignItems: "center", justifyContent: "center",
-      overflow: "hidden",
-    }}>
-      <Animated.View style={{
-        position: "absolute", bottom: size * 0.20, left: size * 0.10,
-        width: size * 0.19, height: size * 0.19, borderRadius: size * 0.095,
-        backgroundColor: "#FF5C5C",
-        transform: [{ translateY: a1 }],
-      }} />
-      <Animated.View style={{
-        position: "absolute", top: size * 0.40, left: size * 0.40,
-        width: size * 0.22, height: size * 0.22, borderRadius: size * 0.11,
-        backgroundColor: "#FFCA3A",
-        transform: [{ translateY: a2 }],
-      }} />
-      <Animated.View style={{
-        position: "absolute", top: size * 0.12, right: size * 0.09,
-        width: size * 0.26, height: size * 0.26, borderRadius: size * 0.13,
-        backgroundColor: "#14D9C5",
-        transform: [{ translateY: a3 }],
-      }} />
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: nativeBg,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      <Animated.View
+        style={{
+          position: "absolute",
+          bottom: size * 0.2,
+          left: size * 0.1,
+          width: size * 0.19,
+          height: size * 0.19,
+          borderRadius: size * 0.095,
+          backgroundColor: "#FF5C5C",
+          transform: [{ translateY: a1 }],
+        }}
+      />
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: size * 0.4,
+          left: size * 0.4,
+          width: size * 0.22,
+          height: size * 0.22,
+          borderRadius: size * 0.11,
+          backgroundColor: "#FFCA3A",
+          transform: [{ translateY: a2 }],
+        }}
+      />
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: size * 0.12,
+          right: size * 0.09,
+          width: size * 0.26,
+          height: size * 0.26,
+          borderRadius: size * 0.13,
+          backgroundColor: "#14D9C5",
+          transform: [{ translateY: a3 }],
+        }}
+      />
     </View>
   );
 }

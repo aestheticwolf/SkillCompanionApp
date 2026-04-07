@@ -3432,6 +3432,288 @@ const rpSt = StyleSheet.create({
   },
 });
 
+
+/* ════════════════════════════════
+   CONFIRM DELETE MODAL
+════════════════════════════════ */
+function ConfirmDeleteModal({
+  dark,
+  title,
+  subtitle,
+  itemName,
+  itemIcon,
+  onConfirm,
+  onCancel,
+}: {
+  dark: boolean;
+  title: string;
+  subtitle: string;
+  itemName: string;
+  itemIcon: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(32)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const btnScale1 = useRef(new Animated.Value(1)).current;
+  const btnScale2 = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 75, friction: 10 }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 75, friction: 10 }),
+    ]).start();
+    setTimeout(() => {
+      Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, tension: 140, friction: 7 }).start();
+    }, 160);
+  }, []);
+
+  const dismiss = (cb: () => void) => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 170, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 18, duration: 170, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.93, duration: 170, useNativeDriver: true }),
+    ]).start(() => cb());
+  };
+
+  const shake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const tapBtn = (anim: Animated.Value, cb: () => void) => {
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 0.95, useNativeDriver: true, tension: 300, friction: 5 }),
+      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 5 }),
+    ]).start(() => dismiss(cb));
+  };
+
+  const card = dark ? "#0d1424" : "#ffffff";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "#475569";
+  const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 3000 }] as any}>
+      {/* Blurred backdrop */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: dark ? "rgba(0,0,0,0.75)" : "rgba(15,23,42,0.45)",
+            opacity: fadeAnim,
+            ...(Platform.OS === "web"
+              ? ({ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" } as any)
+              : {}),
+          },
+        ]}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { shake(); }} />
+      </Animated.View>
+
+      <View
+  style={{ 
+    flex: 1, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    padding: Platform.OS === "web" ? 20 : 16,
+  }}
+  pointerEvents="box-none"
+>
+  <Animated.View
+    style={[
+      {
+        width: "100%",
+        maxWidth: Platform.OS === "web" ? 420 : "92%",
+        backgroundColor: card,
+        borderRadius: Platform.OS === "web" ? 26 : 22,
+        padding: Platform.OS === "web" ? 28 : 22,
+              borderWidth: 1,
+              borderColor: "rgba(239,68,68,0.2)",
+              borderTopColor: "#ef4444",
+              borderTopWidth: 3,
+              ...(Platform.OS === "web"
+                ? ({
+                    boxShadow: dark
+                      ? "0 28px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(239,68,68,0.1)"
+                      : "0 28px 60px rgba(0,0,0,0.14), 0 0 0 1px rgba(239,68,68,0.08)",
+                  } as any)
+                : { elevation: 24 }),
+            },
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim },
+                { translateX: shakeAnim },
+              ],
+            },
+          ]}
+        >
+          {/* Icon */}
+          <Animated.View style={{ alignSelf: "center", marginBottom: 20, transform: [{ scale: iconScale }] }}>
+           <View
+  style={{
+    width: Platform.OS === "web" ? 76 : 64,
+    height: Platform.OS === "web" ? 76 : 64,
+    borderRadius: Platform.OS === "web" ? 24 : 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(239,68,68,0.1)",
+    borderWidth: 1.5,
+    borderColor: "rgba(239,68,68,0.25)",
+    ...(Platform.OS === "web"
+      ? ({ boxShadow: "0 0 0 10px rgba(239,68,68,0.06), 0 8px 24px rgba(239,68,68,0.2)" } as any)
+      : {}),
+  }}
+>
+  <Text style={{ fontSize: Platform.OS === "web" ? 34 : 28 }}>🗑️</Text>
+</View>
+          </Animated.View>
+
+          {/* Text */}
+         <Text
+  style={{
+    fontSize: Platform.OS === "web" ? 21 : 18,
+    fontWeight: "800",
+    color: txtPri,
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.4,
+    ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+  }}
+>
+  {title}
+</Text>
+<Text
+  style={{
+    fontSize: Platform.OS === "web" ? 13 : 12,
+    fontWeight: "500",
+    color: txtSec,
+    textAlign: "center",
+    lineHeight: Platform.OS === "web" ? 19 : 17,
+    marginBottom: 18,
+  }}
+>
+  {subtitle}
+</Text>
+
+          {/* Item pill */}
+<View
+  style={{
+    backgroundColor: "rgba(239,68,68,0.07)",
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.2)",
+    borderRadius: Platform.OS === "web" ? 14 : 12,
+    paddingHorizontal: Platform.OS === "web" ? 18 : 14,
+    paddingVertical: Platform.OS === "web" ? 13 : 11,
+    marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  }}
+>
+  <Text style={{ fontSize: Platform.OS === "web" ? 20 : 18 }}>{itemIcon}</Text>
+  <Text
+    style={{ 
+      fontSize: Platform.OS === "web" ? 14 : 13, 
+      fontWeight: "700", 
+      color: "#ef4444", 
+      flex: 1 
+    }}
+    numberOfLines={2}
+  >
+    {itemName}
+  </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(239,68,68,0.12)",
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 20,
+              }}
+            >
+              <Text style={{ fontSize: 10, color: "#ef4444", fontWeight: "700" }}>Delete</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: border, marginBottom: Platform.OS === "web" ? 18 : 14 }} />
+
+          {/* Buttons */}
+          <View style={{ gap: Platform.OS === "web" ? 10 : 8 }}>
+            <Animated.View style={{ transform: [{ scale: btnScale1 }] }}>
+             <Pressable
+  onPress={() => tapBtn(btnScale1, onConfirm)}
+  style={({ pressed }) => ({
+    paddingVertical: typeof window !== "undefined" && window.innerWidth <= 480 ? 13 : 15,
+    borderRadius: typeof window !== "undefined" && window.innerWidth <= 480 ? 12 : 14,
+    alignItems: "center",
+    backgroundColor: "#ef4444",
+    opacity: pressed ? 0.88 : 1,
+    ...(typeof window !== "undefined" && window.innerWidth <= 480
+      ? {}
+      : Platform.OS === "web"
+      ? ({
+          background: "linear-gradient(135deg,#ef4444,#dc2626)",
+          boxShadow: "0 6px 20px rgba(239,68,68,0.4)",
+          cursor: "pointer",
+          transition: "all .15s",
+        } as any)
+      : {}),
+  })}
+>
+  <Text style={{
+    color: "white",
+    fontWeight: "800",
+    fontSize: typeof window !== "undefined" && window.innerWidth <= 480 ? 14 : 15,
+    letterSpacing: 0.1,
+    ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+  }}>
+    🗑️  Yes, Delete
+  </Text>
+</Pressable>
+            </Animated.View>
+
+            <Animated.View style={{ transform: [{ scale: btnScale2 }] }}>
+           <Pressable
+  onPress={() => tapBtn(btnScale2, onCancel)}
+  style={({ pressed }) => ({
+    paddingVertical: Platform.OS === "web" ? 13 : 11,
+    borderRadius: Platform.OS === "web" ? 14 : 12,
+    alignItems: "center",
+    backgroundColor: pressed
+      ? dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"
+      : dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+    borderWidth: 1,
+    borderColor: border,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer", transition: "all .15s" } as any) : {}),
+  })}
+>
+  <Text style={{ 
+    color: txtSec, 
+    fontWeight: "600", 
+    fontSize: Platform.OS === "web" ? 14 : 13 
+  }}>
+    Cancel, Keep It
+  </Text>
+</Pressable>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+
 /* ════════════════════════════════
    ADD GOAL MODAL — inline on dashboard
 ════════════════════════════════ */
@@ -3673,6 +3955,249 @@ function ConfirmCompleteModal({
       }),
     ]).start(() => dismiss(cb));
   };
+
+  /* ════════════════════════════════
+   CONFIRM DELETE MODAL
+════════════════════════════════ */
+function ConfirmDeleteModal({
+  dark,
+  title,
+  subtitle,
+  itemName,
+  itemIcon,
+  onConfirm,
+  onCancel,
+}: {
+  dark: boolean;
+  title: string;
+  subtitle: string;
+  itemName: string;
+  itemIcon: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(32)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const btnScale1 = useRef(new Animated.Value(1)).current;
+  const btnScale2 = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 75, friction: 10 }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 75, friction: 10 }),
+    ]).start();
+    setTimeout(() => {
+      Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, tension: 140, friction: 7 }).start();
+    }, 160);
+  }, []);
+
+
+  const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<{
+  goalId: string; goalName: string; goalIcon: string;
+} | null>(null);
+
+const [confirmDeleteTask, setConfirmDeleteTask] = useState<{
+  goalId: string; taskId: string; taskTitle: string; goalName: string;
+} | null>(null);
+
+  const dismiss = (cb: () => void) => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 170, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 18, duration: 170, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.93, duration: 170, useNativeDriver: true }),
+    ]).start(() => cb());
+  };
+
+  const shake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const tapBtn = (anim: Animated.Value, cb: () => void) => {
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 0.95, useNativeDriver: true, tension: 300, friction: 5 }),
+      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 5 }),
+    ]).start(() => dismiss(cb));
+  };
+
+  const card = dark ? "#0d1424" : "#ffffff";
+  const txtPri = dark ? "#eef2ff" : "#0f172a";
+  const txtSec = dark ? "rgba(238,242,255,0.55)" : "#475569";
+  const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 3000 }] as any}>
+      {/* Blurred backdrop */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: dark ? "rgba(0,0,0,0.75)" : "rgba(15,23,42,0.45)",
+            opacity: fadeAnim,
+            ...(Platform.OS === "web"
+              ? ({ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" } as any)
+              : {}),
+          },
+        ]}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { shake(); }} />
+      </Animated.View>
+
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}
+        pointerEvents="box-none"
+      >
+        <Animated.View
+          style={[
+            {
+              width: Platform.OS === "web" ? 420 : "92%",
+              maxWidth: 420,
+              backgroundColor: card,
+              borderRadius: 26,
+              padding: 28,
+              borderWidth: 1,
+              borderColor: "rgba(239,68,68,0.2)",
+              borderTopColor: "#ef4444",
+              borderTopWidth: 3,
+              ...(Platform.OS === "web"
+                ? ({
+                    boxShadow: dark
+                      ? "0 28px 80px rgba(0,0,0,0.75), 0 0 0 1px rgba(239,68,68,0.1)"
+                      : "0 28px 60px rgba(0,0,0,0.14), 0 0 0 1px rgba(239,68,68,0.08)",
+                  } as any)
+                : { elevation: 28 }),
+            },
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim },
+                { translateX: shakeAnim },
+              ],
+            },
+          ]}
+        >
+          {/* Icon */}
+          <Animated.View style={{ alignSelf: "center", marginBottom: 20, transform: [{ scale: iconScale }] }}>
+            <View
+              style={{
+                width: 76, height: 76, borderRadius: 24,
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: "rgba(239,68,68,0.1)",
+                borderWidth: 1.5, borderColor: "rgba(239,68,68,0.25)",
+                ...(Platform.OS === "web"
+                  ? ({ boxShadow: "0 0 0 10px rgba(239,68,68,0.06), 0 8px 24px rgba(239,68,68,0.2)" } as any)
+                  : {}),
+              }}
+            >
+              <Text style={{ fontSize: 34 }}>🗑️</Text>
+            </View>
+          </Animated.View>
+
+          {/* Text */}
+          <Text
+            style={{
+              fontSize: 21, fontWeight: "800", color: txtPri,
+              textAlign: "center", marginBottom: 8, letterSpacing: -0.4,
+              ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+            }}
+          >
+            {title}
+          </Text>
+          <Text
+            style={{
+              fontSize: 13, fontWeight: "500", color: txtSec,
+              textAlign: "center", lineHeight: 19, marginBottom: 18,
+            }}
+          >
+            {subtitle}
+          </Text>
+
+          {/* Item pill */}
+          <View
+            style={{
+              backgroundColor: "rgba(239,68,68,0.07)",
+              borderWidth: 1, borderColor: "rgba(239,68,68,0.2)",
+              borderRadius: 14, paddingHorizontal: 18, paddingVertical: 13,
+              marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>{itemIcon}</Text>
+            <Text
+              style={{ fontSize: 14, fontWeight: "700", color: "#ef4444", flex: 1 }}
+              numberOfLines={2}
+            >
+              {itemName}
+            </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(239,68,68,0.12)",
+                paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
+              }}
+            >
+              <Text style={{ fontSize: 10, color: "#ef4444", fontWeight: "700" }}>Delete</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 1, backgroundColor: border, marginBottom: 18 }} />
+
+          {/* Buttons */}
+          <View style={{ gap: 10 }}>
+            <Animated.View style={{ transform: [{ scale: btnScale1 }] }}>
+              <Pressable
+                onPress={() => tapBtn(btnScale1, onConfirm)}
+                style={({ pressed }) => ({
+                  paddingVertical: 15, borderRadius: 14, alignItems: "center",
+                  backgroundColor: "#ef4444", opacity: pressed ? 0.88 : 1,
+                  ...(Platform.OS === "web"
+                    ? ({
+                        background: "linear-gradient(135deg,#ef4444,#dc2626)",
+                        boxShadow: "0 6px 20px rgba(239,68,68,0.4)",
+                        cursor: "pointer", transition: "all .15s",
+                      } as any)
+                    : {}),
+                })}
+              >
+                <Text style={{
+                  color: "white", fontWeight: "800", fontSize: 15, letterSpacing: 0.1,
+                  ...(Platform.OS === "web" ? ({ fontFamily: "Outfit,sans-serif" } as any) : {}),
+                }}>
+                  🗑️  Yes, Delete
+                </Text>
+              </Pressable>
+            </Animated.View>
+
+            <Animated.View style={{ transform: [{ scale: btnScale2 }] }}>
+              <Pressable
+                onPress={() => tapBtn(btnScale2, onCancel)}
+                style={({ pressed }) => ({
+                  paddingVertical: 13, borderRadius: 14, alignItems: "center",
+                  backgroundColor: pressed
+                    ? dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)"
+                    : dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                  borderWidth: 1, borderColor: border,
+                  ...(Platform.OS === "web" ? ({ cursor: "pointer", transition: "all .15s" } as any) : {}),
+                })}
+              >
+                <Text style={{ color: txtSec, fontWeight: "600", fontSize: 14 }}>
+                  Cancel, Keep It
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
 
   const card = dark ? "#0d1424" : "#ffffff";
   const txtPri = dark ? "#eef2ff" : "#0f172a";
@@ -6019,6 +6544,19 @@ export default function Dashboard() {
   );
   const [viewGoalId, setViewGoalId] = useState<string | null>(null);
 
+  const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<{
+  goalId: string;
+  goalName: string;
+  goalIcon: string;
+} | null>(null);
+
+const [confirmDeleteTask, setConfirmDeleteTask] = useState<{
+  goalId: string;
+  taskId: string;
+  taskTitle: string;
+  goalName: string;
+} | null>(null);
+
   /* Animations */
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(36)).current;
@@ -6729,34 +7267,29 @@ const handleEditTask = async (
   )}
   
   {/* Delete button */}
-  <Pressable
-    onPress={(e) => {
-      e.stopPropagation();
-      taskCtx.deleteGoal(g.id);
-      showDelete("Goal removed");
-      if (Platform.OS === "web") {
-        requestWebNotificationPermission().then((ok) => {
-          if (ok)
-            new Notification("SkillPath", {
-              body: `Goal "${g.name}" deleted 🗑`,
-            });
-        });
-      }
-    }}
-    style={({ pressed }) => ({
-      width: 30,
-      height: 30,
-      borderRadius: 8,
-      backgroundColor: pressed ? "rgba(239,68,68,0.15)" : "transparent",
-      alignItems: "center",
-      justifyContent: "center",
-      ...(Platform.OS === "web"
-        ? { transition: "all .15s", cursor: "pointer" } as any
-        : {}),
-    })}
-  >
-    <Text style={{ fontSize: 14, opacity: 0.6 }}>🗑</Text>
-  </Pressable>
+ <Pressable
+  onPress={(e) => {
+  e.stopPropagation();
+  setConfirmDeleteGoal({
+    goalId: g.id,
+    goalName: g.name,
+    goalIcon: (g as any).icon || GOAL_EMOJIS[index % GOAL_EMOJIS.length],
+  });
+}}
+  style={({ pressed }) => ({
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: pressed ? "rgba(239,68,68,0.15)" : "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    ...(Platform.OS === "web"
+      ? { transition: "all .15s", cursor: "pointer" } as any
+      : {}),
+  })}
+>
+  <Text style={{ fontSize: 14, opacity: 0.6 }}>🗑</Text>
+</Pressable>
 </View>
                 </View>
 
@@ -6982,7 +7515,7 @@ const handleEditTask = async (
                               )}
                             </View>
 
-                            {/* Action buttons */}
+                        
                             {/* Action buttons */}
 <View style={{ flexDirection: "row", gap: 6 }}>
   {editingTaskId !== t.id && !t.completed && (
@@ -7012,11 +7545,15 @@ const handleEditTask = async (
     </Pressable>
   )}
   <Pressable
-    onPress={(e) => {
-      e.stopPropagation();
-      taskCtx.deleteTask(g.id, t.id);
-      showDelete("Task removed");
-    }}
+   onPress={(e) => {
+  e.stopPropagation();
+  setConfirmDeleteTask({
+    goalId: g.id,
+    taskId: t.id,
+    taskTitle: t.title,
+    goalName: g.name,
+  });
+}}
     style={({ pressed }) => ({
       width: 30, height: 30, borderRadius: 9,
       backgroundColor: pressed ? "rgba(239,68,68,0.22)" : "rgba(239,68,68,0.1)",
@@ -7638,6 +8175,44 @@ const handleEditTask = async (
           onCancel={() => setConfirmTask(null)}
         />
       )}
+
+
+{/* ── Confirm Delete Goal Modal ── */}
+{confirmDeleteGoal && (
+  <ConfirmDeleteModal
+    dark={dark}
+    title="Delete Goal?"
+    subtitle="This will permanently remove the goal and all its tasks. This action cannot be undone."
+    itemName={confirmDeleteGoal.goalName}
+    itemIcon={confirmDeleteGoal.goalIcon}
+    onConfirm={async () => {
+      await taskCtx.deleteGoal(confirmDeleteGoal.goalId);
+      setConfirmDeleteGoal(null);
+      showDelete("Goal deleted");
+    }}
+    onCancel={() => setConfirmDeleteGoal(null)}
+  />
+)}
+
+{/* ── Confirm Delete Task Modal ── */}
+{confirmDeleteTask && (
+  <ConfirmDeleteModal
+    dark={dark}
+    title="Delete Task?"
+    subtitle="This task will be permanently removed from your goal."
+    itemName={confirmDeleteTask.taskTitle}
+    itemIcon="📝"
+    onConfirm={() => {
+      taskCtx.deleteTask(confirmDeleteTask.goalId, confirmDeleteTask.taskId);
+      setConfirmDeleteTask(null);
+      showDelete("Task deleted");
+    }}
+    onCancel={() => setConfirmDeleteTask(null)}
+  />
+)}
+
+
+
     </View>
   );
 }
