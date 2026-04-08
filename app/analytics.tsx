@@ -324,73 +324,73 @@ function ProfileDrop({
   };
   const initials = displayName.charAt(0).toUpperCase();
 
-  const items: any[] = [
-    {
-      icon: "👤",
-      label: "My Profile",
-      sub: `${displayName} • ${userRole || "Intern Developer"}`,
-      fn: () => {
-        router.push("/profile");
-        onClose();
-      },
+ const items: any[] = [
+  {
+    icon: "👤",
+    label: "My Profile",
+    sub: `${displayName} • ${userRole || "Learner"}`,
+    fn: () => {
+      router.push("/profile");
+      onClose();
     },
-    {
-      icon: "📊",
-      label: "My Analytics",
-      sub: "View detailed progress",
-      fn: () => {
-        router.push("/analytics");
-        onClose();
-      },
+  },
+  {
+    icon: "📊",
+    label: "Analytics",
+    sub: "View detailed progress",
+    fn: () => {
+      router.push("/analytics");
+      onClose();
     },
-    {
-      icon: "🎯",
-      label: "Learning Path",
-      sub: "Coming in v2 ✨",
-      fn: () => {
-        onShowV2();
-      },
-      v2: true,
+  },
+  {
+    icon: "🎯",
+    label: "Learning Path",
+    sub: "Coming in v2 ✨",
+    fn: () => {
+      onShowV2();
     },
-    {
-      icon: "⚙️",
-      label: "Settings",
-      sub: "Customize your experience",
-      fn: () => {
-        router.push("/settings");
-        onClose();
-      },
+    v2: true,  
+  },
+  {
+    icon: "⚙️",
+    label: "Settings",
+    sub: "Customize your experience",
+    fn: () => {
+      router.push("/settings");
+      onClose();
     },
-    {
-      icon: dark ? "☀️" : "🌙",
-      label: dark ? "Light Mode" : "Dark Mode",
-      sub: dark ? "Switch to light" : "Switch to dark",
-      fn: () => {
-        onToggleDark();
-      },
-      toggle: true,
+  },
+  {
+    icon: "📤",
+    label: "Share App",
+    sub: "Coming in v2 ✨",
+    fn: () => {
+      onShowV2();
     },
-    {
-      icon: "📤",
-      label: "Share App",
-      sub: "Coming in v2 ✨",
-      fn: () => {
-        onShowV2();
-      },
-      v2: true,
+    v2: true,  
+  },
+  {
+    icon: dark ? "☀️" : "🌙",
+    label: dark ? "Light Mode" : "Dark Mode",
+    sub: dark ? "Switch to light" : "Switch to dark",
+    fn: () => {
+      onToggleDark();
     },
-    {
-      icon: "🚪",
-      label: "Log Out",
-      sub: "Sign out of account",
-      fn: () => {
-        onLogoutReset();
-        router.replace("/login");
-        onClose();
-      },
-      danger: true,
+    toggle: true,
+  },
+  {
+    icon: "🚪",
+    label: "Log Out",
+    sub: "Sign out of account",
+    fn: () => {
+      onLogoutReset();
+      router.replace("/login");
+      onClose();
     },
-  ];
+    danger: true,
+  },
+];
 
   const dropRef = useRef<any>(null);
   useEffect(() => {

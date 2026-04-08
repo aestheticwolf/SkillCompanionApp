@@ -10,7 +10,8 @@ import { AuthContext } from "../src/context/AuthContext";
 import { TaskContext } from "../src/context/TaskContext";
 import { db } from "../src/services/firebase";
 import { loadTheme, saveTheme } from "../src/services/uiPreferences";
-import { showDelete, showSuccess, showError } from "../src/services/toast";
+import { showDelete, showSuccess, showError, showComingSoon } from "../src/services/toast";
+
 
 /* ══ CSS ══ */
 if (Platform.OS === "web" && typeof document !== "undefined") {
@@ -168,9 +169,14 @@ function Sidebar({dark,router,overallPct,done,total,name,role,synced}:any) {
 }
 
 /* ══ TOPBAR ══ */
-function TopBar({dark,open,setOpen,toggleDark,router,name,pending}:any) {
+function TopBar({dark,open,setOpen,toggleDark,router,name,pending,displayName,userEmail,overallPct,streak,userRole,completedTasks,totalGoals,}:any) {
   const bg=dark?"#0a0f20":"#fff",bdr=dark?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.07)";
   const tp=dark?"#eef2ff":"#0f172a",mu=dark?"rgba(238,242,255,0.5)":"rgba(15,23,42,0.5)";
+
+    const [showDrop, setShowDrop] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
+
+
   const [time,setTime]=useState(()=>new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}));
   const [sec,setSec]=useState(()=>new Date().getSeconds());
   useEffect(()=>{
@@ -222,16 +228,43 @@ function TopBar({dark,open,setOpen,toggleDark,router,name,pending}:any) {
               <Text style={{fontSize:12,fontWeight:"700",color:"#ef4444"}}>{pending} pending</Text>
             </Pressable>
           )}
-          <Pressable onPress={()=>router.push("/profile")}
-            style={[{width:40,height:40,borderRadius:20,alignItems:"center",justifyContent:"center"},
-              Platform.OS==="web"?({background:"linear-gradient(135deg,#f97316,#ef4444)",boxShadow:"0 3px 14px rgba(239,68,68,0.35)",cursor:"pointer"} as any):{backgroundColor:"#f97316"}]}>
-            <Text style={{color:"white",fontWeight:"900",fontSize:15}}>{(name||"U").charAt(0).toUpperCase()}</Text>
-          </Pressable>
-        </View>
+
+         {/* Avatar / Profile */}
+<View style={{ position: "relative" }}> 
+  <Pressable
+    onPress={() => setShowDrop(s => !s)}  
+    style={[
+      {width:40,height:40,borderRadius:20,alignItems:"center",justifyContent:"center"},
+      Platform.OS==="web"?({background:"linear-gradient(135deg,#f97316,#ef4444)",boxShadow:"0 3px 14px rgba(239,68,68,0.35)",cursor:"pointer"} as any):{backgroundColor:"#f97316"}
+    ]}
+  >
+    <Text style={{color:"white",fontWeight:"900",fontSize:15}}>{(name||"U").charAt(0).toUpperCase()}</Text>
+  </Pressable>
+  
+  {/* Profile Dropdown */}
+  {showDrop && Platform.OS === "web" && (
+  <ProfileDrop
+    dark={dark}
+    displayName={displayName || name}
+    email={userEmail}           
+    overallPct={overallPct}     
+    streak={streak}            
+    userRole={userRole}        
+    onClose={() => setShowDrop(false)}
+    onToggleDark={toggleDark}
+    onShowV2={() => showComingSoon()}
+    router={router}
+    onLogoutReset={() => {}}
+    completedTasks={completedTasks}  
+    totalGoals={totalGoals}          
+  />
+)}
+          </View>  
+        </View>  
       )}
-    </View>
+    </View> 
   );
-}
+}  
 
 
 /* ════════════════════════════════
@@ -770,6 +803,391 @@ function GoalModal({
   );
 }
 
+/* ════════════════════════════════
+   PROFILE DROPDOWN 
+════════════════════════════════ */
+function ProfileDrop({
+  dark,
+  displayName,
+  email,
+  overallPct,
+  streak,
+  userRole,
+  onClose,
+  onToggleDark,
+  onShowV2,
+  router,
+  onLogoutReset,
+  completedTasks,
+  totalGoals,
+}: any) {
+  const t = {
+    bg: dark ? "#111827" : "#ffffff",
+    bdr: dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)",
+    text: dark ? "#eef2ff" : "#0f172a",
+    sub: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.5)",
+    muted: dark ? "rgba(238,242,255,0.2)" : "rgba(15,23,42,0.2)",
+    sh: dark ? "0 8px 40px rgba(0,0,0,.7)" : "0 8px 40px rgba(0,0,0,.15)",
+    ov: dark ? "rgba(0,0,0,.72)" : "rgba(0,0,0,.38)",
+  };
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const items: any[] = [
+    {
+      icon: "👤",
+      label: "My Profile",
+      sub: `${displayName} • ${userRole || "Intern Developer"}`,
+      fn: () => {
+        router.push("/profile");
+        onClose();
+      },
+    },
+    {
+      icon: "📊",
+      label: "My Analytics",
+      sub: "View detailed progress",
+      fn: () => {
+        router.push("/analytics");
+        onClose();
+      },
+    },
+    {
+      icon: "🎯",
+      label: "Learning Path",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "⚙️",
+      label: "Settings",
+      sub: "Customize your experience",
+      fn: () => {
+        router.push("/settings");
+        onClose();
+      },
+    },
+    {
+      icon: dark ? "☀️" : "🌙",
+      label: dark ? "Light Mode" : "Dark Mode",
+      sub: dark ? "Switch to light" : "Switch to dark",
+      fn: () => {
+        onToggleDark();
+      },
+      toggle: true,
+    },
+    {
+      icon: "📤",
+      label: "Share App",
+      sub: "Coming in v2 ✨",
+      fn: () => {
+        onShowV2();
+      },
+      v2: true,
+    },
+    {
+      icon: "🚪",
+      label: "Log Out",
+      sub: "Sign out of account",
+      fn: () => {
+        onLogoutReset();
+        router.replace("/login");
+        onClose();
+      },
+      danger: true,
+    },
+  ];
+
+  const dropRef = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: any) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) onClose();
+    };
+    setTimeout(() => document.addEventListener("mousedown", handler), 0);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const dropStyle: any = Platform.OS === "web"
+    ? {
+        position: "absolute" as any,
+        top: "calc(100% + 10px)",
+        right: 0,
+        width: 280,
+        zIndex: 9999,
+        background: t.bg,
+        border: `1px solid ${t.bdr}`,
+        borderRadius: 22,
+        padding: 8,
+        boxShadow: t.sh,
+        animation: "sk-fadeUp .2s ease both",
+      }
+    : {};
+
+  return (
+    <View
+      ref={dropRef}
+      style={
+        Platform.OS === "web"
+          ? (dropStyle as any)
+          : {
+              position: "absolute",
+              right: 0,
+              top: 50,
+              width: 280,
+              backgroundColor: dark ? "#111827" : "#fff",
+              borderRadius: 22,
+              padding: 8,
+              zIndex: 9999,
+            }
+      }
+    >
+      {/* User card */}
+      <View
+        style={{
+          padding: 14,
+          borderRadius: 16,
+          backgroundColor: "rgba(99,102,241,0.07)",
+          borderWidth: 1,
+          borderColor: "rgba(99,102,241,0.14)",
+          marginBottom: 6,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 16,
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              ...(Platform.OS === "web"
+                ? ({
+                    background: "linear-gradient(135deg,#f97316,#ef4444)",
+                    boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
+                  } as any)
+                : { backgroundColor: "#f97316" }),
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "900", fontSize: 20 }}>
+              {initials}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "800",
+                color: t.text,
+                ...(Platform.OS === "web"
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              {displayName}
+            </Text>
+            <Text style={{ fontSize: 12, color: t.sub, marginTop: 1 }}>
+              {email || "user@example.com"}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 5,
+                marginTop: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#34d399",
+                  ...(Platform.OS === "web"
+                    ? ({ animation: "sk-pulse 1.5s infinite" } as any)
+                    : {}),
+                }}
+              />
+              <Text
+                style={{ fontSize: 11, color: "#34d399", fontWeight: "700" }}
+              >
+                Active learner
+              </Text>
+            </View>
+          </View>
+        </View>
+        {/* Stats row */}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {[
+            { v: `${streak}🔥`, l: "Streak" },
+            { v: `${overallPct}%`, l: "Progress" },
+            { v: `${Math.min(9999, completedTasks * 50 + totalGoals * 120 + streak * 15)}⭐`, l: "Score" },
+          ].map((s, i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                backgroundColor: dark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.04)",
+                borderRadius: 10,
+                padding: 8,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: dark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "800",
+                  color: t.text,
+                  ...(Platform.OS === "web"
+                    ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                    : {}),
+                }}
+              >
+                {s.v}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: t.sub,
+                  marginTop: 1,
+                  fontWeight: "500",
+                }}
+              >
+                {s.l}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Menu items */}
+      {items.map((item, i) => (
+        <Pressable
+          key={i}
+          onPress={item.fn}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              padding: 10,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              backgroundColor: pressed
+                ? item.danger
+                  ? "rgba(239,68,68,0.09)"
+                  : dark
+                  ? "rgba(255,255,255,0.07)"
+                  : "rgba(99,102,241,0.06)"
+                : "transparent",
+              borderTopWidth: i === items.length - 1 ? 1 : 0,
+              borderTopColor: t.bdr,
+              marginTop: i === items.length - 1 ? 4 : 0,
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 16, width: 24, textAlign: "center" }}>
+            {item.icon}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: item.danger ? "#ef4444" : item.v2 ? t.sub : t.text,
+                }}
+              >
+                {item.label}
+              </Text>
+              {item.v2 && (
+                <View
+                  style={{
+                    backgroundColor: "rgba(99,102,241,0.12)",
+                    borderRadius: 99,
+                    paddingHorizontal: 5,
+                    paddingVertical: 1,
+                  }}
+                >
+                  <Text
+                    style={{ fontSize: 9, fontWeight: "800", color: "#6366f1" }}
+                  >
+                    v2
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={{
+                fontSize: 11,
+                color: item.v2
+                  ? "#a78bfa"
+                  : item.danger
+                  ? "rgba(239,68,68,0.5)"
+                  : t.sub,
+                marginTop: 1,
+                fontWeight: "500",
+              }}
+            >
+              {item.sub}
+            </Text>
+          </View>
+          {item.toggle && (
+            <View
+              style={{
+                width: 36,
+                height: 20,
+                borderRadius: 99,
+                backgroundColor: dark ? "#6366f1" : "#cbd5e1",
+                position: "relative",
+              }}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: dark ? 17 : 3,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: "white",
+                  ...(Platform.OS === "web"
+                    ? ({
+                        transition: "left .2s",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                      } as any)
+                    : {}),
+                }}
+              />
+            </View>
+          )}
+          {!item.toggle && !item.badge && (
+            <Text style={{ fontSize: 14, color: t.muted }}>›</Text>
+          )}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 /* ════════════════════ MAIN PAGE ════════════════════ */
 export default function GoalsPage() {
   const router=useRouter();
@@ -1145,6 +1563,7 @@ const handleDelTask = (goalId: string, taskId: string) => {
 
 if(isWide) return(
   <>
+
     <View style={{flex:1,flexDirection:"row",backgroundColor:bg} as any}>
       {Platform.OS==="web"?(
         <View className="g3-sidebar" style={{width:sidebarOpen?260:0,minWidth:sidebarOpen?260:0,overflow:"hidden"} as any}>
@@ -1154,10 +1573,17 @@ if(isWide) return(
         <Sidebar dark={isDark} router={router} overallPct={pct} done={doneTasks} total={totalTasks} name={displayName} role={role} synced={synced}/>
       )}
       <View style={{flex:1,flexDirection:"column",minWidth:0}}>
-        <TopBar dark={isDark} open={sidebarOpen} setOpen={setSidebarOpen} toggleDark={toggleDark} router={router} name={displayName} pending={pendingTasks}/>
+        <TopBar dark={isDark} open={sidebarOpen} setOpen={setSidebarOpen} toggleDark={toggleDark} router={router} name={displayName} pending={pendingTasks} displayName={displayName}
+  userEmail={user?.email || ""}
+  overallPct={pct}
+  streak={streak}
+  userRole={role}
+  completedTasks={doneTasks}
+  totalGoals={totalGoals} />
         {content}
       </View>
     </View>
+
     {/* Goal Modal at root level */}
     {mGoal && (
       <GoalModal

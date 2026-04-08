@@ -24,7 +24,7 @@ export default function Home() {
   if (Platform.OS === "web") {
     return (
       <iframe
-        src="/landing.html"
+        src="/landing"
         style={{
           width: "100%",
           height: "100vh",

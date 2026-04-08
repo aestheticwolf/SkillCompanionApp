@@ -2846,6 +2846,7 @@ function StatCards({
   activityToday,
   fadeAnim,
   slideAnim,
+  mobile = false,
 }: any) {
   const bg = dark ? "#0d1424" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
@@ -2901,6 +2902,7 @@ function StatCards({
     i,
     streak,
     activityToday,
+    mobile,
   }: any) {
     const isNum = typeof val === "number";
     const counted = useCountUp(isNum ? val : 0);
@@ -2908,8 +2910,9 @@ function StatCards({
     return (
       <Animated.View
         className={Platform.OS === "web" ? "sk-hov" : undefined}
-        style={[
+         style={[
           stSt.card,
+          mobile && ({ flex: undefined, width: "47%", marginBottom: 10 } as any),
           { backgroundColor: bg, borderColor: border },
           Platform.OS === "web"
             ? {
@@ -2989,7 +2992,10 @@ function StatCards({
   }
 
   return (
-    <View style={stSt.row}>
+    <View style={mobile
+      ? ({ flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 } as any)
+      : stSt.row
+    }>
       {CARDS.map((card, i) => (
         <StatCard
           key={i}
@@ -2997,6 +3003,7 @@ function StatCards({
           i={i}
           streak={streak}
           activityToday={activityToday}
+          mobile={mobile}
         />
       ))}
     </View>
@@ -7952,135 +7959,189 @@ const handleEditTask = async (
         </View>
       ) : (
         /* ══ MOBILE / NARROW LAYOUT ══ */
-        <View style={styles.wrapper}>
-          <MobileHeader
-            dark={dark}
-            darkMode={darkMode}
-            setDarkMode={setDarkMode}
-            displayName={displayName}
-            overallPct={overallPct}
-            completedTasks={completedTasks}
-            totalGoals={goals.length}
-            streak={streak}
-            skillScore={skillScore}
-          />
-
-          {/* Rec card */}
-          <Animated.View
-            style={[
-              styles.recCard,
-              {
-                backgroundColor: recBg,
-                borderLeftColor: recBorder,
-                ...cardShadow,
-              },
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <View style={styles.recRow}>
-              <View style={styles.recIconWrap}>
-                <Text style={{ fontSize: 20 }}>🚀</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={[
-                    styles.recTitle,
-                    { color: dark ? "#FFFFFF" : COLORS.secondary },
-                  ]}
-                >
-                  📌 Your Recommendation
-                </Text>
-                <Text style={[styles.recBody, { color: recText }]}>
-                  {getRecommendation()}
-                </Text>
+         <View style={[styles.screen, { backgroundColor: bg }]}>
+          {/* ── Mobile Top Bar ── */}
+          <View style={{
+            flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+            paddingHorizontal: 18,
+            paddingTop: Platform.OS === "ios" ? 52 : 16,
+            paddingBottom: 14,
+            backgroundColor: dark ? "#0a0f20" : "#ffffff",
+            borderBottomWidth: 1, borderBottomColor: cardBorder,
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <SkillPathLogo size={34} dark={dark} />
+              <View>
+                <Text style={{
+                  fontSize: 15, fontWeight: "900", letterSpacing: -0.4,
+                  ...(Platform.OS === "web"
+                    ? ({ background: "linear-gradient(90deg,#FF5C5C,#FFCA3A,#14D9C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } as any)
+                    : { color: "#FF5C5C" }),
+                }}>SkillPath</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSynced ? "#34d399" : "#f87171" }} />
+                  <Text style={{ fontSize: 10, color: isSynced ? "#34d399" : "#f87171", fontWeight: "600" }}>
+                    {isSynced ? "Synced" : "Offline"}
+                  </Text>
+                </View>
               </View>
             </View>
-            <View style={styles.recProgRow}>
-              <Text style={[styles.progTx, { color: recText }]}>
-                Overall progress
-              </Text>
-              <Text
-                style={[
-                  styles.progTx,
-                  {
-                    color: dark ? "#a78bfa" : COLORS.primary,
-                    fontWeight: "800" as const,
-                  },
-                ]}
-              >
-                {overallPct}%
-              </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Switch
+                value={dark}
+                onValueChange={async (v) => { setDarkMode(v); await saveTheme(v); }}
+                trackColor={{ false: "rgba(0,0,0,0.12)", true: "#6366f1" }}
+                thumbColor="#fff"
+                style={{ transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] }}
+              />
+              <Pressable
+                onPress={() => router.push("/profile")}
+                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "white", fontWeight: "800", fontSize: 14 }}>{initials}</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleLogout}
+                style={{ backgroundColor: dark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.08)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: "rgba(239,68,68,0.2)" }}>
+                <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 11 }}>Logout</Text>
+              </Pressable>
             </View>
-            <ShimmerBar
-              pct={overallPct}
-              color={dark ? "#6366f1" : COLORS.primary}
-              h={7}
-            />
-          </Animated.View>
-
-          {/* Goals header */}
-          <Animated.View
-            style={[
-              styles.goalsHdr,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <Text
-              style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}
-            >
-              Your Goals
-            </Text>
-            <Pressable
-              onPress={() => setShowAddGoal(true)}
-              disabled={!isSynced}
-              style={({ pressed }) => [
-                styles.addGoalBtn,
-                !isSynced && { opacity: 0.5 },
-                pressed && { opacity: 0.8 },
-              ]}
-            >
-              <Text style={styles.addGoalTx}>＋ Add Goal</Text>
-            </Pressable>
-          </Animated.View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 108 }}
-          >
-            <GoalList />
-          </ScrollView>
-
-          {/* Bottom bar */}
-          <View
-            style={[
-              styles.bottomBar,
-              {
-                backgroundColor: dark
-                  ? "rgba(2,6,23,0.96)"
-                  : "rgba(240,244,255,0.96)",
-                borderTopColor: cardBorder,
-              },
-            ]}
-          >
-            <Pressable
-              style={[styles.bbBtn, styles.reminderBtn]}
-              onPress={() => {
-                if (Platform.OS === "web") {
-                  showError("Smart reminders work only on mobile app");
-                  return;
-                }
-                setShowPicker(true);
-              }}
-            >
-              <Text style={styles.bbTx}>🔔 Smart Reminder</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.bbBtn, styles.analyticsBtn]}
-              onPress={() => router.push("/analytics")}
-            >
-              <Text style={styles.bbTx}>📊 Analytics</Text>
-            </Pressable>
           </View>
+
+         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 108 }}>
+
+  {/* Hero Banner — compact mobile */}
+  <View style={{ paddingHorizontal: 14, paddingTop: 16 }}>
+    <Animated.View
+      style={[
+        {
+          borderRadius: 18,
+          padding: 16,
+          paddingVertical: 20,
+          marginBottom: 14,
+          overflow: "hidden",
+          position: "relative",
+          ...(Platform.OS === "web"
+            ? { boxShadow: "0 6px 24px rgba(99,102,241,0.22)" }
+            : { elevation: 6 }),
+        },
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+    >
+      {/* Background gradient */}
+      {Platform.OS === "web" && (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+          borderRadius: 18,
+          background: "linear-gradient(135deg,#3730a3 0%,#6d28d9 55%,#9333ea 100%)",
+        } as any]} />
+      )}
+      {Platform.OS !== "web" && (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#1e3a8a", borderRadius: 18 }]} />
+      )}
+
+      {/* Synced badge */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isSynced ? "#34d399" : "#f87171" }} />
+        <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 0.8, color: isSynced ? "rgba(255,255,255,0.85)" : "#fca5a5", textTransform: "uppercase" as const }}>
+          {isSynced ? "SYNCED & ACTIVE" : "OFFLINE"}
+        </Text>
+      </View>
+
+      {/* Name */}
+      <Text style={{ color: "white", fontSize: 20, fontWeight: "900", letterSpacing: -0.5, marginBottom: 4 }}>
+        Welcome back, {displayName}!
+      </Text>
+
+      {/* Subtitle */}
+      <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "500", lineHeight: 18, marginBottom: 14, maxWidth: 280 }}>
+        You're {overallPct}% through your learning goals.{"\n"}
+        {overallPct === 100 ? "🏆 All goals completed!" : overallPct >= 50 ? "🔥 Keep pushing forward." : "🌱 Start small and build momentum."}
+      </Text>
+
+      {/* Progress bar */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ flex: 1, height: 6, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 99, overflow: "hidden" }}>
+          <View style={{ height: "100%" as any, width: `${overallPct}%` as any, backgroundColor: "#34d399", borderRadius: 99 }} />
+        </View>
+        <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: "900" }}>{overallPct}%</Text>
+      </View>
+    </Animated.View>
+  </View>
+
+  {/* Stat Cards — 2×2 grid, fixed size */}
+  <View style={{ paddingHorizontal: 14, marginBottom: 18 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap" as const, gap: 10 }}>
+      {[
+        { icon: "🎯", val: goals.length, lbl: "Active Goals", sub: "All on track", color: "#6366f1", bg2: "rgba(99,102,241,0.08)" },
+        { icon: "✅", val: completedTasks, lbl: "Tasks Done", sub: "+2 today", color: "#34d399", bg2: "rgba(52,211,153,0.08)" },
+        { icon: "🔥", val: streak, lbl: "Day Streak", sub: "Personal best", color: "#f97316", bg2: "rgba(249,115,22,0.08)" },
+        { icon: "⭐", val: skillScore, lbl: "Skill Score", sub: "Based on activity", color: "#fbbf24", bg2: "rgba(251,191,36,0.08)" },
+      ].map((s, i) => (
+        <View key={i} style={{
+          width: "calc(50% - 5px)" as any,
+          backgroundColor: card,
+          borderRadius: 14,
+          padding: 14,
+          borderWidth: 1,
+          borderColor: cardBorder,
+          borderTopWidth: 2,
+          borderTopColor: s.color,
+          ...(Platform.OS === "web"
+            ? { boxShadow: `0 2px 10px ${s.color}18` } as any
+            : { elevation: 2 }),
+        }}>
+          <View style={{
+            width: 34, height: 34, borderRadius: 10,
+            backgroundColor: s.bg2,
+            alignItems: "center", justifyContent: "center", marginBottom: 8,
+          }}>
+            <Text style={{ fontSize: 17 }}>{s.icon}</Text>
+          </View>
+          <Text style={{
+            fontSize: 26, fontWeight: "900", color: textPrimary, marginBottom: 2, lineHeight: 30,
+          }}>{s.val}</Text>
+          <Text style={{ fontSize: 11, color: textSecondary, fontWeight: "500", marginBottom: 3 }}>{s.lbl}</Text>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: s.color }}>↑ {s.sub}</Text>
+        </View>
+      ))}
+    </View>
+  </View>
+
+  {/* Goals */}
+  <View style={{ paddingHorizontal: 14 }}>
+    <Animated.View style={[styles.goalsHdr, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <Text style={[styles.secTitle, { color: dark ? "#E5E7EB" : "#334155" }]}>Your Goals</Text>
+      <Pressable
+        onPress={() => setShowAddGoal(true)}
+        disabled={!isSynced}
+        style={({ pressed }) => [styles.addGoalBtn, !isSynced && { opacity: 0.5 }, pressed && { opacity: 0.8 }]}
+      >
+        <Text style={styles.addGoalTx}>＋ Add Goal</Text>
+      </Pressable>
+    </Animated.View>
+    <GoalList />
+  </View>
+
+</ScrollView>
+
+
+<View style={[styles.bottomBar, {
+  backgroundColor: dark ? "rgba(2,6,23,0.96)" : "rgba(240,244,255,0.96)",
+  borderTopColor: cardBorder,
+}]}>
+  <Pressable
+    style={[styles.bbBtn, styles.reminderBtn]}
+    onPress={() => {
+      if (Platform.OS === "web") { showError("Smart reminders work only on mobile app"); return; }
+      setShowPicker(true);
+    }}
+  >
+    <Text style={styles.bbTx}>🔔 Smart Reminder</Text>
+  </Pressable>
+  <Pressable style={[styles.bbBtn, styles.analyticsBtn]} onPress={() => router.push("/analytics")}>
+    <Text style={styles.bbTx}>📊 Analytics</Text>
+  </Pressable>
+</View>
+
         </View>
       )}
 

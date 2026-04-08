@@ -22,10 +22,10 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.richard.skillcompanion"
     },
-   "web": {
-  "output": "static",
-  "favicon": "./assets/images/favicon.svg"
-},
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.svg"
+    },
     "plugins": [
       "expo-router",
       [
@@ -40,7 +40,8 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
