@@ -86,31 +86,30 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTask = async (
-    goalId: string,
-    taskId: string,
-    newTitle: string,
-  ) => {
-    if (!authCtx?.user) return;
+  goalId: string,
+  taskId: string,
+  newTitle: string,
+) => {
+  if (!authCtx?.user) return;
 
-    let updatedTasks: Task[] = [];
+  // Find the goal and update its tasks
+  const goal = goals.find((g) => g.id === goalId);
+  if (!goal) return;
 
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id === goalId) {
-          updatedTasks = g.tasks.map((t) =>
-            t.id === taskId ? { ...t, title: newTitle } : t,
-          );
-          return { ...g, tasks: updatedTasks };
-        }
-        return g;
-      }),
-    );
+  const updatedTasks = goal.tasks.map((t) =>
+    t.id === taskId ? { ...t, title: newTitle } : t,
+  );
 
-    await updateGoalFirestore(authCtx.user.uid, goalId, {
-      tasks: updatedTasks,
-    });
-  };
+  // Update local state
+  setGoals((prev) =>
+    prev.map((g) => (g.id === goalId ? { ...g, tasks: updatedTasks } : g)),
+  );
 
+  // Sync to Firestore
+  await updateGoalFirestore(authCtx.user.uid, goalId, {
+    tasks: updatedTasks,
+  });
+};
   /* Add Task */
 
   const addTask = async (goalId: string, title: string) => {

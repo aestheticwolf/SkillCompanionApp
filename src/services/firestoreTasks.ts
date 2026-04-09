@@ -24,7 +24,6 @@ export const getUserGoals = async (uid: string) => {
 };
 
 /* Add new goal */
-/* Add new goal */
 export const addUserGoal = async (
   uid: string,
   name: string,

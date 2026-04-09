@@ -25,7 +25,7 @@ function stampDomTheme(isDark: boolean) {
   }
 }
 
-/* ✅ KEEP SAME FUNCTION SIGNATURE */
+/* KEEP SAME FUNCTION SIGNATURE */
 export const saveTheme = async (value: boolean) => {
   await AsyncStorage.setItem(THEME_KEY, value.toString());
 

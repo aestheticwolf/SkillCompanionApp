@@ -442,7 +442,7 @@ const nSt = StyleSheet.create({
   timerBar: { height: "100%" as any, borderRadius: 99 },
 });
 
-/* ══ Export toastConfig — all 4 types, nothing changed ══ */
+/* ══ Export toastConfig — all 4 types══ */
 export const toastConfig = {
   success: ({ text1, text2, onPress, hide }: any) => (
     <SkToast
