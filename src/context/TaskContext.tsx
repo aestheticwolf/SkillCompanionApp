@@ -56,7 +56,8 @@ type TaskContextType = {
 
   updateGoal: (goalId: string, data: Partial<Goal>) => Promise<void>;
 
-  updateTask: (goalId: string, taskId: string, title: string) => Promise<void>;
+ updateTask: (goalId: string, taskId: string, title: string) => Promise<void>;
+  reloadGoals: () => Promise<void>;
 };
 
 /* Context */
@@ -197,7 +198,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const data = await getUserGoals(authCtx.user.uid);
 
       if (data) {
-        setGoals(data as Goal[]);
+       setGoals(
+  (data as Goal[]).map((g) => ({
+    ...g,
+    tasks: g.tasks || [],
+  }))
+);
       }
     } catch (err) {
       console.log("Load error:", err);
@@ -300,8 +306,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         getRecommendation,
         getStats,
         hasPendingTasks,
-        updateGoal,
+           updateGoal,
         updateTask,
+        reloadGoals: loadGoals,
       }}
     >
       {children}
