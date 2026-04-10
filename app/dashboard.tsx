@@ -6867,30 +6867,30 @@ export default function Dashboard() {
   /* Theme */
   const dark = !!darkMode;
 
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
+  // useEffect(() => {
+  //   if (Platform.OS !== "web") return;
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Check if clicked element or any parent has the editing-input class
-      const isEditingInput = target.closest(".editing-input");
+  //   const handleClickOutside = (e: MouseEvent) => {
+  //     const target = e.target as HTMLElement;
+  //     // Check if clicked element or any parent has the editing-input class
+  //     const isEditingInput = target.closest(".editing-input");
 
-      if (!isEditingInput) {
-        if (editingGoalId) {
-          // Optional: auto-save on blur, or just cancel
-          setEditingGoalId(null);
-          setGoalNameDraft("");
-        }
-        if (editingTaskId) {
-          setEditingTaskId(null);
-          setTaskTitleDraft("");
-        }
-      }
-    };
+  //     if (!isEditingInput) {
+  //       if (editingGoalId) {
+  //         // Optional: auto-save on blur, or just cancel
+  //         setEditingGoalId(null);
+  //         setGoalNameDraft("");
+  //       }
+  //       if (editingTaskId) {
+  //         setEditingTaskId(null);
+  //         setTaskTitleDraft("");
+  //       }
+  //     }
+  //   };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [editingGoalId, editingTaskId]);
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => document.removeEventListener("mousedown", handleClickOutside);
+  // }, [editingGoalId, editingTaskId]);
 
   const bg = dark ? "#0D0F14" : "#eef1f8";
   const card = dark ? "#1C1F2E" : "#FFFFFF";
@@ -7250,16 +7250,17 @@ export default function Dashboard() {
                             onChange={(e: any) =>
                               setGoalNameDraft(e.target.value)
                             }
-                            onKeyDown={(e: any) => {
-                              if (e.key === "Enter")
-                                taskCtx.updateGoal(g.id, {
-                                  name: goalNameDraft,
-                                });
-                              if (e.key === "Escape") {
-                                setEditingGoalId(null);
-                                setGoalNameDraft("");
-                              }
-                            }}
+  onKeyDown={(e: any) => {
+  if (e.key === "Enter") {
+    taskCtx.updateGoal(g.id, { name: goalNameDraft });
+    setEditingGoalId(null); 
+    showSuccess("Goal updated ✓");
+  }
+  if (e.key === "Escape") {
+    setEditingGoalId(null);
+    setGoalNameDraft("");
+  }
+}}
                             autoFocus
                             onClick={(e: any) => e.stopPropagation()}
                             className="editing-input"
@@ -7373,11 +7374,14 @@ export default function Dashboard() {
                       >
                         <Text style={{ fontSize: 13, opacity: 0.6 }}>✏️</Text>
                       </Pressable>
-                    ) : (
+                   ) : (
                       <Pressable
                         onPress={(e) => {
                           e.stopPropagation();
-                          taskCtx.updateGoal(g.id, { name: goalNameDraft });
+                          if (goalNameDraft.trim()) {
+                            taskCtx.updateGoal(g.id, { name: goalNameDraft });
+                            showSuccess("Goal updated ✓");
+                          }
                           setEditingGoalId(null);
                         }}
                         style={({ pressed }) => ({
@@ -8157,6 +8161,8 @@ export default function Dashboard() {
           </ScrollView>
         </View>
       ) : (
+
+        
         /* ══ MOBILE / NARROW LAYOUT ══ */
         <View style={[styles.screen, { backgroundColor: bg }]}>
           {/* ── Mobile Top Bar ── */}
