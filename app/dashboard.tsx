@@ -129,6 +129,12 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
 .sk-search-focus::after{opacity:.55;animation:sk-search-sheen 1.2s ease-out}
 .sk-search-clear{transition:transform .12s ease, background .12s ease, opacity .12s ease}
 .sk-search-clear:hover{transform:scale(1.06)}
+.sk-filter-seg{display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.16);box-shadow:0 10px 24px rgba(15,23,42,0.06) inset}
+.sk-filter-btn{padding:7px 10px;border-radius:11px;font-weight:800;font-size:12px;color:rgba(15,23,42,0.6);transition:transform .12s ease, background .12s ease, box-shadow .12s ease, color .12s ease;user-select:none}
+.sk-filter-btn:hover{transform:translateY(-1px)}
+.sk-filter-active{background:linear-gradient(135deg,#6366f1,#a78bfa);color:white;box-shadow:0 10px 22px rgba(99,102,241,0.30)}
+.sk-filter-dot{width:6px;height:6px;border-radius:999px;background:rgba(100,116,139,0.4);display:inline-block;margin-right:6px}
+.sk-filter-active .sk-filter-dot{background:rgba(255,255,255,0.85)}
      .sk-cell-today {
   animation: sk-glow-today 0.9s ease-in-out infinite;
   will-change: transform, box-shadow;
@@ -7451,6 +7457,9 @@ export default function Dashboard() {
   const [viewGoalId, setViewGoalId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "completed">(
+    "all",
+  );
   const searchFadeAnim = useRef(new Animated.Value(0)).current;
   const searchScaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -8161,20 +8170,125 @@ export default function Dashboard() {
   /* ── Goal list shared ── */
   /* Goal cards always expanded — no collapse toggle */
 
+  const isCompletedTask = (t: any) =>
+    !!(
+      t?.completed === true ||
+      t?.completed === "true" ||
+      t?.completed === 1 ||
+      t?.isCompleted === true
+    );
+
   // Search filtering for goals and tasks
   const filteredGoals =
-    searchQuery.trim() === ""
-      ? goals
-      : goals.filter((g: any) => {
-          const query = searchQuery.toLowerCase().trim();
-          // Search in goal name
-          const matchesGoal = g.name.toLowerCase().includes(query);
-          // Search in task titles
-          const matchesTask = g.tasks.some((t: any) =>
-            t.title.toLowerCase().includes(query),
-          );
-          return matchesGoal || matchesTask;
-        });
+    goals.filter((g: any) => {
+      const query = searchQuery.toLowerCase().trim();
+      const matchesGoal =
+        query === "" ? true : String(g?.name || "").toLowerCase().includes(query);
+
+      const tasksByStatus =
+        taskFilter === "all"
+          ? g.tasks
+          : taskFilter === "pending"
+            ? g.tasks.filter((t: any) => !isCompletedTask(t))
+            : g.tasks.filter((t: any) => isCompletedTask(t));
+
+      const matchesTask =
+        query === ""
+          ? tasksByStatus.length > 0
+          : tasksByStatus.some((t: any) =>
+              String(t?.title || "").toLowerCase().includes(query),
+            );
+
+      return matchesGoal || matchesTask;
+    });
+
+  const TaskFilterBar = ({ dark }: { dark: boolean }) => {
+    const bg = dark ? "rgba(255,255,255,0.05)" : "rgba(99,102,241,0.05)";
+    const border = dark ? "rgba(255,255,255,0.10)" : "rgba(99,102,241,0.16)";
+    const baseTx = dark ? "rgba(238,242,255,0.62)" : "rgba(15,23,42,0.62)";
+
+    const Item = ({
+      id,
+      label,
+    }: {
+      id: "all" | "pending" | "completed";
+      label: string;
+    }) => {
+      const active = taskFilter === id;
+      return (
+        <Pressable
+          onPress={() => setTaskFilter(id)}
+          className={
+            Platform.OS === "web"
+              ? `sk-filter-btn ${active ? "sk-filter-active" : ""}`
+              : undefined
+          }
+          style={({ pressed }) => ({
+            paddingVertical: 7,
+            paddingHorizontal: 10,
+            borderRadius: 11,
+            backgroundColor: active
+              ? "#6366f1"
+              : pressed
+                ? dark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(99,102,241,0.10)"
+                : "transparent",
+            ...(Platform.OS === "web"
+              ? ({ cursor: "pointer" } as any)
+              : {}),
+          })}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "800",
+              color: active ? "white" : baseTx,
+            }}
+          >
+            <Text
+              className={Platform.OS === "web" ? "sk-filter-dot" : undefined}
+              style={
+                Platform.OS !== "web"
+                  ? ({
+                      width: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      backgroundColor: active
+                        ? "rgba(255,255,255,0.85)"
+                        : "rgba(100,116,139,0.4)",
+                    } as any)
+                  : undefined
+              }
+            >
+              {" "}
+            </Text>
+            {label}
+          </Text>
+        </Pressable>
+      );
+    };
+
+    return (
+      <View
+        className={Platform.OS === "web" ? "sk-filter-seg" : undefined}
+        style={{
+          flexDirection: "row",
+          gap: 6,
+          alignItems: "center",
+          padding: 6,
+          borderRadius: 14,
+          backgroundColor: bg,
+          borderWidth: 1,
+          borderColor: border,
+        }}
+      >
+        <Item id="all" label="All" />
+        <Item id="pending" label="Pending" />
+        <Item id="completed" label="Completed" />
+      </View>
+    );
+  };
 
   const GoalList = () => (
     <>
@@ -8725,17 +8839,28 @@ export default function Dashboard() {
                         : reversed.filter((t: any) =>
                             String(t?.title || "").toLowerCase().includes(q),
                           );
-                  const isCompleted = (t: any) =>
-                    !!(
-                      t?.completed === true ||
-                      t?.completed === "true" ||
-                      t?.completed === 1 ||
-                      t?.isCompleted === true
-                    );
-                  const tasksForDisplay = [
-                    ...tasksForDisplayRaw.filter((t: any) => !isCompleted(t)),
-                    ...tasksForDisplayRaw.filter((t: any) => isCompleted(t)),
-                  ];
+                  const tasksFilteredByStatus =
+                    taskFilter === "all"
+                      ? tasksForDisplayRaw
+                      : taskFilter === "pending"
+                        ? tasksForDisplayRaw.filter(
+                            (t: any) => !isCompletedTask(t),
+                          )
+                        : tasksForDisplayRaw.filter((t: any) =>
+                            isCompletedTask(t),
+                          );
+
+                  const tasksForDisplay =
+                    taskFilter === "all"
+                      ? [
+                          ...tasksFilteredByStatus.filter(
+                            (t: any) => !isCompletedTask(t),
+                          ),
+                          ...tasksFilteredByStatus.filter((t: any) =>
+                            isCompletedTask(t),
+                          ),
+                        ]
+                      : tasksFilteredByStatus;
                   const isExpanded = !!expandedGoals[g.id];
                   const shown = isExpanded
                     ? tasksForDisplay
@@ -8749,7 +8874,7 @@ export default function Dashboard() {
                           key={t.id}
                           className={
                             Platform.OS === "web"
-                              ? `sk-task-row ${isCompleted(t) ? "sk-task-done" : "sk-task-pending"}`
+                              ? `sk-task-row ${isCompletedTask(t) ? "sk-task-done" : "sk-task-pending"}`
                               : undefined
                           }
                           onHoverIn={() =>
@@ -9168,7 +9293,7 @@ export default function Dashboard() {
                                     >
                                       {t.title}
                                     </Text>
-                                    {isCompleted(t) && (
+                                    {isCompletedTask(t) && (
                                       <View
                                         style={{
                                           alignSelf: "flex-start",
@@ -9762,6 +9887,28 @@ export default function Dashboard() {
                       </View>
                     )}
                   </Animated.View>
+                  <View
+                    style={{
+                      marginBottom: 14,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: dark
+                          ? "rgba(238,242,255,0.45)"
+                          : "rgba(15,23,42,0.45)",
+                      }}
+                    >
+                      Filter tasks
+                    </Text>
+                    <TaskFilterBar dark={dark} />
+                  </View>
 
                   {/* Goals header — inside goals column so it aligns with the cards */}
                   <Animated.View
@@ -10068,6 +10215,27 @@ export default function Dashboard() {
                   </View>
                 )}
               </Animated.View>
+            </View>
+
+            <View
+              style={{
+                marginBottom: 14,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: dark ? "rgba(238,242,255,0.45)" : "rgba(15,23,42,0.45)",
+                }}
+              >
+                Filter tasks
+              </Text>
+              <TaskFilterBar dark={dark} />
             </View>
 
             {/* Goals header + 2-col grid */}
@@ -10692,6 +10860,29 @@ export default function Dashboard() {
                   </View>
                 )}
               </Animated.View>
+
+              <View
+                style={{
+                  marginBottom: 14,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: dark
+                      ? "rgba(238,242,255,0.45)"
+                      : "rgba(15,23,42,0.45)",
+                  }}
+                >
+                  Filter tasks
+                </Text>
+                <TaskFilterBar dark={dark} />
+              </View>
 
               <Animated.View
                 style={[
