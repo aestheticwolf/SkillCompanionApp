@@ -84,6 +84,7 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
       @keyframes sk-slideR{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
       @keyframes sk-card-sheen{0%{background-position:0% 50%}100%{background-position:160% 50%}}
+      @keyframes sk-search-sheen{0%{transform:translateX(-120%) skewX(-16deg);opacity:0}20%{opacity:.7}70%{opacity:.25}100%{transform:translateX(120%) skewX(-16deg);opacity:0}}
       @keyframes sk-deadline-pop{0%,100%{transform:translateY(0);box-shadow:0 0 0 rgba(249,115,22,0)}50%{transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,0.16)}}
       .sk-breathe{animation:sk-breathe 3s ease-in-out infinite}
       .sk-pulse{animation:sk-pulse 1.5s infinite}
@@ -97,6 +98,10 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       .sk-goal-card:hover::before{opacity:.45;animation:sk-card-sheen 1.2s ease}
       .sk-task-row{transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease}
       .sk-task-row:hover{transform:translateX(2px);box-shadow:0 8px 18px rgba(15,23,42,.055)}
+      .sk-task-pending{opacity:1}
+      .sk-task-pending:hover{transform:translateX(3px)!important}
+      .sk-task-done{opacity:.72;filter:saturate(.8)}
+      .sk-task-done:hover{transform:none!important;box-shadow:none!important}
       .sk-deadline-pop{animation:sk-deadline-pop 2.2s ease-in-out infinite}
       .sk-btn-hov{transition:transform .15s,opacity .15s}
       .sk-btn-hov:hover{transform:translateY(-1px);opacity:.9}
@@ -116,6 +121,14 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
 .sk-task-row:hover{transform:translateX(3px)!important}
 @keyframes sk-progress-fill{from{width:0%}to{width:var(--pct)}}
 .sk-progress-bar{animation:sk-progress-fill 1.2s cubic-bezier(0.4,0,0.2,1) both}
+.sk-search-in{animation:sk-fadeUp .35s cubic-bezier(.2,.9,.2,1) both}
+.sk-search-wrap{position:relative;overflow:hidden}
+.sk-search-wrap::before{content:"";position:absolute;inset:0;border-radius:18px;padding:1.5px;background:linear-gradient(135deg,rgba(99,102,241,.55),rgba(167,139,250,.35),rgba(34,211,238,.22));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.55;transition:opacity .2s}
+.sk-search-wrap::after{content:"";position:absolute;top:-40%;left:0;width:60%;height:180%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);filter:blur(2px);opacity:0;pointer-events:none}
+.sk-search-focus::before{opacity:.95}
+.sk-search-focus::after{opacity:.55;animation:sk-search-sheen 1.2s ease-out}
+.sk-search-clear{transition:transform .12s ease, background .12s ease, opacity .12s ease}
+.sk-search-clear:hover{transform:scale(1.06)}
      .sk-cell-today {
   animation: sk-glow-today 0.9s ease-in-out infinite;
   will-change: transform, box-shadow;
@@ -2198,7 +2211,7 @@ function HeroBanner({
         </Text> */}
 
         <Text style={herSt.sub}>
-          You're {overallPct}% through your learning goals. Keep pushing —{"\n"}
+          You’re {overallPct}% through your learning goals. Keep pushing —{"\n"}
           {getDynamicMessage()}
         </Text>
 
@@ -8218,7 +8231,7 @@ export default function Dashboard() {
             No results found
           </Text>
           <Text style={styles.emptySub}>
-            No goals or tasks match "{searchQuery}"
+            No goals or tasks match &quot;{searchQuery}&quot;
           </Text>
           <Pressable
             onPress={() => setSearchQuery("")}
@@ -8701,11 +8714,33 @@ export default function Dashboard() {
                 {(() => {
                   const TASK_LIMIT = 3;
                   const reversed = [...g.tasks].reverse();
+                  const q = searchQuery.toLowerCase().trim();
+                  const goalNameMatches =
+                    q !== "" && String(g?.name || "").toLowerCase().includes(q);
+                  const tasksForDisplayRaw =
+                    q === ""
+                      ? reversed
+                      : goalNameMatches
+                        ? reversed
+                        : reversed.filter((t: any) =>
+                            String(t?.title || "").toLowerCase().includes(q),
+                          );
+                  const isCompleted = (t: any) =>
+                    !!(
+                      t?.completed === true ||
+                      t?.completed === "true" ||
+                      t?.completed === 1 ||
+                      t?.isCompleted === true
+                    );
+                  const tasksForDisplay = [
+                    ...tasksForDisplayRaw.filter((t: any) => !isCompleted(t)),
+                    ...tasksForDisplayRaw.filter((t: any) => isCompleted(t)),
+                  ];
                   const isExpanded = !!expandedGoals[g.id];
                   const shown = isExpanded
-                    ? reversed
-                    : reversed.slice(0, TASK_LIMIT);
-                  const hiddenCount = reversed.length - TASK_LIMIT;
+                    ? tasksForDisplay
+                    : tasksForDisplay.slice(0, TASK_LIMIT);
+                  const hiddenCount = tasksForDisplay.length - TASK_LIMIT;
 
                   return (
                     <>
@@ -8713,7 +8748,9 @@ export default function Dashboard() {
                         <Pressable
                           key={t.id}
                           className={
-                            Platform.OS === "web" ? "sk-task-row" : undefined
+                            Platform.OS === "web"
+                              ? `sk-task-row ${isCompleted(t) ? "sk-task-done" : "sk-task-pending"}`
+                              : undefined
                           }
                           onHoverIn={() =>
                             Platform.OS === "web" && setHoveredTask(t.id)
@@ -9131,6 +9168,31 @@ export default function Dashboard() {
                                     >
                                       {t.title}
                                     </Text>
+                                    {isCompleted(t) && (
+                                      <View
+                                        style={{
+                                          alignSelf: "flex-start",
+                                          marginTop: 6,
+                                          paddingHorizontal: 8,
+                                          paddingVertical: 3,
+                                          borderRadius: 999,
+                                          backgroundColor: "rgba(52,211,153,0.14)",
+                                          borderWidth: 1,
+                                          borderColor: "rgba(52,211,153,0.22)",
+                                        }}
+                                      >
+                                        <Text
+                                          style={{
+                                            color: "#10b981",
+                                            fontSize: 10,
+                                            fontWeight: "900",
+                                            letterSpacing: 0.35,
+                                          }}
+                                        >
+                                          DONE
+                                        </Text>
+                                      </View>
+                                    )}
                                     <TaskDeadlinePill
                                       task={t}
                                       dark={dark}
@@ -9329,7 +9391,7 @@ export default function Dashboard() {
                       ))}
 
                       {/* Show more / less button */}
-                      {reversed.length > TASK_LIMIT && (
+                      {tasksForDisplay.length > TASK_LIMIT && (
                         <Pressable
                           onPress={() =>
                             setExpandedGoals((prev) => ({
@@ -9541,6 +9603,166 @@ export default function Dashboard() {
               <View style={styles.wideContentRow}>
                 {/* Goals col */}
                 <View style={{ flex: 1, minWidth: 0 }}>
+                  {/* Search */}
+                  <Animated.View
+                    className={Platform.OS === "web" ? "sk-search-in" : undefined}
+                    style={{
+                      marginBottom: 16,
+                      opacity: searchFadeAnim,
+                      transform: [{ scale: searchScaleAnim }],
+                    }}
+                  >
+                    <View
+                      className={
+                        Platform.OS === "web"
+                          ? `sk-search-wrap ${isSearchFocused ? "sk-search-focus" : ""}`
+                          : undefined
+                      }
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: dark
+                          ? "rgba(255,255,255,0.055)"
+                          : "rgba(255,255,255,0.72)",
+                        borderRadius: 18,
+                        borderWidth: 1,
+                        borderColor: dark
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(99,102,241,0.10)",
+                        paddingHorizontal: 16,
+                        paddingVertical: Platform.OS === "web" ? 15 : 12,
+                        ...(Platform.OS === "web"
+                          ? ({
+                              backdropFilter: "blur(14px)",
+                              WebkitBackdropFilter: "blur(14px)",
+                              boxShadow: isSearchFocused
+                                ? dark
+                                  ? "0 0 0 4px rgba(99,102,241,0.16), 0 14px 40px rgba(0,0,0,0.36)"
+                                  : "0 0 0 4px rgba(99,102,241,0.12), 0 14px 40px rgba(15,23,42,0.10)"
+                                : dark
+                                  ? "0 10px 28px rgba(0,0,0,0.26)"
+                                  : "0 10px 26px rgba(15,23,42,0.06)",
+                              transition:
+                                "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                            } as any)
+                          : {}),
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          marginRight: 12,
+                          opacity: isSearchFocused ? 0.9 : 0.6,
+                        }}
+                      >
+                        🔍
+                      </Text>
+                      <TextInput
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onBlur={() => setIsSearchFocused(false)}
+                        placeholder="Search goals & tasks..."
+                        placeholderTextColor={
+                          dark
+                            ? "rgba(238,242,255,0.35)"
+                            : "rgba(15,23,42,0.35)"
+                        }
+                        style={{
+                          flex: 1,
+                          fontSize: 14,
+                          fontWeight: "500",
+                          color: textPrimary,
+                          fontFamily:
+                            Platform.OS === "web"
+                              ? "Plus Jakarta Sans, sans-serif"
+                              : undefined,
+                        }}
+                        clearButtonMode="while-editing"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      {searchQuery.trim() !== "" && (
+                        <Pressable
+                          onPress={() => setSearchQuery("")}
+                          className={
+                            Platform.OS === "web" ? "sk-search-clear" : undefined
+                          }
+                          style={({ pressed }) => ({
+                            width: 28,
+                            height: 28,
+                            borderRadius: 10,
+                            backgroundColor: pressed
+                              ? dark
+                                ? "rgba(239,68,68,0.22)"
+                                : "rgba(239,68,68,0.12)"
+                              : "transparent",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginLeft: 8,
+                          })}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              color: "#ef4444",
+                              fontWeight: "700",
+                            }}
+                          >
+                            ✕
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                    {searchQuery.trim() !== "" && (
+                      <View
+                        style={{
+                          marginTop: 8,
+                          paddingHorizontal: 4,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "600",
+                            color: dark
+                              ? "rgba(238,242,255,0.5)"
+                              : "rgba(15,23,42,0.5)",
+                          }}
+                        >
+                          {filteredGoals.length} goal
+                          {filteredGoals.length !== 1 ? "s" : ""} found
+                        </Text>
+                        <Pressable
+                          onPress={() => setSearchQuery("")}
+                          style={({ pressed }) => ({
+                            paddingVertical: 4,
+                            paddingHorizontal: 8,
+                            borderRadius: 6,
+                            backgroundColor: pressed
+                              ? dark
+                                ? "rgba(99,102,241,0.15)"
+                                : "rgba(99,102,241,0.08)"
+                              : "transparent",
+                          })}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "700",
+                              color: "#6366f1",
+                            }}
+                          >
+                            Clear
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </Animated.View>
+
                   {/* Goals header — inside goals column so it aligns with the cards */}
                   <Animated.View
                     style={[
@@ -9685,6 +9907,168 @@ export default function Dashboard() {
               fadeAnim={fadeAnim}
               slideAnim={slideAnim}
             />
+
+            {/* Search */}
+            <View style={{ paddingHorizontal: 2 }}>
+              <Animated.View
+                className={Platform.OS === "web" ? "sk-search-in" : undefined}
+                style={{
+                  marginBottom: 16,
+                  opacity: searchFadeAnim,
+                  transform: [{ scale: searchScaleAnim }],
+                }}
+              >
+                <View
+                  className={
+                    Platform.OS === "web"
+                      ? `sk-search-wrap ${isSearchFocused ? "sk-search-focus" : ""}`
+                      : undefined
+                  }
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: dark
+                      ? "rgba(255,255,255,0.055)"
+                      : "rgba(255,255,255,0.72)",
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: dark
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(99,102,241,0.10)",
+                    paddingHorizontal: 16,
+                    paddingVertical: Platform.OS === "web" ? 15 : 12,
+                    ...(Platform.OS === "web"
+                      ? ({
+                          backdropFilter: "blur(14px)",
+                          WebkitBackdropFilter: "blur(14px)",
+                          boxShadow: isSearchFocused
+                            ? dark
+                              ? "0 0 0 4px rgba(99,102,241,0.16), 0 14px 40px rgba(0,0,0,0.36)"
+                              : "0 0 0 4px rgba(99,102,241,0.12), 0 14px 40px rgba(15,23,42,0.10)"
+                            : dark
+                              ? "0 10px 28px rgba(0,0,0,0.26)"
+                              : "0 10px 26px rgba(15,23,42,0.06)",
+                          transition:
+                            "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        } as any)
+                      : {}),
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      marginRight: 12,
+                      opacity: isSearchFocused ? 0.9 : 0.6,
+                    }}
+                  >
+                    🔍
+                  </Text>
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    placeholder="Search goals & tasks..."
+                    placeholderTextColor={
+                      dark
+                        ? "rgba(238,242,255,0.35)"
+                        : "rgba(15,23,42,0.35)"
+                    }
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: "500",
+                      color: textPrimary,
+                      fontFamily:
+                        Platform.OS === "web"
+                          ? "Plus Jakarta Sans, sans-serif"
+                          : undefined,
+                    }}
+                    clearButtonMode="while-editing"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchQuery.trim() !== "" && (
+                    <Pressable
+                      onPress={() => setSearchQuery("")}
+                      className={
+                        Platform.OS === "web" ? "sk-search-clear" : undefined
+                      }
+                      style={({ pressed }) => ({
+                        width: 28,
+                        height: 28,
+                        borderRadius: 10,
+                        backgroundColor: pressed
+                          ? dark
+                            ? "rgba(239,68,68,0.22)"
+                            : "rgba(239,68,68,0.12)"
+                          : "transparent",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 8,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: "#ef4444",
+                          fontWeight: "700",
+                        }}
+                      >
+                        ✕
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                {searchQuery.trim() !== "" && (
+                  <View
+                    style={{
+                      marginTop: 8,
+                      paddingHorizontal: 4,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        color: dark
+                          ? "rgba(238,242,255,0.5)"
+                          : "rgba(15,23,42,0.5)",
+                      }}
+                    >
+                      {filteredGoals.length} goal
+                      {filteredGoals.length !== 1 ? "s" : ""} found
+                    </Text>
+                    <Pressable
+                      onPress={() => setSearchQuery("")}
+                      style={({ pressed }) => ({
+                        paddingVertical: 4,
+                        paddingHorizontal: 8,
+                        borderRadius: 6,
+                        backgroundColor: pressed
+                          ? dark
+                            ? "rgba(99,102,241,0.15)"
+                            : "rgba(99,102,241,0.08)"
+                          : "transparent",
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: "#6366f1",
+                        }}
+                      >
+                        Clear
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </Animated.View>
+            </View>
 
             {/* Goals header + 2-col grid */}
             <Animated.View
@@ -9964,7 +10348,7 @@ export default function Dashboard() {
                     maxWidth: 280,
                   }}
                 >
-                  You're {overallPct}% through your learning goals.{"\n"}
+                  You’re {overallPct}% through your learning goals.{"\n"}
                   {overallPct === 100
                     ? "🏆 All goals completed!"
                     : overallPct >= 50
@@ -10162,26 +10546,35 @@ export default function Dashboard() {
                 }}
               >
                 <View
+                  className={
+                    Platform.OS === "web"
+                      ? `sk-search-wrap ${isSearchFocused ? "sk-search-focus" : ""}`
+                      : undefined
+                  }
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     backgroundColor: dark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(99,102,241,0.04)",
-                    borderRadius: 16,
-                    borderWidth: isSearchFocused ? 2 : 1.5,
-                    borderColor: isSearchFocused
-                      ? "#6366f1"
-                      : dark
-                        ? "rgba(255,255,255,0.1)"
-                        : "rgba(99,102,241,0.15)",
+                      ? "rgba(255,255,255,0.055)"
+                      : "rgba(255,255,255,0.72)",
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: dark
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(99,102,241,0.10)",
                     paddingHorizontal: 16,
-                    paddingVertical: Platform.OS === "web" ? 14 : 12,
+                    paddingVertical: Platform.OS === "web" ? 15 : 12,
                     ...(Platform.OS === "web"
                       ? ({
+                          backdropFilter: "blur(14px)",
+                          WebkitBackdropFilter: "blur(14px)",
                           boxShadow: isSearchFocused
-                            ? "0 0 0 4px rgba(99,102,241,0.1), 0 8px 24px rgba(0,0,0,0.08)"
-                            : "0 4px 12px rgba(0,0,0,0.04)",
+                            ? dark
+                              ? "0 0 0 4px rgba(99,102,241,0.16), 0 14px 40px rgba(0,0,0,0.36)"
+                              : "0 0 0 4px rgba(99,102,241,0.12), 0 14px 40px rgba(15,23,42,0.10)"
+                            : dark
+                              ? "0 10px 28px rgba(0,0,0,0.26)"
+                              : "0 10px 26px rgba(15,23,42,0.06)",
                           transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                         } as any)
                       : {}),
@@ -10191,7 +10584,7 @@ export default function Dashboard() {
                     style={{
                       fontSize: 18,
                       marginRight: 12,
-                      opacity: 0.6,
+                      opacity: isSearchFocused ? 0.9 : 0.6,
                     }}
                   >
                     🔍
@@ -10222,14 +10615,17 @@ export default function Dashboard() {
                   {searchQuery.trim() !== "" && (
                     <Pressable
                       onPress={() => setSearchQuery("")}
+                      className={
+                        Platform.OS === "web" ? "sk-search-clear" : undefined
+                      }
                       style={({ pressed }) => ({
                         width: 28,
                         height: 28,
-                        borderRadius: 8,
+                        borderRadius: 10,
                         backgroundColor: pressed
                           ? dark
-                            ? "rgba(239,68,68,0.2)"
-                            : "rgba(239,68,68,0.1)"
+                            ? "rgba(239,68,68,0.22)"
+                            : "rgba(239,68,68,0.12)"
                           : "transparent",
                         alignItems: "center",
                         justifyContent: "center",
