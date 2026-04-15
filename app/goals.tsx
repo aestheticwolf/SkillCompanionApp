@@ -39,6 +39,7 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes g3-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
       @keyframes g3-glow{0%,100%{box-shadow:0 0 8px rgba(99,102,241,.3)}50%{box-shadow:0 0 24px rgba(99,102,241,.75)}}
       @keyframes g3-shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+      @keyframes g3-deadline-pop{0%,100%{transform:translateY(0);box-shadow:0 0 0 rgba(249,115,22,0)}50%{transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,0.16)}}
       .g3-card{transition:transform .22s,box-shadow .22s,border-color .22s}
       .g3-card:hover{transform:translateY(-5px)!important}
       .g3-chip{transition:all .15s;cursor:pointer}
@@ -47,6 +48,7 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       .g3-del:hover{transform:scale(1.15);background:rgba(239,68,68,0.22)!important}
       .g3-task{transition:background .12s,transform .08s}
       .g3-task:hover{background:rgba(99,102,241,0.05)!important;transform:translateX(3px)}
+      .g3-deadline-pop{animation:g3-deadline-pop 2.2s ease-in-out infinite}
       .g3-nav{transition:background .15s;cursor:pointer}
       .g3-sidebar{transition:width .28s cubic-bezier(.4,0,.2,1),min-width .28s;overflow:hidden;flex-shrink:0}
       .g3-hamb:hover{background:rgba(99,102,241,0.08)!important}
@@ -74,6 +76,139 @@ const GC = [
 ];
 const GE = ["☕", "🦋", "⚛️", "🔥", "🎨", "🚀", "📚", "🎯"];
 type FT = "all" | "in-progress" | "pending" | "completed";
+
+const getTaskDueMs = (task: any): number | null => {
+  const raw = task?.dueDate ?? task?.deadline ?? task?.dueAt ?? null;
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (raw instanceof Date) {
+    const ms = raw.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof raw === "string") {
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof raw?.toMillis === "function") return raw.toMillis();
+  if (typeof raw?.seconds === "number") return raw.seconds * 1000;
+  return null;
+};
+
+const formatTaskDue = (ms: number) =>
+  new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(ms));
+
+const getTaskDueMeta = (task: any, dark: boolean) => {
+  const ms = getTaskDueMs(task);
+  if (!ms) return null;
+
+  const now = new Date();
+  const due = new Date(ms);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const daysAway = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
+  const completed = !!task?.completed;
+  const overdue = !completed && ms < now.getTime();
+  const color = completed
+    ? "#64748b"
+    : overdue
+      ? "#ef4444"
+      : daysAway <= 1
+        ? "#f97316"
+        : AC;
+  const prefix = completed
+    ? "Deadline"
+    : overdue
+      ? "Overdue"
+      : daysAway === 0
+        ? "Due today"
+        : daysAway === 1
+          ? "Due tomorrow"
+          : "Deadline";
+
+  return {
+    label: `${prefix} · ${formatTaskDue(ms)}`,
+    shortLabel: formatTaskDue(ms),
+    color,
+    backgroundColor: completed
+      ? dark
+        ? "rgba(148,163,184,0.12)"
+        : "rgba(100,116,139,0.08)"
+      : overdue
+        ? "rgba(239,68,68,0.1)"
+        : dark
+          ? `${color}18`
+          : `${color}12`,
+    borderColor: completed
+      ? "rgba(148,163,184,0.2)"
+      : overdue
+        ? "rgba(239,68,68,0.24)"
+        : `${color}30`,
+    urgent: overdue || daysAway === 0,
+  };
+};
+
+const getGoalNextDueMeta = (tasks: any[], dark: boolean) => {
+  const next = [...tasks]
+    .filter((t) => !t?.completed)
+    .map((task) => ({ task, ms: getTaskDueMs(task) }))
+    .filter((item): item is { task: any; ms: number } => item.ms !== null)
+    .sort((a, b) => a.ms - b.ms)[0];
+
+  return next ? getTaskDueMeta(next.task, dark) : null;
+};
+
+function DuePill({
+  task,
+  dark,
+  compact = false,
+}: {
+  task: any;
+  dark: boolean;
+  compact?: boolean;
+}) {
+  const due = getTaskDueMeta(task, dark);
+  if (!due) return null;
+
+  return (
+    <View
+      className={
+        Platform.OS === "web" && due.urgent ? "g3-deadline-pop" : undefined
+      }
+      style={{
+        alignSelf: "flex-start",
+        marginTop: compact ? 4 : 6,
+        paddingHorizontal: compact ? 6 : 9,
+        paddingVertical: compact ? 3 : 5,
+        borderRadius: 8,
+        backgroundColor: due.backgroundColor,
+        borderWidth: 1,
+        borderColor: due.borderColor,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        maxWidth: "100%",
+      }}
+    >
+      <Text style={{ fontSize: compact ? 8 : 11 }}>⏰</Text>
+      <Text
+        style={{
+          fontSize: compact ? 9 : 10,
+          fontWeight: "800",
+          color: due.color,
+          letterSpacing: 0.1,
+        }}
+        numberOfLines={1}
+      >
+        {compact ? due.shortLabel : due.label}
+      </Text>
+    </View>
+  );
+}
 
 /* ══ SHIMMER ══ */
 function Shimmer({
@@ -1659,12 +1794,19 @@ function GoalModal({
                           />
                         )
                       ) : (
-                        <Text
-                          style={{ fontSize: 13, fontWeight: "600", color: tp }}
-                          numberOfLines={2}
-                        >
-                          {t.title}
-                        </Text>
+                        <>
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "600",
+                              color: tp,
+                            }}
+                            numberOfLines={2}
+                          >
+                            {t.title}
+                          </Text>
+                          <DuePill task={t} dark={dark} />
+                        </>
                       )}
                     </View>
                     <View
@@ -1801,18 +1943,20 @@ function GoalModal({
                         ✓
                       </Text>
                     </View>
-                    <Text
-                      style={{
-                        flex: 1,
-                        fontSize: 13,
-                        fontWeight: "500",
-                        color: ts,
-                        textDecorationLine: "line-through",
-                      }}
-                      numberOfLines={1}
-                    >
-                      {t.title}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "500",
+                          color: ts,
+                          textDecorationLine: "line-through",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {t.title}
+                      </Text>
+                      <DuePill task={t} dark={dark} />
+                    </View>
 
                     {/* for delete */}
                     <Pressable
@@ -2431,8 +2575,8 @@ export default function GoalsPage() {
 
   const { width: W } = useWindowDimensions();
   const isWide = Platform.OS === "web" && W >= 960;
-  const is3 = Platform.OS === "web" && W >= 1300;
-  const is2 = Platform.OS === "web" && W >= 700;
+  const is3 = Platform.OS === "web" && W >= 1500;
+  const is2 = Platform.OS === "web" && W >= 900;
 
   const FILTERS = [
     { k: "all" as FT, l: "All Goals", i: "🎯", c: "#6366f1" },
@@ -2820,6 +2964,7 @@ export default function GoalsPage() {
                       : `${pend} pending`;
                 const sc =
                   p === 100 ? "#34d399" : d === 0 && tot > 0 ? "#f97316" : AC;
+                const nextDue = getGoalNextDueMeta(g.tasks, isDark);
 
                 return (
                   <Animated.View
@@ -2830,7 +2975,7 @@ export default function GoalsPage() {
                         backgroundColor: card,
                         borderRadius: 22,
                         borderWidth: 1,
-                        borderColor: cb,
+                        borderColor: nextDue ? nextDue.borderColor : cb,
                         borderTopColor: accent,
                         borderTopWidth: 3,
                         position: "relative",
@@ -3011,6 +3156,7 @@ export default function GoalsPage() {
                               flexDirection: "row",
                               alignItems: "center",
                               gap: 6,
+                              flexWrap: "wrap",
                             }}
                           >
                             <View
@@ -3036,6 +3182,43 @@ export default function GoalsPage() {
                               {sl}
                             </Text>
                           </View>
+                          {nextDue && (
+                            <View
+                              className={
+                                Platform.OS === "web" && nextDue.urgent
+                                  ? "g3-deadline-pop"
+                                  : undefined
+                              }
+                              style={{
+                                alignSelf: "flex-start",
+                                marginTop: 8,
+                                paddingHorizontal: 8,
+                                paddingVertical: 4,
+                                borderRadius: 8,
+                                backgroundColor: nextDue.backgroundColor,
+                                borderWidth: 1,
+                                borderColor: nextDue.borderColor,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 5,
+                                maxWidth: "100%",
+                              }}
+                            >
+                              <Text style={{ fontSize: 10 }}>⏰</Text>
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: "900",
+                                  color: nextDue.color,
+                                  letterSpacing: 0.2,
+                                  textTransform: "uppercase" as const,
+                                }}
+                                numberOfLines={1}
+                              >
+                                Next · {nextDue.label}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       </Pressable>
 
@@ -3138,7 +3321,7 @@ export default function GoalsPage() {
                                 key={t.id}
                                 style={{
                                   flexDirection: "row",
-                                  alignItems: "center",
+                                  alignItems: "flex-start",
                                   gap: 8,
                                   marginBottom:
                                     ti < Math.min(pend, 3) - 1 ? 8 : 0,
@@ -3152,19 +3335,22 @@ export default function GoalsPage() {
                                     borderWidth: 1.5,
                                     borderColor: accent + "55",
                                     flexShrink: 0,
+                                    marginTop: 2,
                                   }}
                                 />
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    color: ts,
-                                    fontWeight: "500",
-                                    flex: 1,
-                                  }}
-                                  numberOfLines={1}
-                                >
-                                  {t.title}
-                                </Text>
+                                <View style={{ flex: 1, minWidth: 0 }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 11,
+                                      color: ts,
+                                      fontWeight: "500",
+                                    }}
+                                    numberOfLines={1}
+                                  >
+                                    {t.title}
+                                  </Text>
+                                  <DuePill task={t} dark={isDark} compact />
+                                </View>
                               </View>
                             ))}
                           {pend > 3 && (

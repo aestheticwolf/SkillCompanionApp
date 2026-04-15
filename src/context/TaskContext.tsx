@@ -22,6 +22,8 @@ export type Task = {
   id: string;
   title: string;
   completed: boolean;
+  dueDate?: number | null;
+  createdAt?: number;
 };
 
 export type Goal = {
@@ -35,7 +37,7 @@ type TaskContextType = {
   goals: Goal[];
 
   addGoal: (name: string, icon?: string) => Promise<void>;
-  addTask: (goalId: string, title: string) => Promise<void>;
+ addTask: (goalId: string, title: string, dueDate?: number | null) => Promise<void>;
   toggleTask: (goalId: string, taskId: string) => Promise<void>;
 
   deleteGoal: (goalId: string) => Promise<void>;
@@ -106,26 +108,37 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   );
 
   // Sync to Firestore
-  await updateGoalFirestore(authCtx.user.uid, goalId, {
-    tasks: updatedTasks,
-  });
+await updateGoalFirestore(authCtx.user.uid, goalId, {
+  tasks: updatedTasks.map((t: any) => ({
+    ...t,
+    dueDate: t.dueDate || null,
+    createdAt: t.createdAt || Date.now(),
+  })),
+});
 };
+
   /* Add Task */
 
-  const addTask = async (goalId: string, title: string) => {
+const addTask = async (
+  goalId: string,
+  title: string,
+  dueDate: number | null = null
+) => {
     if (!authCtx?.user) return;
 
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
 
-    const updatedTasks = [
-      ...goal.tasks,
-      {
-        id: Date.now().toString(),
-        title,
-        completed: false,
-      },
-    ];
+const updatedTasks = [
+  ...goal.tasks,
+  {
+    id: Date.now().toString(),
+    title,
+    completed: false,
+    dueDate: dueDate,
+    createdAt: Date.now(),
+  },
+];
 
     //UPDATE UI
     setGoals((prev) =>
@@ -133,10 +146,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     );
 
     // FIRESTORE
-    await updateGoalFirestore(authCtx.user.uid, goalId, {
-      tasks: updatedTasks,
-    });
-  };
+ await updateGoalFirestore(authCtx.user.uid, goalId, {
+  tasks: updatedTasks.map((t: any) => ({
+    ...t,
+    dueDate: t.dueDate || null,
+    createdAt: t.createdAt || Date.now(),
+  })),
+});
+};
 
   const toggleTask = async (goalId: string, taskId: string) => {
     if (!authCtx?.user) return;
@@ -155,10 +172,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }),
     );
 
-    await updateGoalFirestore(authCtx.user.uid, goalId, {
-      tasks: updatedTasks,
-    });
-  };
+ await updateGoalFirestore(authCtx.user.uid, goalId, {
+  tasks: updatedTasks.map((t: any) => ({
+    ...t,
+    dueDate: t.dueDate || null,
+    createdAt: t.createdAt || Date.now(),
+  })),
+});
+};
 
   const getRecommendation = () => {
     const overall = getOverallProgress();
@@ -271,7 +292,8 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     await deleteGoalFirestore(authCtx.user.uid, goalId);
   };
 
-  const deleteTask = async (goalId: string, taskId: string) => {
+
+const deleteTask = async (goalId: string, taskId: string): Promise<void> => {
   if (!authCtx?.user) return;
 
   let updatedTasks: Task[] = [];
@@ -287,9 +309,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   );
 
   await updateGoalFirestore(authCtx.user.uid, goalId, {
-    tasks: updatedTasks,
+    tasks: updatedTasks.map((t: any) => ({
+      ...t,
+      dueDate: t.dueDate || null,
+      createdAt: t.createdAt || Date.now(),
+    })),
   });
 };
+
+// await updateGoalFirestore(authCtx.user.uid, goalId, {
+//   tasks: updatedTasks.map((t: any) => ({
+//     ...t,
+//     dueDate: t.dueDate || null,
+//     createdAt: t.createdAt || Date.now(),
+//   })),
+// });
 
   return (
     <TaskContext.Provider

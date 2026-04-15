@@ -57,3 +57,9 @@ export const deleteGoalFirestore = async (
 ) => {
   await deleteDoc(doc(db, "users", userId, "goals", goalId));
 };
+
+export const formatTask = (task: any) => ({
+  ...task,
+  dueDate: task.dueDate || null,
+  createdAt: task.createdAt || Date.now(),
+});

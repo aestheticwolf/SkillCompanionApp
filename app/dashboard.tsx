@@ -83,12 +83,21 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-particle{0%{transform:translateY(0) scale(1);opacity:.8}100%{transform:translateY(-60px) scale(0);opacity:0}}
       @keyframes sk-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
       @keyframes sk-slideR{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+      @keyframes sk-card-sheen{0%{background-position:0% 50%}100%{background-position:160% 50%}}
+      @keyframes sk-deadline-pop{0%,100%{transform:translateY(0);box-shadow:0 0 0 rgba(249,115,22,0)}50%{transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,0.16)}}
       .sk-breathe{animation:sk-breathe 3s ease-in-out infinite}
       .sk-pulse{animation:sk-pulse 1.5s infinite}
       .sk-glow{animation:sk-glow 3s ease-in-out infinite}
       .sk-float{animation:sk-float 4s ease-in-out infinite}
       .sk-hov{transition:transform .2s,box-shadow .2s}
       .sk-hov:hover{transform:translateY(-2px)}
+      .sk-goal-card{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;will-change:transform}
+      .sk-goal-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(15,23,42,.11)!important}
+      .sk-goal-card::before{content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;background:linear-gradient(110deg,transparent 0%,rgba(255,255,255,.32) 45%,transparent 70%);background-size:220% 100%;opacity:0;transition:opacity .2s}
+      .sk-goal-card:hover::before{opacity:.45;animation:sk-card-sheen 1.2s ease}
+      .sk-task-row{transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease}
+      .sk-task-row:hover{transform:translateX(2px);box-shadow:0 8px 18px rgba(15,23,42,.055)}
+      .sk-deadline-pop{animation:sk-deadline-pop 2.2s ease-in-out infinite}
       .sk-btn-hov{transition:transform .15s,opacity .15s}
       .sk-btn-hov:hover{transform:translateY(-1px);opacity:.9}
       .sk-sidebar{transition:width .28s cubic-bezier(.4,0,.2,1),min-width .28s;overflow:hidden}
@@ -146,6 +155,160 @@ const GOAL_COLORS = [
 const GOAL_EMOJIS = ["☕", "🦋", "⚛️", "🔥", "🎨", "🚀", "📚", "🎯"];
 const SIDEBAR_W = 260;
 const RIGHT_W = 340;
+
+const toTaskDeadlineMs = (task: any): number | null => {
+  const raw = task?.dueDate ?? task?.deadline ?? task?.dueAt ?? null;
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (raw instanceof Date) {
+    const ms = raw.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof raw === "string") {
+    const ms = new Date(raw).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof raw?.toMillis === "function") return raw.toMillis();
+  if (typeof raw?.seconds === "number") return raw.seconds * 1000;
+  return null;
+};
+
+const formatTaskDeadline = (ms: number) => {
+  const d = new Date(ms);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(d);
+};
+
+const getTaskDeadlineMeta = (task: any, dark: boolean) => {
+  const ms = toTaskDeadlineMs(task);
+  if (!ms) return null;
+
+  const now = new Date();
+  const due = new Date(ms);
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDue = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const daysAway = Math.round(
+    (startDue.getTime() - startToday.getTime()) / 86400000,
+  );
+  const completed = !!task?.completed;
+  const overdue = !completed && ms < now.getTime();
+  const tone = completed
+    ? "#64748b"
+    : overdue
+      ? "#ef4444"
+      : daysAway <= 1
+        ? "#f97316"
+        : "#6366f1";
+  const prefix = completed
+    ? "Deadline"
+    : overdue
+      ? "Overdue"
+      : daysAway === 0
+        ? "Due today"
+        : daysAway === 1
+          ? "Due tomorrow"
+          : "Deadline";
+
+  return {
+    label: `${prefix} · ${formatTaskDeadline(ms)}`,
+    shortLabel: formatTaskDeadline(ms),
+    color: tone,
+    backgroundColor: completed
+      ? dark
+        ? "rgba(148,163,184,0.12)"
+        : "rgba(100,116,139,0.08)"
+      : overdue
+        ? "rgba(239,68,68,0.1)"
+        : dark
+          ? `${tone}18`
+          : `${tone}12`,
+    borderColor: completed
+      ? "rgba(148,163,184,0.2)"
+      : overdue
+        ? "rgba(239,68,68,0.24)"
+        : `${tone}30`,
+  };
+};
+
+const getGoalNextDeadlineMeta = (tasks: any[], dark: boolean) => {
+  const next = [...tasks]
+    .filter((t) => !t?.completed)
+    .map((t) => ({ task: t, ms: toTaskDeadlineMs(t) }))
+    .filter((item): item is { task: any; ms: number } => item.ms !== null)
+    .sort((a, b) => a.ms - b.ms)[0];
+
+  if (!next) return null;
+  return getTaskDeadlineMeta(next.task, dark);
+};
+
+const formatDateInputValue = (date: Date | null) => {
+  if (!date) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const formatTimeInputValue = (date: Date | null) => {
+  if (!date) return "";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+};
+
+function TaskDeadlinePill({
+  task,
+  dark,
+  compact = false,
+}: {
+  task: any;
+  dark: boolean;
+  compact?: boolean;
+}) {
+  const deadline = getTaskDeadlineMeta(task, dark);
+  if (!deadline) return null;
+
+  const urgent =
+    deadline.label.startsWith("Overdue") ||
+    deadline.label.startsWith("Due today");
+
+  return (
+    <View
+      className={Platform.OS === "web" && urgent ? "sk-deadline-pop" : undefined}
+      style={{
+        alignSelf: "flex-start",
+        marginTop: compact ? 4 : 6,
+        paddingHorizontal: compact ? 6 : 10,
+        paddingVertical: compact ? 3 : 6,
+        borderRadius: 8,
+        backgroundColor: deadline.backgroundColor,
+        borderWidth: 1,
+        borderColor: deadline.borderColor,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: compact ? 5 : 6,
+        maxWidth: "100%",
+      }}
+    >
+      <Text style={{ fontSize: compact ? 8 : 12 }}>⏰</Text>
+      <Text
+        style={{
+          fontSize: compact ? 9 : 11,
+          fontWeight: "800",
+          color: deadline.color,
+          letterSpacing: 0.1,
+        }}
+        numberOfLines={1}
+      >
+        {compact ? deadline.shortLabel : deadline.label}
+      </Text>
+    </View>
+  );
+}
 
 /* ════════════════════════════════
    SHIMMER BAR
@@ -2906,7 +3069,12 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
   const [expanded, setExpanded] = useState(false);
   const SHOW = 4;
 
-  const allPending: { title: string; goalName: string; accent: string }[] = [];
+  const allPending: {
+    title: string;
+    goalName: string;
+    accent: string;
+    dueTime: number | null;
+  }[] = [];
   goals.forEach((g: any, gi: number) => {
     g.tasks.forEach((t: any) => {
       if (!t.completed) {
@@ -2914,12 +3082,18 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
           title: t.title,
           goalName: g.name,
           accent: GOAL_COLORS[gi % GOAL_COLORS.length],
+          dueTime: toTaskDeadlineMs(t),
         });
       }
     });
   });
 
   if (allPending.length === 0) return null;
+  allPending.sort(
+    (a, b) =>
+      (a.dueTime ?? Number.MAX_SAFE_INTEGER) -
+      (b.dueTime ?? Number.MAX_SAFE_INTEGER),
+  );
   const shown = expanded ? allPending : allPending.slice(0, SHOW);
   const hidden = allPending.length - SHOW;
 
@@ -2928,7 +3102,7 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
       <View style={rpSt.planHdr}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text style={[rpSt.secTitle, { color: txtPri, marginBottom: 0 }]}>
-            Today's Plan
+            {"Today's Plan"}
           </Text>
           <View style={[rpSt.planBadge, { backgroundColor: "#6366f114" }]}>
             <Text style={[rpSt.planBadgeTx, { color: "#6366f1" }]}>
@@ -2959,53 +3133,75 @@ function TodaysPlan({ dark, goals, bg, border, txtPri, txtSec }: any) {
       <View
         style={{ height: 1, backgroundColor: border, marginVertical: 10 }}
       />
-      {shown.map((item, idx) => (
-        <View
-          key={idx}
-          style={[
-            rpSt.planRow,
-            {
-              backgroundColor: dark
-                ? "rgba(255,255,255,0.03)"
-                : "rgba(0,0,0,0.02)",
-              borderWidth: 1,
-              borderColor: border,
-              borderRadius: 12,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              marginBottom: 6,
-            },
-          ]}
-        >
+      {shown.map((item, idx) => {
+        const deadline = item.dueTime
+          ? getTaskDeadlineMeta({ dueDate: item.dueTime }, dark)
+          : null;
+
+        return (
           <View
+            key={idx}
             style={[
-              rpSt.planDot,
-              { backgroundColor: item.accent },
-              Platform.OS === "web"
-                ? ({ animation: "sk-pulse 2s infinite" } as any)
-                : {},
+              rpSt.planRow,
+              {
+                backgroundColor: dark
+                  ? "rgba(255,255,255,0.03)"
+                  : "rgba(0,0,0,0.02)",
+                borderWidth: 1,
+                borderColor: border,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                marginBottom: 6,
+              },
             ]}
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={[rpSt.planTask, { color: txtPri }]} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={[rpSt.planGoal, { color: txtSec }]}>
-              {item.goalName}
-            </Text>
-          </View>
-          <View
-            style={{
-              backgroundColor: item.accent + "22",
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: 20,
-            }}
           >
-            <Text style={[rpSt.planDue, { color: item.accent }]}>Due</Text>
+            <View
+              style={[
+                rpSt.planDot,
+                { backgroundColor: item.accent },
+                Platform.OS === "web"
+                  ? ({ animation: "sk-pulse 2s infinite" } as any)
+                  : {},
+              ]}
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[rpSt.planTask, { color: txtPri }]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              <Text style={[rpSt.planGoal, { color: txtSec }]}>
+                {item.goalName}
+              </Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: deadline
+                  ? deadline.backgroundColor
+                  : item.accent + "18",
+                borderWidth: deadline ? 1 : 0,
+                borderColor: deadline?.borderColor,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                maxWidth: 150,
+              }}
+            >
+              <Text
+                style={[
+                  rpSt.planDue,
+                  { color: deadline?.color || item.accent },
+                ]}
+                numberOfLines={1}
+              >
+                {deadline?.label || "No deadline"}
+              </Text>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
       {/* Expand / collapse button */}
       {allPending.length > SHOW && (
         <Pressable
@@ -4965,16 +5161,47 @@ function GoalViewModal({
                           />
                         )
                       ) : (
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            fontWeight: "600",
-                            color: txtPri,
-                          }}
-                          numberOfLines={2}
-                        >
-                          {t.title}
-                        </Text>
+                        <>
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: "600",
+                              color: txtPri,
+                            }}
+                            numberOfLines={2}
+                          >
+                            {t.title}
+                          </Text>
+                          {(() => {
+                            const deadline = getTaskDeadlineMeta(t, dark);
+                            if (!deadline) return null;
+                            return (
+                              <View
+                                style={{
+                                  alignSelf: "flex-start",
+                                  marginTop: 6,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 4,
+                                  borderRadius: 8,
+                                  backgroundColor: deadline.backgroundColor,
+                                  borderWidth: 1,
+                                  borderColor: deadline.borderColor,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: "800",
+                                    color: deadline.color,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {deadline.label}
+                                </Text>
+                              </View>
+                            );
+                          })()}
+                        </>
                       )}
                     </View>
                     <View style={{ flexDirection: "row", gap: 6 }}>
@@ -5094,18 +5321,48 @@ function GoalViewModal({
                         ✓
                       </Text>
                     </View>
-                    <Text
-                      style={{
-                        flex: 1,
-                        fontSize: 13,
-                        fontWeight: "500",
-                        color: txtSec,
-                        textDecorationLine: "line-through",
-                      }}
-                      numberOfLines={1}
-                    >
-                      {t.title}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "500",
+                          color: txtSec,
+                          textDecorationLine: "line-through",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {t.title}
+                      </Text>
+                      {(() => {
+                        const deadline = getTaskDeadlineMeta(t, dark);
+                        if (!deadline) return null;
+                        return (
+                          <View
+                            style={{
+                              alignSelf: "flex-start",
+                              marginTop: 6,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              borderRadius: 8,
+                              backgroundColor: deadline.backgroundColor,
+                              borderWidth: 1,
+                              borderColor: deadline.borderColor,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 10,
+                                fontWeight: "800",
+                                color: deadline.color,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {deadline.label}
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                    </View>
                     <Pressable
                       onPress={() => onDeleteTask(goal.id, t.id)}
                       style={({ pressed }) => ({
@@ -6103,7 +6360,11 @@ function AddTaskModal({
   dark: boolean;
   goalId: string;
   onClose: () => void;
-  addTaskFn: (goalId: string, title: string) => void;
+  addTaskFn: (
+    goalId: string,
+    title: string,
+    dueDate?: number | null,
+  ) => void | Promise<void>;
 }) {
   const [task, setTask] = useState("");
   const [saving, setSaving] = useState(false);
@@ -6111,6 +6372,11 @@ function AddTaskModal({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(44)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState<
+    "date" | "time" | null
+  >(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -6148,6 +6414,46 @@ function AddTaskModal({
       : "rgba(99,102,241,0.22)";
   const hasText = task.trim().length > 0;
 
+  const ensureDeadline = () => {
+    if (selectedDate) return new Date(selectedDate);
+    const d = new Date();
+    d.setHours(18, 0, 0, 0);
+    return d;
+  };
+
+  const setDeadlineDate = (date: Date) => {
+    const next = ensureDeadline();
+    next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+    setSelectedDate(next);
+  };
+
+  const setDeadlineTime = (date: Date) => {
+    const next = ensureDeadline();
+    next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+    setSelectedDate(next);
+  };
+
+  const setWebDeadlineDate = (value: string) => {
+    if (!value) {
+      setSelectedDate(null);
+      return;
+    }
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return;
+    const next = ensureDeadline();
+    next.setFullYear(year, month - 1, day);
+    setSelectedDate(next);
+  };
+
+  const setWebDeadlineTime = (value: string) => {
+    if (!value) return;
+    const [hour, minute] = value.split(":").map(Number);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return;
+    const next = ensureDeadline();
+    next.setHours(hour, minute, 0, 0);
+    setSelectedDate(next);
+  };
+
   const handleAdd = () => {
     if (!task.trim()) {
       showError("Task name cannot be empty");
@@ -6167,9 +6473,11 @@ function AddTaskModal({
         tension: 200,
         friction: 5,
       }),
-    ]).start(() => {
+    ]).start(async () => {
       try {
-        addTaskFn(goalId, task.trim());
+        await addTaskFn(goalId, task.trim(), selectedDate?.getTime() ?? null);
+
+        setSelectedDate(null);
         showSuccess("Task added 🎉");
         if (Platform.OS === "web") {
           requestWebNotificationPermission().then((ok) => {
@@ -6420,6 +6728,206 @@ function AddTaskModal({
             )}
           </View>
 
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: txtSec,
+              letterSpacing: 0.5,
+              textTransform: "uppercase" as const,
+              marginBottom: 8,
+            }}
+          >
+            Deadline
+          </Text>
+
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: selectedDate ? "rgba(99,102,241,0.35)" : border,
+              backgroundColor: selectedDate
+                ? dark
+                  ? "rgba(99,102,241,0.1)"
+                  : "rgba(99,102,241,0.06)"
+                : dark
+                  ? "rgba(255,255,255,0.03)"
+                  : "rgba(0,0,0,0.02)",
+              borderRadius: 14,
+              padding: 12,
+              marginBottom: 16,
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "800",
+                    color: selectedDate ? "#6366f1" : txtPri,
+                  }}
+                >
+                  {selectedDate
+                    ? formatTaskDeadline(selectedDate.getTime())
+                    : "No deadline set"}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: txtSec,
+                    marginTop: 3,
+                    fontWeight: "500",
+                  }}
+                >
+                  Choose when this task should be complete.
+                </Text>
+              </View>
+              {selectedDate && (
+                <Pressable
+                  onPress={() => setSelectedDate(null)}
+                  style={({ pressed }) => ({
+                    paddingHorizontal: 10,
+                    paddingVertical: 7,
+                    borderRadius: 8,
+                    backgroundColor: pressed
+                      ? "rgba(239,68,68,0.16)"
+                      : "rgba(239,68,68,0.09)",
+                    borderWidth: 1,
+                    borderColor: "rgba(239,68,68,0.2)",
+                  })}
+                >
+                  <Text
+                    style={{
+                      color: "#ef4444",
+                      fontSize: 11,
+                      fontWeight: "800",
+                    }}
+                  >
+                    Clear
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
+            {Platform.OS === "web" ? (
+              <View style={{ flexDirection: "row", gap: 10 } as any}>
+                <input
+                  type="date"
+                  value={formatDateInputValue(selectedDate)}
+                  onChange={(e: any) => setWebDeadlineDate(e.target.value)}
+                  style={
+                    {
+                      flex: 1,
+                      minWidth: 0,
+                      border: `1px solid ${border}`,
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      background: dark ? "rgba(255,255,255,0.04)" : "#fff",
+                      color: txtPri,
+                      fontFamily: "Plus Jakarta Sans,sans-serif",
+                      fontWeight: 700,
+                      outline: "none",
+                    } as any
+                  }
+                />
+                <input
+                  type="time"
+                  value={formatTimeInputValue(selectedDate)}
+                  onChange={(e: any) => setWebDeadlineTime(e.target.value)}
+                  style={
+                    {
+                      width: 132,
+                      border: `1px solid ${border}`,
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      background: dark ? "rgba(255,255,255,0.04)" : "#fff",
+                      color: txtPri,
+                      fontFamily: "Plus Jakarta Sans,sans-serif",
+                      fontWeight: 700,
+                      outline: "none",
+                    } as any
+                  }
+                />
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Pressable
+                  onPress={() => setShowDeadlinePicker("date")}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: pressed
+                      ? "rgba(99,102,241,0.18)"
+                      : "rgba(99,102,241,0.1)",
+                    borderWidth: 1,
+                    borderColor: "rgba(99,102,241,0.22)",
+                    alignItems: "center",
+                  })}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "800",
+                      color: "#6366f1",
+                    }}
+                  >
+                    Pick Date
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowDeadlinePicker("time")}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: pressed
+                      ? "rgba(99,102,241,0.18)"
+                      : "rgba(99,102,241,0.1)",
+                    borderWidth: 1,
+                    borderColor: "rgba(99,102,241,0.22)",
+                    alignItems: "center",
+                  })}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "800",
+                      color: "#6366f1",
+                    }}
+                  >
+                    Pick Time
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {showDeadlinePicker && Platform.OS !== "web" && (
+            <DateTimePicker
+              value={selectedDate || ensureDeadline()}
+              mode={showDeadlinePicker}
+              is24Hour={false}
+              display="default"
+              onChange={(_, date) => {
+                const mode = showDeadlinePicker;
+                setShowDeadlinePicker(null);
+                if (!date) return;
+                if (mode === "date") setDeadlineDate(date);
+                if (mode === "time") setDeadlineTime(date);
+              }}
+            />
+          )}
+
           {/* Quick examples */}
           <Text
             style={{
@@ -6649,6 +7157,10 @@ export default function Dashboard() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [goalNameDraft, setGoalNameDraft] = useState("");
   const [taskTitleDraft, setTaskTitleDraft] = useState("");
+  const [taskDeadlineDraft, setTaskDeadlineDraft] = useState<Date | null>(null);
+  const [editDeadlinePicker, setEditDeadlinePicker] = useState<
+    "date" | "time" | null
+  >(null);
 
   const [confirmTask, setConfirmTask] = useState<{
     goalId: string;
@@ -6673,6 +7185,8 @@ export default function Dashboard() {
     taskTitle: string;
     goalName: string;
   } | null>(null);
+
+
 
   /* Animations */
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -6772,13 +7286,27 @@ export default function Dashboard() {
     goalId: string,
     taskId: string,
     newTitle: string,
+    dueDate?: number | null,
   ) => {
     if (!newTitle.trim()) return;
     try {
-      await taskCtx.updateTask(goalId, taskId, newTitle.trim());
+      if (dueDate === undefined) {
+        await taskCtx.updateTask(goalId, taskId, newTitle.trim());
+      } else {
+        const goal = goals.find((g: any) => g.id === goalId);
+        if (!goal) return;
+        const updatedTasks = goal.tasks.map((t: any) =>
+          t.id === taskId
+            ? { ...t, title: newTitle.trim(), dueDate }
+            : t,
+        );
+        await taskCtx.updateGoal(goalId, { tasks: updatedTasks });
+      }
       showSuccess("Task updated ✓");
       setEditingTaskId(null);
       setTaskTitleDraft("");
+      setTaskDeadlineDraft(null);
+      setEditDeadlinePicker(null);
     } catch {
       showError("Failed to update task");
     }
@@ -6792,6 +7320,56 @@ export default function Dashboard() {
   const startEditTask = (task: any) => {
     setEditingTaskId(task.id);
     setTaskTitleDraft(task.title);
+    const deadlineMs = toTaskDeadlineMs(task);
+    setTaskDeadlineDraft(deadlineMs ? new Date(deadlineMs) : null);
+    setEditDeadlinePicker(null);
+  };
+
+  const cancelEditTask = () => {
+    setEditingTaskId(null);
+    setTaskTitleDraft("");
+    setTaskDeadlineDraft(null);
+    setEditDeadlinePicker(null);
+  };
+
+  const ensureTaskDeadlineDraft = () => {
+    if (taskDeadlineDraft) return new Date(taskDeadlineDraft);
+    const d = new Date();
+    d.setHours(18, 0, 0, 0);
+    return d;
+  };
+
+  const setTaskDraftDate = (date: Date) => {
+    const next = ensureTaskDeadlineDraft();
+    next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+    setTaskDeadlineDraft(next);
+  };
+
+  const setTaskDraftTime = (date: Date) => {
+    const next = ensureTaskDeadlineDraft();
+    next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+    setTaskDeadlineDraft(next);
+  };
+
+  const setTaskDraftWebDate = (value: string) => {
+    if (!value) {
+      setTaskDeadlineDraft(null);
+      return;
+    }
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return;
+    const next = ensureTaskDeadlineDraft();
+    next.setFullYear(year, month - 1, day);
+    setTaskDeadlineDraft(next);
+  };
+
+  const setTaskDraftWebTime = (value: string) => {
+    if (!value) return;
+    const [hour, minute] = value.split(":").map(Number);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return;
+    const next = ensureTaskDeadlineDraft();
+    next.setHours(hour, minute, 0, 0);
+    setTaskDeadlineDraft(next);
   };
 
   const handleConfirmComplete = async () => {
@@ -6821,7 +7399,7 @@ export default function Dashboard() {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setEditingGoalId(null);
-        setEditingTaskId(null);
+        cancelEditTask();
       }
     };
 
@@ -6977,7 +7555,7 @@ export default function Dashboard() {
   const isMobile = screenW < 600;
   const isTablet = !isMobile && screenW < 960 && Platform.OS === "web";
   const isWide = Platform.OS === "web" && screenW >= 960;
-  const isTwoCol = Platform.OS === "web" && screenW >= 1200; // goal cards 2-col only at 1200+
+  const isTwoCol = Platform.OS === "web" && screenW >= 1320; // keep task rows roomy beside the right rail
 
   const cardShadow =
     Platform.OS === "web"
@@ -7195,17 +7773,27 @@ export default function Dashboard() {
             const accent = GOAL_COLORS[index % GOAL_COLORS.length];
             const goalPct = getGoalProgress(g.id);
             const doneCnt = g.tasks.filter((t: any) => t.completed).length;
+            const nextDeadline = getGoalNextDeadlineMeta(g.tasks, dark);
 
             return (
               <Animated.View
                 key={g.id}
-                className={Platform.OS === "web" ? "sk-hov" : undefined}
+                className={Platform.OS === "web" ? "sk-goal-card" : undefined}
                 style={[
                   styles.goalBox,
                   isTwoCol ? styles.goalBoxWide : styles.goalBoxFull,
                   {
                     backgroundColor: card,
-                    borderColor: cardBorder,
+                    ...(Platform.OS === "web"
+                      ? ({
+                          background: dark
+                            ? `linear-gradient(145deg,${card} 0%,rgba(99,102,241,0.08) 100%)`
+                            : `linear-gradient(145deg,#ffffff 0%,${accent}08 100%)`,
+                        } as any)
+                      : {}),
+                    borderColor: nextDeadline
+                      ? nextDeadline.borderColor
+                      : cardBorder,
                     borderLeftColor: accent,
                     ...cardShadow,
                   },
@@ -7340,6 +7928,44 @@ export default function Dashboard() {
                         {goalPct}%
                       </Text>
                     </View>
+                    {nextDeadline && (
+                      <View
+                        style={{
+                          alignSelf: "flex-start",
+                          marginTop: 8,
+                          paddingHorizontal: 9,
+                          paddingVertical: 5,
+                          borderRadius: 8,
+                          backgroundColor: nextDeadline.backgroundColor,
+                          borderWidth: 1,
+                          borderColor: nextDeadline.borderColor,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                        className={
+                          Platform.OS === "web" &&
+                          (nextDeadline.label.startsWith("Overdue") ||
+                            nextDeadline.label.startsWith("Due today"))
+                            ? "sk-deadline-pop"
+                            : undefined
+                        }
+                      >
+                        <Text style={{ fontSize: 11 }}>⏰</Text>
+                        <Text
+                          style={{
+                            color: nextDeadline.color,
+                            fontSize: 10,
+                            fontWeight: "900",
+                            letterSpacing: 0.2,
+                            textTransform: "uppercase" as const,
+                          }}
+                          numberOfLines={1}
+                        >
+                          Next · {nextDeadline.label}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <View
                     style={{
@@ -7351,21 +7977,30 @@ export default function Dashboard() {
                     {/* Edit button */}
                     {editingGoalId !== g.id ? (
                       <Pressable
+                        className={
+                          Platform.OS === "web" ? "sk-btn-hov" : undefined
+                        }
                         onPress={(e) => {
                           e.stopPropagation();
                           startEditGoal(g);
                         }}
                         style={({ pressed }) => ({
-                          width: 30,
-                          height: 30,
+                          width: 32,
+                          height: 32,
                           borderRadius: 8,
                           backgroundColor: pressed
-                            ? accent + "22"
-                            : "transparent",
+                            ? accent + "24"
+                            : accent + "10",
+                          borderWidth: 1,
+                          borderColor: accent + "2d",
                           alignItems: "center",
                           justifyContent: "center",
                           ...(Platform.OS === "web"
                             ? ({
+                                background: pressed
+                                  ? `linear-gradient(135deg,${accent}24,${accent}36)`
+                                  : `linear-gradient(135deg,${accent}10,${accent}1d)`,
+                                boxShadow: `0 6px 14px ${accent}1c`,
                                 transition: "all .15s",
                                 cursor: "pointer",
                               } as any)
@@ -7376,6 +8011,9 @@ export default function Dashboard() {
                       </Pressable>
                    ) : (
                       <Pressable
+                        className={
+                          Platform.OS === "web" ? "sk-btn-hov" : undefined
+                        }
                         onPress={(e) => {
                           e.stopPropagation();
                           if (goalNameDraft.trim()) {
@@ -7385,16 +8023,23 @@ export default function Dashboard() {
                           setEditingGoalId(null);
                         }}
                         style={({ pressed }) => ({
-                          width: 30,
-                          height: 30,
+                          width: 32,
+                          height: 32,
                           borderRadius: 8,
                           backgroundColor: pressed
-                            ? "#34d39922"
-                            : "transparent",
+                            ? "#34d39930"
+                            : "#34d39914",
+                          borderWidth: 1,
+                          borderColor: "#34d39940",
                           alignItems: "center",
                           justifyContent: "center",
                           ...(Platform.OS === "web"
                             ? ({
+                                background: pressed
+                                  ? "linear-gradient(135deg,rgba(52,211,153,.28),rgba(20,184,166,.24))"
+                                  : "linear-gradient(135deg,rgba(52,211,153,.14),rgba(20,184,166,.12))",
+                                boxShadow:
+                                  "0 6px 14px rgba(52,211,153,.15)",
                                 transition: "all .15s",
                                 cursor: "pointer",
                               } as any)
@@ -7415,6 +8060,9 @@ export default function Dashboard() {
 
                     {/* Delete button */}
                     <Pressable
+                      className={
+                        Platform.OS === "web" ? "sk-btn-hov" : undefined
+                      }
                       onPress={(e) => {
                         e.stopPropagation();
                         setConfirmDeleteGoal({
@@ -7426,16 +8074,22 @@ export default function Dashboard() {
                         });
                       }}
                       style={({ pressed }) => ({
-                        width: 30,
-                        height: 30,
+                        width: 32,
+                        height: 32,
                         borderRadius: 8,
                         backgroundColor: pressed
-                          ? "rgba(239,68,68,0.15)"
-                          : "transparent",
+                          ? "rgba(239,68,68,0.22)"
+                          : "rgba(239,68,68,0.09)",
+                        borderWidth: 1,
+                        borderColor: "rgba(239,68,68,0.2)",
                         alignItems: "center",
                         justifyContent: "center",
                         ...(Platform.OS === "web"
                           ? ({
+                              background: pressed
+                                ? "linear-gradient(135deg,rgba(239,68,68,.22),rgba(248,113,113,.2))"
+                                : "linear-gradient(135deg,rgba(239,68,68,.09),rgba(248,113,113,.11))",
+                              boxShadow: "0 6px 14px rgba(239,68,68,.11)",
                               transition: "all .15s",
                               cursor: "pointer",
                             } as any)
@@ -7453,12 +8107,15 @@ export default function Dashboard() {
                     <View
                       style={
                         {
-                          height: 5,
+                          height: 7,
                           backgroundColor: dark
                             ? "rgba(255,255,255,0.07)"
                             : "rgba(0,0,0,0.06)",
                           borderRadius: 99,
                           overflow: "hidden",
+                          boxShadow: dark
+                            ? "inset 0 0 0 1px rgba(255,255,255,0.04)"
+                            : "inset 0 0 0 1px rgba(15,23,42,0.03)",
                         } as any
                       }
                     >
@@ -7467,10 +8124,12 @@ export default function Dashboard() {
                           {
                             height: "100%",
                             width: `${goalPct}%`,
-                            background: `linear-gradient(90deg,${accent},${accent}99)`,
+                            background: `linear-gradient(90deg,${accent},${accent}cc,${accent}88)`,
+                            backgroundSize: "180% 100%",
                             borderRadius: 99,
-                            boxShadow: `0 0 10px ${accent}66`,
+                            boxShadow: `0 0 14px ${accent}66`,
                             transition: "width 1s cubic-bezier(.4,0,.2,1)",
+                            animation: "sk-shimmer 3.2s linear infinite",
                           } as any
                         }
                       />
@@ -7496,6 +8155,9 @@ export default function Dashboard() {
                       {shown.map((t: any) => (
                         <Pressable
                           key={t.id}
+                          className={
+                            Platform.OS === "web" ? "sk-task-row" : undefined
+                          }
                           onHoverIn={() =>
                             Platform.OS === "web" && setHoveredTask(t.id)
                           }
@@ -7513,10 +8175,18 @@ export default function Dashboard() {
                               borderColor: t.completed
                                 ? accent + "28"
                                 : cardBorder,
+                              borderLeftColor: toTaskDeadlineMs(t)
+                                ? getTaskDeadlineMeta(t, dark)?.color
+                                : t.completed
+                                  ? accent
+                                  : cardBorder,
                             },
                             Platform.OS === "web" &&
                               hoveredTask === t.id &&
-                              ({ backgroundColor: accent + "14" } as any),
+                              ({
+                                backgroundColor: accent + "10",
+                                borderColor: accent + "35",
+                              } as any),
                             !isSynced && { opacity: 0.5 },
 
                             t.completed && { opacity: 0.72 },
@@ -7525,6 +8195,7 @@ export default function Dashboard() {
                               ({ cursor: "default" } as any),
                           ]}
                           onPress={() => {
+                            if (editingTaskId === t.id) return;
                             if (t.completed) return; // locked — cannot untick
                             if (!isSynced) {
                               showError(
@@ -7583,104 +8254,350 @@ export default function Dashboard() {
                             {/* Task Title - Editable */}
                             <View style={{ flex: 1 }}>
                               {editingTaskId === t.id ? (
-                                Platform.OS === "web" ? (
-                                  <input
-                                    value={taskTitleDraft}
-                                    onChange={(e: any) =>
-                                      setTaskTitleDraft(e.target.value)
-                                    }
-                                    onKeyDown={(e: any) => {
-                                      if (e.key === "Enter")
+                                <View style={{ gap: 9 }}>
+                                  {Platform.OS === "web" ? (
+                                    <input
+                                      value={taskTitleDraft}
+                                      onChange={(e: any) =>
+                                        setTaskTitleDraft(e.target.value)
+                                      }
+                                      onKeyDown={(e: any) => {
+                                        if (e.key === "Enter")
+                                          handleEditTask(
+                                            g.id,
+                                            t.id,
+                                            taskTitleDraft,
+                                            taskDeadlineDraft?.getTime() ??
+                                              null,
+                                          );
+                                        if (e.key === "Escape") cancelEditTask();
+                                      }}
+                                      onClick={(e: any) => e.stopPropagation()}
+                                      autoFocus
+                                      className="editing-input"
+                                      style={
+                                        {
+                                          fontSize: 14,
+                                          fontWeight: "700",
+                                          border: "none",
+                                          outline: "none",
+                                          borderBottom: `1.5px solid ${accent}`,
+                                          background: "transparent",
+                                          color: textPrimary,
+                                          width: "100%",
+                                          padding: "2px 2px 7px",
+                                          fontFamily:
+                                            "Plus Jakarta Sans,sans-serif",
+                                        } as any
+                                      }
+                                    />
+                                  ) : (
+                                    <TextInput
+                                      value={taskTitleDraft}
+                                      onChangeText={setTaskTitleDraft}
+                                      autoFocus
+                                      onSubmitEditing={() =>
                                         handleEditTask(
                                           g.id,
                                           t.id,
                                           taskTitleDraft,
-                                        );
-                                      if (e.key === "Escape") {
-                                        setEditingTaskId(null);
-                                        setTaskTitleDraft("");
+                                          taskDeadlineDraft?.getTime() ?? null,
+                                        )
                                       }
-                                    }}
-                                    onClick={(e: any) => e.stopPropagation()}
-                                    autoFocus
-                                    className="editing-input"
-                                    style={
-                                      {
+                                      style={{
                                         fontSize: 14,
-                                        fontWeight: "500",
-                                        border: "none",
-                                        outline: "none",
-                                        borderBottom: `1.5px solid ${accent}`,
-                                        background: "transparent",
+                                        fontWeight: "700",
+                                        borderBottomWidth: 1.5,
+                                        borderBottomColor: accent,
                                         color: textPrimary,
-                                        width: "100%",
-                                        padding: 2,
-                                      } as any
-                                    }
-                                  />
-                                ) : (
-                                  <TextInput
-                                    value={taskTitleDraft}
-                                    onChangeText={setTaskTitleDraft}
-                                    autoFocus
-                                    onSubmitEditing={() =>
-                                      handleEditTask(g.id, t.id, taskTitleDraft)
-                                    }
-                                    onBlur={() => {
-                                      if (taskTitleDraft.trim()) {
-                                        handleEditTask(
-                                          g.id,
-                                          t.id,
-                                          taskTitleDraft,
-                                        );
-                                      } else {
-                                        setEditingTaskId(null);
-                                      }
-                                    }}
+                                        paddingVertical: 5,
+                                      }}
+                                    />
+                                  )}
+
+                                  <View
                                     style={{
-                                      fontSize: 14,
-                                      fontWeight: "500",
-                                      borderBottomWidth: 1.5,
-                                      borderBottomColor: accent,
-                                      color: textPrimary,
-                                      paddingVertical: 2,
+                                      borderWidth: 1,
+                                      borderColor: taskDeadlineDraft
+                                        ? accent + "35"
+                                        : cardBorder,
+                                      backgroundColor: taskDeadlineDraft
+                                        ? accent + "0f"
+                                        : dark
+                                          ? "rgba(255,255,255,0.035)"
+                                          : "rgba(255,255,255,0.62)",
+                                      borderRadius: 10,
+                                      padding: 9,
+                                      gap: 8,
                                     }}
-                                  />
-                                )
+                                  >
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                      }}
+                                    >
+                                      <Text
+                                        style={{
+                                          flex: 1,
+                                          color: taskDeadlineDraft
+                                            ? accent
+                                            : textSecondary,
+                                          fontSize: 11,
+                                          fontWeight: "900",
+                                          letterSpacing: 0.2,
+                                          textTransform: "uppercase" as const,
+                                        }}
+                                        numberOfLines={1}
+                                      >
+                                        {taskDeadlineDraft
+                                          ? `Deadline · ${formatTaskDeadline(
+                                              taskDeadlineDraft.getTime(),
+                                            )}`
+                                          : "No deadline set"}
+                                      </Text>
+                                      {taskDeadlineDraft && (
+                                        <Pressable
+                                          onPress={(e) => {
+                                            e.stopPropagation();
+                                            setTaskDeadlineDraft(null);
+                                          }}
+                                          style={({ pressed }) => ({
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 5,
+                                            borderRadius: 8,
+                                            backgroundColor: pressed
+                                              ? "rgba(239,68,68,0.18)"
+                                              : "rgba(239,68,68,0.1)",
+                                            borderWidth: 1,
+                                            borderColor:
+                                              "rgba(239,68,68,0.22)",
+                                          })}
+                                        >
+                                          <Text
+                                            style={{
+                                              color: "#ef4444",
+                                              fontSize: 10,
+                                              fontWeight: "900",
+                                            }}
+                                          >
+                                            Clear
+                                          </Text>
+                                        </Pressable>
+                                      )}
+                                    </View>
+
+                                    {Platform.OS === "web" ? (
+                                      <View
+                                        style={
+                                          {
+                                            flexDirection: "row",
+                                            gap: 8,
+                                          } as any
+                                        }
+                                      >
+                                        <input
+                                          type="date"
+                                          value={formatDateInputValue(
+                                            taskDeadlineDraft,
+                                          )}
+                                          onClick={(e: any) =>
+                                            e.stopPropagation()
+                                          }
+                                          onChange={(e: any) =>
+                                            setTaskDraftWebDate(e.target.value)
+                                          }
+                                          style={
+                                            {
+                                              flex: 1,
+                                              minWidth: 0,
+                                              border: `1px solid ${cardBorder}`,
+                                              borderRadius: 8,
+                                              padding: "8px 10px",
+                                              background: dark
+                                                ? "rgba(255,255,255,0.045)"
+                                                : "#fff",
+                                              color: textPrimary,
+                                              fontFamily:
+                                                "Plus Jakarta Sans,sans-serif",
+                                              fontWeight: 800,
+                                              fontSize: 11,
+                                              outline: "none",
+                                            } as any
+                                          }
+                                        />
+                                        <input
+                                          type="time"
+                                          value={formatTimeInputValue(
+                                            taskDeadlineDraft,
+                                          )}
+                                          onClick={(e: any) =>
+                                            e.stopPropagation()
+                                          }
+                                          onChange={(e: any) =>
+                                            setTaskDraftWebTime(e.target.value)
+                                          }
+                                          style={
+                                            {
+                                              width: 118,
+                                              border: `1px solid ${cardBorder}`,
+                                              borderRadius: 8,
+                                              padding: "8px 10px",
+                                              background: dark
+                                                ? "rgba(255,255,255,0.045)"
+                                                : "#fff",
+                                              color: textPrimary,
+                                              fontFamily:
+                                                "Plus Jakarta Sans,sans-serif",
+                                              fontWeight: 800,
+                                              fontSize: 11,
+                                              outline: "none",
+                                            } as any
+                                          }
+                                        />
+                                      </View>
+                                    ) : (
+                                      <View
+                                        style={{
+                                          flexDirection: "row",
+                                          gap: 8,
+                                        }}
+                                      >
+                                        <Pressable
+                                          onPress={(e) => {
+                                            e.stopPropagation();
+                                            setEditDeadlinePicker("date");
+                                          }}
+                                          style={({ pressed }) => ({
+                                            flex: 1,
+                                            paddingVertical: 9,
+                                            borderRadius: 8,
+                                            alignItems: "center",
+                                            backgroundColor: pressed
+                                              ? accent + "20"
+                                              : accent + "12",
+                                            borderWidth: 1,
+                                            borderColor: accent + "2e",
+                                          })}
+                                        >
+                                          <Text
+                                            style={{
+                                              color: accent,
+                                              fontSize: 11,
+                                              fontWeight: "900",
+                                            }}
+                                          >
+                                            Pick Date
+                                          </Text>
+                                        </Pressable>
+                                        <Pressable
+                                          onPress={(e) => {
+                                            e.stopPropagation();
+                                            setEditDeadlinePicker("time");
+                                          }}
+                                          style={({ pressed }) => ({
+                                            flex: 1,
+                                            paddingVertical: 9,
+                                            borderRadius: 8,
+                                            alignItems: "center",
+                                            backgroundColor: pressed
+                                              ? accent + "20"
+                                              : accent + "12",
+                                            borderWidth: 1,
+                                            borderColor: accent + "2e",
+                                          })}
+                                        >
+                                          <Text
+                                            style={{
+                                              color: accent,
+                                              fontSize: 11,
+                                              fontWeight: "900",
+                                            }}
+                                          >
+                                            Pick Time
+                                          </Text>
+                                        </Pressable>
+                                      </View>
+                                    )}
+                                  </View>
+
+                                  {editingTaskId === t.id &&
+                                    editDeadlinePicker &&
+                                    Platform.OS !== "web" && (
+                                      <DateTimePicker
+                                        value={
+                                          taskDeadlineDraft ||
+                                          ensureTaskDeadlineDraft()
+                                        }
+                                        mode={editDeadlinePicker}
+                                        is24Hour={false}
+                                        display="default"
+                                        onChange={(_, date) => {
+                                          const mode = editDeadlinePicker;
+                                          setEditDeadlinePicker(null);
+                                          if (!date) return;
+                                          if (mode === "date")
+                                            setTaskDraftDate(date);
+                                          if (mode === "time")
+                                            setTaskDraftTime(date);
+                                        }}
+                                      />
+                                    )}
+                                </View>
                               ) : (
-                                <Text
-                                  style={[
-                                    styles.taskTx,
-                                    {
-                                      color: t.completed
-                                        ? dark
-                                          ? "rgba(255,255,255,0.35)"
-                                          : "rgba(0,0,0,0.3)"
-                                        : textSecondary,
-                                      textDecorationLine: t.completed
-                                        ? "line-through"
-                                        : "none",
-                                    },
-                                  ]}
-                                  numberOfLines={1}
-                                >
-                                  {t.title}
-                                </Text>
+                                <>
+                                  <View
+                                    style={{
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.taskTx,
+                                        {
+                                          color: t.completed
+                                            ? dark
+                                              ? "rgba(255,255,255,0.35)"
+                                              : "rgba(0,0,0,0.3)"
+                                            : textSecondary,
+                                          textDecorationLine: t.completed
+                                            ? "line-through"
+                                            : "none",
+                                        },
+                                      ]}
+                                      numberOfLines={1}
+                                    >
+                                      {t.title}
+                                    </Text>
+                                    <TaskDeadlinePill
+                                      task={t}
+                                      dark={dark}
+                                      compact
+                                    />
+                                  </View>
+                                </>
                               )}
                             </View>
 
                             {/* Action buttons */}
-                            <View style={{ flexDirection: "row", gap: 6 }}>
+                            <View style={{ flexDirection: "row", gap: 7 }}>
                               {editingTaskId !== t.id && !t.completed && (
                                 <Pressable
+                                  className={
+                                    Platform.OS === "web"
+                                      ? "sk-btn-hov"
+                                      : undefined
+                                  }
                                   onPress={(e) => {
                                     e.stopPropagation();
                                     startEditTask(t);
                                   }}
                                   style={({ pressed }) => ({
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 9,
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 8,
                                     backgroundColor: pressed
                                       ? accent + "28"
                                       : accent + "14",
@@ -7690,6 +8607,10 @@ export default function Dashboard() {
                                     justifyContent: "center",
                                     ...(Platform.OS === "web"
                                       ? ({
+                                          background: pressed
+                                            ? `linear-gradient(135deg,${accent}24,${accent}38)`
+                                            : `linear-gradient(135deg,${accent}12,${accent}22)`,
+                                          boxShadow: `0 6px 14px ${accent}1f`,
                                           transition: "all .15s",
                                           cursor: "pointer",
                                         } as any)
@@ -7702,42 +8623,103 @@ export default function Dashboard() {
                                 </Pressable>
                               )}
                               {editingTaskId === t.id && (
-                                <Pressable
-                                  onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleEditTask(g.id, t.id, taskTitleDraft);
-                                  }}
-                                  style={({ pressed }) => ({
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 9,
-                                    backgroundColor: pressed
-                                      ? "#34d39928"
-                                      : "#34d39914",
-                                    borderWidth: 1,
-                                    borderColor: "#34d39935",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    ...(Platform.OS === "web"
-                                      ? ({
-                                          transition: "all .15s",
-                                          cursor: "pointer",
-                                        } as any)
-                                      : {}),
-                                  })}
-                                >
-                                  <Text
-                                    style={{
-                                      fontSize: 12,
-                                      color: "#34d399",
-                                      fontWeight: "800",
+                                <>
+                                  <Pressable
+                                    className={
+                                      Platform.OS === "web"
+                                        ? "sk-btn-hov"
+                                        : undefined
+                                    }
+                                    onPress={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTask(
+                                        g.id,
+                                        t.id,
+                                        taskTitleDraft,
+                                        taskDeadlineDraft?.getTime() ?? null,
+                                      );
                                     }}
+                                    style={({ pressed }) => ({
+                                      width: 32,
+                                      height: 32,
+                                      borderRadius: 8,
+                                      backgroundColor: pressed
+                                        ? "#34d39930"
+                                        : "#34d39916",
+                                      borderWidth: 1,
+                                      borderColor: "#34d39945",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      ...(Platform.OS === "web"
+                                        ? ({
+                                            background: pressed
+                                              ? "linear-gradient(135deg,rgba(52,211,153,.28),rgba(20,184,166,.26))"
+                                              : "linear-gradient(135deg,rgba(52,211,153,.14),rgba(20,184,166,.12))",
+                                            boxShadow:
+                                              "0 6px 14px rgba(52,211,153,.16)",
+                                            transition: "all .15s",
+                                            cursor: "pointer",
+                                          } as any)
+                                        : {}),
+                                    })}
                                   >
-                                    ✓
-                                  </Text>
-                                </Pressable>
+                                    <Text
+                                      style={{
+                                        fontSize: 12,
+                                        color: "#10b981",
+                                        fontWeight: "900",
+                                      }}
+                                    >
+                                      ✓
+                                    </Text>
+                                  </Pressable>
+                                  <Pressable
+                                    className={
+                                      Platform.OS === "web"
+                                        ? "sk-btn-hov"
+                                        : undefined
+                                    }
+                                    onPress={(e) => {
+                                      e.stopPropagation();
+                                      cancelEditTask();
+                                    }}
+                                    style={({ pressed }) => ({
+                                      width: 32,
+                                      height: 32,
+                                      borderRadius: 8,
+                                      backgroundColor: pressed
+                                        ? "rgba(100,116,139,0.18)"
+                                        : "rgba(100,116,139,0.1)",
+                                      borderWidth: 1,
+                                      borderColor: "rgba(100,116,139,0.22)",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      ...(Platform.OS === "web"
+                                        ? ({
+                                            transition: "all .15s",
+                                            cursor: "pointer",
+                                          } as any)
+                                        : {}),
+                                    })}
+                                  >
+                                    <Text
+                                      style={{
+                                        fontSize: 11,
+                                        color: "#64748b",
+                                        fontWeight: "900",
+                                      }}
+                                    >
+                                      ↺
+                                    </Text>
+                                  </Pressable>
+                                </>
                               )}
                               <Pressable
+                                className={
+                                  Platform.OS === "web"
+                                    ? "sk-btn-hov"
+                                    : undefined
+                                }
                                 onPress={(e) => {
                                   e.stopPropagation();
                                   setConfirmDeleteTask({
@@ -7748,9 +8730,9 @@ export default function Dashboard() {
                                   });
                                 }}
                                 style={({ pressed }) => ({
-                                  width: 30,
-                                  height: 30,
-                                  borderRadius: 9,
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 8,
                                   backgroundColor: pressed
                                     ? "rgba(239,68,68,0.22)"
                                     : "rgba(239,68,68,0.1)",
@@ -7760,6 +8742,11 @@ export default function Dashboard() {
                                   justifyContent: "center",
                                   ...(Platform.OS === "web"
                                     ? ({
+                                        background: pressed
+                                          ? "linear-gradient(135deg,rgba(239,68,68,.22),rgba(248,113,113,.22))"
+                                          : "linear-gradient(135deg,rgba(239,68,68,.1),rgba(248,113,113,.12))",
+                                        boxShadow:
+                                          "0 6px 14px rgba(239,68,68,.13)",
                                         transition: "all .15s",
                                         cursor: "pointer",
                                       } as any)
@@ -7837,26 +8824,35 @@ export default function Dashboard() {
 
                 {/* View Details button */}
                 <Pressable
+                  className={Platform.OS === "web" ? "sk-btn-hov" : undefined}
                   onPress={() => setViewGoalId(g.id)}
                   style={({ pressed }) => [
                     styles.addTaskBtn,
                     {
                       borderColor: accent + "44",
-                      backgroundColor: pressed ? accent + "12" : "transparent",
+                      backgroundColor: pressed
+                        ? accent + "18"
+                        : dark
+                          ? accent + "0b"
+                          : accent + "08",
                       marginBottom: 6,
                     },
                   ]}
                 >
                   <Text style={[styles.addTaskTx, { color: accent }]}>
-                    👁 View Details
+                    👁  View Details
                   </Text>
                 </Pressable>
 
                 {/* Add Task button */}
                 <Pressable
+                  className={Platform.OS === "web" ? "sk-btn-hov" : undefined}
                   style={[
                     styles.addTaskBtn,
-                    { borderColor: accent + "44" },
+                    {
+                      borderColor: accent + "44",
+                      backgroundColor: dark ? accent + "08" : accent + "05",
+                    },
                     !isSynced && { opacity: 0.5 },
                   ]}
                   disabled={!isSynced}
@@ -8763,8 +9759,8 @@ export default function Dashboard() {
           dark={dark}
           goalId={showAddTaskGoalId}
           onClose={() => setShowAddTaskGoalId(null)}
-          addTaskFn={(gId: string, title: string) =>
-            taskCtx.addTask(gId, title)
+          addTaskFn={(gId: string, title: string, dueDate?: number | null) =>
+            taskCtx.addTask(gId, title, dueDate)
           }
         />
       )}
@@ -9128,6 +10124,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderLeftWidth: 4,
+    position: "relative",
+    overflow: "hidden",
   },
   goalBoxFull: { width: "100%" },
   goalBoxWide: { width: "49%", marginHorizontal: "0.5%" },
@@ -9145,6 +10143,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    ...(Platform.OS === "web"
+      ? ({ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.34)" } as any)
+      : {}),
   },
   goalTitle: {
     fontSize: 17,
@@ -9199,11 +10200,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
+    borderLeftWidth: 3,
     ...(Platform.OS === "web"
-      ? ({ transition: "background .15s", cursor: "pointer" } as any)
+      ? ({
+          transition:
+            "transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease",
+          cursor: "pointer",
+        } as any)
       : {}),
   },
-  taskContent: { flexDirection: "row", alignItems: "center", gap: 12 },
+  taskContent: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   cb: {
     width: 20,
     height: 20,
@@ -9212,9 +10218,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    marginTop: 1,
   },
   tick: { color: "white", fontSize: 11, fontWeight: "800" },
-  taskTx: { fontSize: 14, fontWeight: "500", flex: 1 },
+  taskTx: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
   addTaskBtn: {
     marginTop: 8,
     paddingVertical: 11,
