@@ -107,6 +107,15 @@ if (Platform.OS === "web" && typeof document !== "undefined") {
       @keyframes sk-heatIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
       .sk-cell{transition:transform .12s,box-shadow .12s;animation:sk-heatIn .15s ease both}
       .sk-cell:hover{transform:scale(1.5)!important;z-index:10!important;border-radius:4px!important;box-shadow:0 2px 8px rgba(99,102,241,0.4)!important}
+@keyframes sk-card-in{from{opacity:0;transform:translateY(18px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.sk-goal-card{animation:sk-card-in .35s cubic-bezier(0.34,1.56,0.64,1) both}
+.sk-goal-card:hover{transform:translateY(-3px)!important}
+@keyframes sk-badge-pop{0%{transform:scale(0.6);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.sk-badge-pop{animation:sk-badge-pop .4s cubic-bezier(0.34,1.56,0.64,1) both}
+.sk-task-row{transition:background .15s,transform .12s,box-shadow .12s}
+.sk-task-row:hover{transform:translateX(3px)!important}
+@keyframes sk-progress-fill{from{width:0%}to{width:var(--pct)}}
+.sk-progress-bar{animation:sk-progress-fill 1.2s cubic-bezier(0.4,0,0.2,1) both}
      .sk-cell-today {
   animation: sk-glow-today 0.9s ease-in-out infinite;
   will-change: transform, box-shadow;
@@ -191,7 +200,7 @@ const getTaskDeadlineMeta = (task: any, dark: boolean) => {
   const due = new Date(ms);
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startDue = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-  const daysAway = Math.round(
+  const daysAway = Math.floor(
     (startDue.getTime() - startToday.getTime()) / 86400000,
   );
   const completed = !!task?.completed;
@@ -278,7 +287,9 @@ function TaskDeadlinePill({
 
   return (
     <View
-      className={Platform.OS === "web" && urgent ? "sk-deadline-pop" : undefined}
+      className={
+        Platform.OS === "web" && urgent ? "sk-deadline-pop" : undefined
+      }
       style={{
         alignSelf: "flex-start",
         marginTop: compact ? 4 : 6,
@@ -2427,7 +2438,12 @@ function HeatMap({
   const firstDay = startDay.getDay();
   startDay.setDate(startDay.getDate() - firstDay);
 
-  const cells: Array<{ date: string; count: number; month: number; isToday: boolean }> = [];
+  const cells: Array<{
+    date: string;
+    count: number;
+    month: number;
+    isToday: boolean;
+  }> = [];
   const months: { label: string; col: number }[] = [];
   let lastMonth = -1;
 
@@ -2437,13 +2453,17 @@ function HeatMap({
       dt.setDate(startDay.getDate() + w * 7 + d);
       const key = dt.toLocaleDateString("en-CA");
       const year = new Date(key).getFullYear();
-      const rawCount = year === selectedYear ? Number(activityLog?.[key] || 0) : 0;
+      const rawCount =
+        year === selectedYear ? Number(activityLog?.[key] || 0) : 0;
       const value = rawCount;
       const todayStr = today.toLocaleDateString("en-CA");
       const isToday = key === todayStr;
       cells.push({ date: key, count: value, month: dt.getMonth(), isToday });
       if (dt.getMonth() !== lastMonth && d === 0) {
-        months.push({ label: dt.toLocaleString("default", { month: "short" }), col: w });
+        months.push({
+          label: dt.toLocaleString("default", { month: "short" }),
+          col: w,
+        });
         lastMonth = dt.getMonth();
       }
     }
@@ -2457,17 +2477,21 @@ function HeatMap({
       if (count <= 15) return "#dc2626";
       return "#b91c1c";
     }
-    if (count === 0) return dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-    if (count <= 3) return dark ? "rgba(99,102,241,0.20)" : "rgba(99,102,241,0.15)";
-    if (count <= 8) return dark ? "rgba(99,102,241,0.42)" : "rgba(99,102,241,0.35)";
-    if (count <= 15) return dark ? "rgba(99,102,241,0.68)" : "rgba(99,102,241,0.58)";
+    if (count === 0)
+      return dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+    if (count <= 3)
+      return dark ? "rgba(99,102,241,0.20)" : "rgba(99,102,241,0.15)";
+    if (count <= 8)
+      return dark ? "rgba(99,102,241,0.42)" : "rgba(99,102,241,0.35)";
+    if (count <= 15)
+      return dark ? "rgba(99,102,241,0.68)" : "rgba(99,102,241,0.58)";
     return "#6366f1";
   };
 
   // ── Responsive Constants ──
   const CELL = mobile ? 8 : 10;
   const GAP = mobile ? 2 : 3;
-  // Reduced padding on mobile 
+  // Reduced padding on mobile
   const CONTAINER_PADDING = mobile ? 12 : 20;
   const HEADER_FONT = mobile ? 13 : 15;
   const SUB_FONT = mobile ? 10 : 11;
@@ -2491,7 +2515,9 @@ function HeatMap({
           : {}),
         ...(Platform.OS === "web" && !mobile
           ? ({
-              boxShadow: dark ? "0 2px 16px rgba(0,0,0,0.4)" : "0 2px 12px rgba(0,0,0,0.05)",
+              boxShadow: dark
+                ? "0 2px 16px rgba(0,0,0,0.4)"
+                : "0 2px 12px rgba(0,0,0,0.05)",
             } as any)
           : { elevation: 2 }),
       }}
@@ -2527,7 +2553,12 @@ function HeatMap({
                 fontWeight: "800",
                 color: dark ? "#ffffff" : "#0f172a",
                 ...(Platform.OS === "web" && !mobile
-                  ? ({ fontFamily: "Outfit,sans-serif", textShadow: dark ? "0 0 10px rgba(99,102,241,0.3)" : "none" } as any)
+                  ? ({
+                      fontFamily: "Outfit,sans-serif",
+                      textShadow: dark
+                        ? "0 0 10px rgba(99,102,241,0.3)"
+                        : "none",
+                    } as any)
                   : {}),
               }}
             >
@@ -2542,10 +2573,16 @@ function HeatMap({
               }}
             >
               {Object.entries(activityLog)
-                .filter(([date]) => new Date(date).getFullYear() === selectedYear)
+                .filter(
+                  ([date]) => new Date(date).getFullYear() === selectedYear,
+                )
                 .reduce((sum, [, val]) => sum + val, 0)}{" "}
               tasks ·{" "}
-              {Object.keys(activityLog).filter((date) => new Date(date).getFullYear() === selectedYear).length}{" "}
+              {
+                Object.keys(activityLog).filter(
+                  (date) => new Date(date).getFullYear() === selectedYear,
+                ).length
+              }{" "}
               active days
             </Text>
           </View>
@@ -2556,7 +2593,8 @@ function HeatMap({
           <Pressable onPress={() => setSelectedYear(currentYear)}>
             <View
               style={{
-                backgroundColor: selectedYear === currentYear ? "#3b82f6" : "rgba(0,0,0,0.1)",
+                backgroundColor:
+                  selectedYear === currentYear ? "#3b82f6" : "rgba(0,0,0,0.1)",
                 paddingHorizontal: 8,
                 paddingVertical: 3,
                 borderRadius: 6,
@@ -2565,7 +2603,12 @@ function HeatMap({
             >
               <Text
                 style={{
-                  color: selectedYear === currentYear ? "#ffffff" : dark ? "rgba(255,255,255,0.6)" : "#94a3b8",
+                  color:
+                    selectedYear === currentYear
+                      ? "#ffffff"
+                      : dark
+                        ? "rgba(255,255,255,0.6)"
+                        : "#94a3b8",
                   fontSize: 10,
                   fontWeight: "700",
                 }}
@@ -2578,7 +2621,12 @@ function HeatMap({
             <Text
               style={{
                 fontSize: 9,
-                color: selectedYear === currentYear - 1 ? "#3b82f6" : dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)",
+                color:
+                  selectedYear === currentYear - 1
+                    ? "#3b82f6"
+                    : dark
+                      ? "rgba(238,242,255,0.4)"
+                      : "rgba(15,23,42,0.4)",
                 fontWeight: "700",
               }}
             >
@@ -2598,13 +2646,33 @@ function HeatMap({
           marginBottom: mobile ? 6 : 12,
         }}
       >
-        <Text style={{ fontSize: LEGEND_FONT, color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)", fontWeight: "500" }}>
+        <Text
+          style={{
+            fontSize: LEGEND_FONT,
+            color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)",
+            fontWeight: "500",
+          }}
+        >
           Less
         </Text>
         {[0, 2, 5, 12, 20].map((v, i) => (
-          <View key={i} style={{ width: mobile ? 8 : 12, height: mobile ? 8 : 12, borderRadius: 2, backgroundColor: getColor(v) }} />
+          <View
+            key={i}
+            style={{
+              width: mobile ? 8 : 12,
+              height: mobile ? 8 : 12,
+              borderRadius: 2,
+              backgroundColor: getColor(v),
+            }}
+          />
         ))}
-        <Text style={{ fontSize: LEGEND_FONT, color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)", fontWeight: "500" }}>
+        <Text
+          style={{
+            fontSize: LEGEND_FONT,
+            color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)",
+            fontWeight: "500",
+          }}
+        >
           More
         </Text>
 
@@ -2617,27 +2685,60 @@ function HeatMap({
             marginLeft: mobile ? 0 : 14,
             paddingLeft: mobile ? 0 : 14,
             borderLeftWidth: mobile ? 0 : 1,
-            borderLeftColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+            borderLeftColor: dark
+              ? "rgba(255,255,255,0.1)"
+              : "rgba(0,0,0,0.08)",
           }}
         >
-          <Text style={{ fontSize: LEGEND_FONT, color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)", fontWeight: "500" }}>
+          <Text
+            style={{
+              fontSize: LEGEND_FONT,
+              color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)",
+              fontWeight: "500",
+            }}
+          >
             Today
           </Text>
-          {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map((color, i) => (
-            <View
-              key={i}
-              className={Platform.OS === "web" && i === 4 ? "sk-legend-today-dot" : undefined}
-              style={{ width: mobile ? 8 : 12, height: mobile ? 8 : 12, borderRadius: 2, backgroundColor: color }}
-            />
-          ))}
+          {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map(
+            (color, i) => (
+              <View
+                key={i}
+                className={
+                  Platform.OS === "web" && i === 4
+                    ? "sk-legend-today-dot"
+                    : undefined
+                }
+                style={{
+                  width: mobile ? 8 : 12,
+                  height: mobile ? 8 : 12,
+                  borderRadius: 2,
+                  backgroundColor: color,
+                }}
+              />
+            ),
+          )}
         </View>
       </View>
 
       {/* ── Month Labels ── */}
       <View style={{ flexDirection: "row", marginBottom: 6, paddingLeft: 0 }}>
         {months.map((m, i) => (
-          <View key={i} style={{ position: "absolute", left: CONTAINER_PADDING + m.col * (CELL + GAP) } as any}>
-            <Text style={{ fontSize: 9, color: dark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.4)", fontWeight: "600" }}>
+          <View
+            key={i}
+            style={
+              {
+                position: "absolute",
+                left: CONTAINER_PADDING + m.col * (CELL + GAP),
+              } as any
+            }
+          >
+            <Text
+              style={{
+                fontSize: 9,
+                color: dark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.4)",
+                fontWeight: "600",
+              }}
+            >
               {m.label}
             </Text>
           </View>
@@ -2678,8 +2779,12 @@ function HeatMap({
             }}
           >
             {Array.from({ length: 7 }, (_, d) => {
-              const cell: any = cells[w * 7 + d] || { count: 0, isToday: false };
-              if (!cell) return <View key={d} style={{ width: CELL, height: CELL }} />;
+              const cell: any = cells[w * 7 + d] || {
+                count: 0,
+                isToday: false,
+              };
+              if (!cell)
+                return <View key={d} style={{ width: CELL, height: CELL }} />;
               return (
                 <View
                   key={d}
@@ -2698,11 +2803,15 @@ function HeatMap({
                         ? {
                             borderRadius: 4,
                             background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
-                            animation: "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
+                            animation:
+                              "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
                             zIndex: 10,
                           }
                         : {}),
-                      ...(cell.count > 0 && !cell.isToday && { boxShadow: `0 0 4px ${getColor(cell.count, false)}66` }),
+                      ...(cell.count > 0 &&
+                        !cell.isToday && {
+                          boxShadow: `0 0 4px ${getColor(cell.count, false)}66`,
+                        }),
                       transition: "transform .12s, box-shadow .12s",
                     } as any
                   }
@@ -2713,11 +2822,30 @@ function HeatMap({
         ))}
       </ScrollView>
 
-      <View style={{ marginTop: 8, flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 11, opacity: dark ? 0.7 : 0.6, color: dark ? "#fff" : undefined }}>
+      <View
+        style={{
+          marginTop: 8,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 11,
+            opacity: dark ? 0.7 : 0.6,
+            color: dark ? "#fff" : undefined,
+          }}
+        >
           Keep it going 🔥
         </Text>
-        <Text style={{ fontSize: 11, fontWeight: "700", opacity: dark ? 0.7 : 0.6, color: dark ? "#fff" : undefined }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: "700",
+            opacity: dark ? 0.7 : 0.6,
+            color: dark ? "#fff" : undefined,
+          }}
+        >
           {selectedYear}
         </Text>
       </View>
@@ -2867,12 +2995,102 @@ function StatCards({
   const txtPri = dark ? "#eef2ff" : "#0f172a";
   const txtSec = dark ? "rgba(238,242,255,0.5)" : "rgba(15,23,42,0.5)";
 
+  // Calculate dynamic indicators for stat cards
+  const totalGoals = goals.length;
+  const totalTasks = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
+  const completedGoals = goals.filter(
+    (g: any) => g.tasks.length > 0 && g.tasks.every((t: any) => t.completed),
+  ).length;
+
+  // Skill score based on actual learning progress (not just streak)
+  // Only award points for real accomplishments
+  const skillScoreVal =
+    totalGoals === 0 && completedTasks === 0
+      ? 0 // No activity yet
+      : Math.min(
+          9999,
+          completedTasks * 50 + // Points for completed tasks
+            completedGoals * 100 + // Bonus for completed goals
+            totalGoals * 30 + // Points for active goals (engagement)
+            (completedTasks > 0 ? Number(streak) * 15 : 0), // Streak bonus only if tasks completed
+        );
+
+  // Goals on track calculation
+  const goalsOnTrack = goals.filter((goal: any) => {
+    const pendingTasks = goal.tasks.filter((t: any) => !t.completed);
+    if (pendingTasks.length === 0) return true;
+    const overdueTasks = pendingTasks.filter((t: any) => {
+      const deadline = toTaskDeadlineMs(t);
+      return deadline && deadline < Date.now();
+    });
+    return overdueTasks.length < pendingTasks.length;
+  }).length;
+
+  const allGoalsOnTrack = goalsOnTrack === totalGoals && totalGoals > 0;
+  const someGoalsBehind = goalsOnTrack < totalGoals && goalsOnTrack > 0;
+
+  // Streak personal best
+  const isStreakPersonalBest = streak >= 3;
+
+  // Skill score trend
+  const skillScoreTrend =
+    completedTasks > 0 && totalTasks > 0
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
+  // Dynamic sub indicators
+  const goalsSub =
+    totalGoals === 0
+      ? { text: "No goals yet", color: txtSec, icon: "" }
+      : allGoalsOnTrack
+        ? { text: "All on track", color: "#34d399", icon: "↑" }
+        : someGoalsBehind
+          ? {
+              text: `${goalsOnTrack}/${totalGoals} on track`,
+              color: "#f97316",
+              icon: "↓",
+            }
+          : { text: "Needs attention", color: "#ef4444", icon: "⚠" };
+
+  const tasksSub =
+    totalTasks === 0
+      ? { text: "Add tasks to start", color: txtSec, icon: "" }
+      : activityToday > 0
+        ? { text: `+${activityToday} today`, color: "#34d399", icon: "↑" }
+        : completedTasks > 0
+          ? {
+              text: `${completedTasks} total done`,
+              color: "#6366f1",
+              icon: "→",
+            }
+          : { text: "Ready to start", color: txtSec, icon: "" };
+
+  const streakSub =
+    streak === 0
+      ? { text: "Start your streak", color: txtSec, icon: "" }
+      : isStreakPersonalBest
+        ? { text: "Personal best!", color: "#f97316", icon: "↑" }
+        : { text: "Keep it up!", color: "#f97316", icon: "↑" };
+
+  const skillSub =
+    skillScoreVal === 0
+      ? { text: "Complete tasks to grow", color: txtSec, icon: "" }
+      : skillScoreTrend >= 75
+        ? { text: "Excellent progress!", color: "#34d399", icon: "↑" }
+        : skillScoreTrend >= 50
+          ? { text: "Good progress", color: "#6366f1", icon: "↑" }
+          : skillScoreTrend > 0
+            ? { text: "Building momentum", color: "#fbbf24", icon: "→" }
+            : { text: "Get started", color: txtSec, icon: "" };
+
   const CARDS = [
     {
       icon: "🎯",
       val: goals.length,
       lbl: "Active Goals",
-      sub: "All on track",
+      sub: goalsSub.text,
+      subColor: goalsSub.color,
+      subIcon: goalsSub.icon,
       color: "#6366f1",
       bg2: "rgba(99,102,241,0.08)",
     },
@@ -2880,7 +3098,9 @@ function StatCards({
       icon: "✅",
       val: completedTasks,
       lbl: "Tasks Completed",
-      sub: "+2 today",
+      sub: tasksSub.text,
+      subColor: tasksSub.color,
+      subIcon: tasksSub.icon,
       color: "#34d399",
       bg2: "rgba(52,211,153,0.08)",
     },
@@ -2888,18 +3108,19 @@ function StatCards({
       icon: "🔥",
       val: `${streak}`,
       lbl: "Day Streak",
-      sub: "Personal best",
+      sub: streakSub.text,
+      subColor: streakSub.color,
+      subIcon: streakSub.icon,
       color: "#f97316",
       bg2: "rgba(249,115,22,0.08)",
     },
     {
       icon: "⭐",
-      val: Math.min(
-        9999,
-        completedTasks * 50 + goals.length * 120 + Number(streak) * 15,
-      ),
+      val: skillScoreVal,
       lbl: "Skill Score",
-      sub: "Based on activity",
+      sub: skillSub.text,
+      subColor: skillSub.color,
+      subIcon: skillSub.icon,
       color: "#fbbf24",
       bg2: "rgba(251,191,36,0.08)",
     },
@@ -2911,6 +3132,8 @@ function StatCards({
     val,
     lbl,
     sub,
+    subColor,
+    subIcon,
     color,
     bg2,
     i,
@@ -2923,7 +3146,7 @@ function StatCards({
     const display = isNum ? counted : val;
     return (
       <Animated.View
-        className={Platform.OS === "web" ? "sk-hov" : undefined}
+        className={Platform.OS === "web" ? "sk-goal-card sk-hov" : undefined}
         style={[
           stSt.card,
           mobile &&
@@ -2990,8 +3213,9 @@ function StatCards({
         </Text>
         <Text style={[stSt.lbl, { color: txtSec }]}>{lbl}</Text>
         <View style={stSt.subRow}>
-          <Text style={{ color, fontSize: 10, fontWeight: "700" }}>
-            ↑ {sub}
+          <Text style={{ color: subColor, fontSize: 10, fontWeight: "700" }}>
+            {subIcon ? `${subIcon} ` : ""}
+            {sub}
           </Text>
         </View>
         {/* StreakTimer inside card to avoid overflow clipping */}
@@ -4778,7 +5002,7 @@ function GoalViewModal({
   accentColor,
   goalIndex,
   onClose,
-  onDeleteTask,
+  onRequestDeleteTask,
   onEditTask,
   onEditGoal,
 }: {
@@ -4787,7 +5011,12 @@ function GoalViewModal({
   accentColor: string;
   goalIndex: number;
   onClose: () => void;
-  onDeleteTask: (goalId: string, taskId: string) => void;
+  onRequestDeleteTask: (
+    goalId: string,
+    taskId: string,
+    taskTitle: string,
+    goalName: string,
+  ) => void;
   onEditTask: (goalId: string, taskId: string, title: string) => void;
   onEditGoal: (goalId: string, name: string) => void;
 }) {
@@ -5229,19 +5458,38 @@ function GoalViewModal({
                         </Text>
                       </Pressable>
                       <Pressable
-                        onPress={() => onDeleteTask(goal.id, t.id)}
+                        className={
+                          Platform.OS === "web" ? "sk-btn-hov" : undefined
+                        }
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          onRequestDeleteTask(
+                            goal.id,
+                            t.id,
+                            t.title,
+                            goal.name,
+                          );
+                        }}
                         style={({ pressed }) => ({
                           width: 28,
                           height: 28,
                           borderRadius: 8,
                           backgroundColor: pressed
-                            ? "rgba(239,68,68,0.25)"
+                            ? "rgba(239,68,68,0.22)"
                             : "rgba(239,68,68,0.1)",
+                          borderWidth: 1,
+                          borderColor: "rgba(239,68,68,0.25)",
                           alignItems: "center",
                           justifyContent: "center",
                         })}
                       >
-                        <Text style={{ fontSize: 11, color: "#ef4444" }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#ef4444",
+                            fontWeight: "700",
+                          }}
+                        >
                           ✕
                         </Text>
                       </Pressable>
@@ -5364,19 +5612,35 @@ function GoalViewModal({
                       })()}
                     </View>
                     <Pressable
-                      onPress={() => onDeleteTask(goal.id, t.id)}
+                      className={
+                        Platform.OS === "web" ? "sk-btn-hov" : undefined
+                      }
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        onRequestDeleteTask(goal.id, t.id, t.title, goal.name);
+                      }}
                       style={({ pressed }) => ({
                         width: 28,
                         height: 28,
                         borderRadius: 8,
                         backgroundColor: pressed
-                          ? "rgba(239,68,68,0.2)"
-                          : "rgba(239,68,68,0.08)",
+                          ? "rgba(239,68,68,0.22)"
+                          : "rgba(239,68,68,0.1)",
+                        borderWidth: 1,
+                        borderColor: "rgba(239,68,68,0.25)",
                         alignItems: "center",
                         justifyContent: "center",
                       })}
                     >
-                      <Text style={{ fontSize: 11, color: "#ef4444" }}>✕</Text>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: "#ef4444",
+                          fontWeight: "700",
+                        }}
+                      >
+                        ✕
+                      </Text>
                     </Pressable>
                   </View>
                 ))}
@@ -7172,6 +7436,10 @@ export default function Dashboard() {
     {},
   );
   const [viewGoalId, setViewGoalId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchFadeAnim = useRef(new Animated.Value(0)).current;
+  const searchScaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const [confirmDeleteGoal, setConfirmDeleteGoal] = useState<{
     goalId: string;
@@ -7185,8 +7453,6 @@ export default function Dashboard() {
     taskTitle: string;
     goalName: string;
   } | null>(null);
-
-
 
   /* Animations */
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -7213,6 +7479,17 @@ export default function Dashboard() {
         useNativeDriver: true,
         tension: 80,
         friction: 9,
+      }),
+      Animated.spring(searchScaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 70,
+        friction: 10,
+      }),
+      Animated.timing(searchFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
       }),
     ]).start();
     Animated.loop(
@@ -7296,9 +7573,7 @@ export default function Dashboard() {
         const goal = goals.find((g: any) => g.id === goalId);
         if (!goal) return;
         const updatedTasks = goal.tasks.map((t: any) =>
-          t.id === taskId
-            ? { ...t, title: newTitle.trim(), dueDate }
-            : t,
+          t.id === taskId ? { ...t, title: newTitle.trim(), dueDate } : t,
         );
         await taskCtx.updateGoal(goalId, { tasks: updatedTasks });
       }
@@ -7489,10 +7764,152 @@ export default function Dashboard() {
   );
   const totalTasks = goals.reduce((a: number, g: any) => a + g.tasks.length, 0);
 
-  const skillScore = Math.min(
-    9999,
-    completedTasks * 50 + totalGoals * 120 + streak * 15,
-  );
+  const completedGoals = goals.filter(
+    (g: any) => g.tasks.length > 0 && g.tasks.every((t: any) => t.completed),
+  ).length;
+
+  // Skill score based on actual learning progress (not just streak)
+  // Only award points for real accomplishments
+  const skillScore =
+    totalGoals === 0 && completedTasks === 0
+      ? 0 // No activity yet
+      : Math.min(
+          9999,
+          completedTasks * 50 + // Points for completed tasks
+            completedGoals * 100 + // Bonus for completed goals
+            totalGoals * 30 + // Points for active goals (engagement)
+            (completedTasks > 0 ? streak * 15 : 0), // Streak bonus only if tasks completed
+        );
+
+  // Calculate dynamic stats for stat cards
+  const today = new Date();
+  const todayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  ).getTime();
+  const todayEnd = todayStart + 86400000; // 24 hours in ms
+
+  // Tasks completed today
+  const tasksCompletedToday = goals.reduce((acc: number, goal: any) => {
+    return (
+      acc +
+      goal.tasks.filter((t: any) => {
+        if (!t.completed) return false;
+        const completedAt = t.completedAt || t.updatedAt;
+        if (!completedAt) return false;
+        const completedTime =
+          typeof completedAt === "number"
+            ? completedAt
+            : new Date(completedAt).getTime();
+        return completedTime >= todayStart && completedTime < todayEnd;
+      }).length
+    );
+  }, 0);
+
+  // Goals on track (goals with tasks due soon that are being worked on)
+  const goalsOnTrack = goals.filter((goal: any) => {
+    const pendingTasks = goal.tasks.filter((t: any) => !t.completed);
+    if (pendingTasks.length === 0) return true; // All tasks done
+
+    const overdueTasks = pendingTasks.filter((t: any) => {
+      const deadline = toTaskDeadlineMs(t);
+      return deadline && deadline < Date.now();
+    });
+
+    return overdueTasks.length < pendingTasks.length; // At least some tasks not overdue
+  }).length;
+
+  const allGoalsOnTrack = goalsOnTrack === totalGoals && totalGoals > 0;
+  const someGoalsBehind = goalsOnTrack < totalGoals && goalsOnTrack > 0;
+
+  // Check if streak is personal best (compare with previous streak data if available)
+  // For now, show based on streak length
+  const isStreakPersonalBest = streak >= 3; // Consider 3+ days as notable
+
+  // Skill score trend - calculate if score is increasing
+  const skillScoreTrend =
+    completedTasks > 0 && totalTasks > 0
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
+  // Dynamic arrow indicators and messages for stat cards
+  const getGoalsIndicator = () => {
+    if (totalGoals === 0) {
+      return { icon: "", message: "No goals yet", color: "textSecondary" };
+    }
+    if (allGoalsOnTrack) {
+      return { icon: "↑", message: "All on track", color: "#34d399" };
+    }
+    if (someGoalsBehind) {
+      return {
+        icon: "↓",
+        message: `${goalsOnTrack}/${totalGoals} on track`,
+        color: "#f97316",
+      };
+    }
+    return { icon: "⚠", message: "Needs attention", color: "#ef4444" };
+  };
+
+  const getTasksIndicator = () => {
+    if (totalTasks === 0) {
+      return {
+        icon: "",
+        message: "Add tasks to start",
+        color: "textSecondary",
+      };
+    }
+    if (tasksCompletedToday > 0) {
+      return {
+        icon: "↑",
+        message: `+${tasksCompletedToday} today`,
+        color: "#34d399",
+      };
+    }
+    if (completedTasks > 0) {
+      return {
+        icon: "→",
+        message: `${completedTasks} total done`,
+        color: "#6366f1",
+      };
+    }
+    return { icon: "", message: "Ready to start", color: "textSecondary" };
+  };
+
+  const getStreakIndicator = () => {
+    if (streak === 0) {
+      return { icon: "", message: "Start your streak", color: "textSecondary" };
+    }
+    if (isStreakPersonalBest) {
+      return { icon: "↑", message: "Personal best!", color: "#f97316" };
+    }
+    return { icon: "↑", message: "Keep it up!", color: "#f97316" };
+  };
+
+  const getSkillScoreIndicator = () => {
+    if (skillScore === 0) {
+      return {
+        icon: "",
+        message: "Complete tasks to grow",
+        color: "textSecondary",
+      };
+    }
+    if (skillScoreTrend >= 75) {
+      return { icon: "↑", message: "Excellent progress!", color: "#34d399" };
+    }
+    if (skillScoreTrend >= 50) {
+      return { icon: "↑", message: "Good progress", color: "#6366f1" };
+    }
+    if (skillScoreTrend > 0) {
+      return { icon: "→", message: "Building momentum", color: "#fbbf24" };
+    }
+    return { icon: "", message: "Get started", color: "textSecondary" };
+  };
+
+  const goalsIndicator = getGoalsIndicator();
+  const tasksIndicator = getTasksIndicator();
+  const streakIndicator = getStreakIndicator();
+  const skillScoreIndicator = getSkillScoreIndicator();
 
   const getInsight = () => {
     if (overallPct === 100)
@@ -7731,9 +8148,24 @@ export default function Dashboard() {
   /* ── Goal list shared ── */
   /* Goal cards always expanded — no collapse toggle */
 
+  // Search filtering for goals and tasks
+  const filteredGoals =
+    searchQuery.trim() === ""
+      ? goals
+      : goals.filter((g: any) => {
+          const query = searchQuery.toLowerCase().trim();
+          // Search in goal name
+          const matchesGoal = g.name.toLowerCase().includes(query);
+          // Search in task titles
+          const matchesTask = g.tasks.some((t: any) =>
+            t.title.toLowerCase().includes(query),
+          );
+          return matchesGoal || matchesTask;
+        });
+
   const GoalList = () => (
     <>
-      {goals.length === 0 && (
+      {goals.length === 0 && searchQuery.trim() === "" && (
         <Animated.View
           style={[
             styles.emptyCard,
@@ -7767,9 +8199,42 @@ export default function Dashboard() {
         </Animated.View>
       )}
 
-      {goals.length > 0 && (
+      {searchQuery.trim() !== "" && filteredGoals.length === 0 && (
+        <Animated.View
+          style={[
+            styles.emptyCard,
+            {
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.05)"
+                : "rgba(99,102,241,0.04)",
+              borderColor: cardBorder,
+              ...cardShadow,
+            },
+            { opacity: searchFadeAnim },
+          ]}
+        >
+          <Text style={styles.emptyEmoji}>🔍</Text>
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>
+            No results found
+          </Text>
+          <Text style={styles.emptySub}>
+            No goals or tasks match "{searchQuery}"
+          </Text>
+          <Pressable
+            onPress={() => setSearchQuery("")}
+            style={({ pressed }) => [
+              styles.emptyBtn,
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text style={styles.emptyBtnTx}>Clear Search</Text>
+          </Pressable>
+        </Animated.View>
+      )}
+
+      {filteredGoals.length > 0 && (
         <View style={isTwoCol ? styles.gridWide : styles.gridNarrow}>
-          {[...goals].reverse().map((g: any, index: number) => {
+          {[...filteredGoals].reverse().map((g: any, index: number) => {
             const accent = GOAL_COLORS[index % GOAL_COLORS.length];
             const goalPct = getGoalProgress(g.id);
             const doneCnt = g.tasks.filter((t: any) => t.completed).length;
@@ -7791,11 +8256,19 @@ export default function Dashboard() {
                             : `linear-gradient(145deg,#ffffff 0%,${accent}08 100%)`,
                         } as any)
                       : {}),
-                    borderColor: nextDeadline
-                      ? nextDeadline.borderColor
-                      : cardBorder,
+                    borderColor: dark
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(0,0,0,0.04)",
                     borderLeftColor: accent,
-                    ...cardShadow,
+                    borderLeftWidth: 4,
+                    ...(Platform.OS === "web"
+                      ? ({
+                          boxShadow: dark
+                            ? `0 4px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.04)`
+                            : `0 4px 20px ${accent}14, 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px ${accent}18`,
+                          animationDelay: `${index * 60}ms`,
+                        } as any)
+                      : { elevation: 4 }),
                   },
                   {
                     opacity: fadeAnim,
@@ -7838,17 +8311,19 @@ export default function Dashboard() {
                             onChange={(e: any) =>
                               setGoalNameDraft(e.target.value)
                             }
-  onKeyDown={(e: any) => {
-  if (e.key === "Enter") {
-    taskCtx.updateGoal(g.id, { name: goalNameDraft });
-    setEditingGoalId(null); 
-    showSuccess("Goal updated ✓");
-  }
-  if (e.key === "Escape") {
-    setEditingGoalId(null);
-    setGoalNameDraft("");
-  }
-}}
+                            onKeyDown={(e: any) => {
+                              if (e.key === "Enter") {
+                                taskCtx.updateGoal(g.id, {
+                                  name: goalNameDraft,
+                                });
+                                setEditingGoalId(null);
+                                showSuccess("Goal updated ✓");
+                              }
+                              if (e.key === "Escape") {
+                                setEditingGoalId(null);
+                                setGoalNameDraft("");
+                              }
+                            }}
                             autoFocus
                             onClick={(e: any) => e.stopPropagation()}
                             className="editing-input"
@@ -7907,26 +8382,108 @@ export default function Dashboard() {
                       </Text>
                     )}
 
-                    <View style={styles.goalMeta}>
-                      <Text
-                        style={[styles.goalMetaTx, { color: textSecondary }]}
-                      >
-                        {doneCnt}/{g.tasks.length} tasks
-                      </Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: 6,
+                        marginTop: 4,
+                      }}
+                    >
                       <View
-                        style={[
-                          styles.goalMetaDot,
-                          { backgroundColor: textSecondary },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.goalMetaTx,
-                          { color: accent, fontWeight: "700" as const },
-                        ]}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 20,
+                          backgroundColor: dark
+                            ? "rgba(255,255,255,0.07)"
+                            : "rgba(0,0,0,0.05)",
+                        }}
                       >
-                        {goalPct}%
-                      </Text>
+                        <View
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 3,
+                            backgroundColor:
+                              doneCnt === g.tasks.length && g.tasks.length > 0
+                                ? "#34d399"
+                                : textSecondary,
+                          }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "600",
+                            color: textSecondary,
+                          }}
+                        >
+                          {doneCnt}/{g.tasks.length} tasks
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 20,
+                          backgroundColor: accent + (dark ? "22" : "18"),
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "800",
+                            color: accent,
+                          }}
+                        >
+                          {goalPct === 100
+                            ? "🏆"
+                            : goalPct >= 75
+                              ? "🚀"
+                              : goalPct >= 50
+                                ? "🔥"
+                                : "📈"}{" "}
+                          {goalPct}%
+                        </Text>
+                      </View>
+
+                      {(g as any).createdAt && (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 3,
+                            paddingHorizontal: 7,
+                            paddingVertical: 3,
+                            borderRadius: 20,
+                            backgroundColor: dark
+                              ? "rgba(255,255,255,0.04)"
+                              : "rgba(0,0,0,0.04)",
+                          }}
+                        >
+                          <Text style={{ fontSize: 9 }}>🗓</Text>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "500",
+                              color: textSecondary,
+                            }}
+                          >
+                            {new Date((g as any).createdAt).toLocaleDateString(
+                              "en-US",
+                              { month: "short", day: "numeric" },
+                            )}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     {nextDeadline && (
                       <View
@@ -8009,7 +8566,7 @@ export default function Dashboard() {
                       >
                         <Text style={{ fontSize: 13, opacity: 0.6 }}>✏️</Text>
                       </Pressable>
-                   ) : (
+                    ) : (
                       <Pressable
                         className={
                           Platform.OS === "web" ? "sk-btn-hov" : undefined
@@ -8026,9 +8583,7 @@ export default function Dashboard() {
                           width: 32,
                           height: 32,
                           borderRadius: 8,
-                          backgroundColor: pressed
-                            ? "#34d39930"
-                            : "#34d39914",
+                          backgroundColor: pressed ? "#34d39930" : "#34d39914",
                           borderWidth: 1,
                           borderColor: "#34d39940",
                           alignItems: "center",
@@ -8038,8 +8593,7 @@ export default function Dashboard() {
                                 background: pressed
                                   ? "linear-gradient(135deg,rgba(52,211,153,.28),rgba(20,184,166,.24))"
                                   : "linear-gradient(135deg,rgba(52,211,153,.14),rgba(20,184,166,.12))",
-                                boxShadow:
-                                  "0 6px 14px rgba(52,211,153,.15)",
+                                boxShadow: "0 6px 14px rgba(52,211,153,.15)",
                                 transition: "all .15s",
                                 cursor: "pointer",
                               } as any)
@@ -8102,47 +8656,50 @@ export default function Dashboard() {
                 </View>
 
                 {/* Progress bar */}
-                <View style={{ marginBottom: 10, marginTop: 2 }}>
-                  {Platform.OS === "web" ? (
+                <View style={{ marginBottom: 12, marginTop: 6 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <View
-                      style={
-                        {
-                          height: 7,
-                          backgroundColor: dark
-                            ? "rgba(255,255,255,0.07)"
-                            : "rgba(0,0,0,0.06)",
-                          borderRadius: 99,
-                          overflow: "hidden",
-                          boxShadow: dark
-                            ? "inset 0 0 0 1px rgba(255,255,255,0.04)"
-                            : "inset 0 0 0 1px rgba(15,23,42,0.03)",
-                        } as any
-                      }
+                      style={{
+                        flex: 1,
+                        height: 6,
+                        backgroundColor: dark
+                          ? "rgba(255,255,255,0.07)"
+                          : "rgba(0,0,0,0.06)",
+                        borderRadius: 99,
+                        overflow: "hidden",
+                      }}
                     >
-                      <View
-                        style={
-                          {
-                            height: "100%",
-                            width: `${goalPct}%`,
-                            background: `linear-gradient(90deg,${accent},${accent}cc,${accent}88)`,
-                            backgroundSize: "180% 100%",
-                            borderRadius: 99,
-                            boxShadow: `0 0 14px ${accent}66`,
-                            transition: "width 1s cubic-bezier(.4,0,.2,1)",
-                            animation: "sk-shimmer 3.2s linear infinite",
-                          } as any
-                        }
-                      />
+                      {Platform.OS === "web" ? (
+                        <View
+                          className="sk-progress-bar"
+                          style={
+                            {
+                              height: "100%",
+                              width: `${goalPct}%`,
+                              "--pct": `${goalPct}%`,
+                              background: `linear-gradient(90deg,${accent},${accent}bb)`,
+                              borderRadius: 99,
+                              boxShadow: `0 0 10px ${accent}55`,
+                            } as any
+                          }
+                        />
+                      ) : (
+                        <ShimmerBar pct={goalPct} color={accent} h={6} />
+                      )}
                     </View>
-                  ) : (
-                    <ShimmerBar pct={goalPct} color={accent} h={5} />
-                  )}
+                  </View>
                 </View>
 
                 {/* Tasks */}
                 {/* Tasks — latest first, max 5 shown */}
                 {(() => {
-                  const TASK_LIMIT = 5;
+                  const TASK_LIMIT = 3;
                   const reversed = [...g.tasks].reverse();
                   const isExpanded = !!expandedGoals[g.id];
                   const shown = isExpanded
@@ -8170,11 +8727,14 @@ export default function Dashboard() {
                               backgroundColor: t.completed
                                 ? accent + "0d"
                                 : dark
-                                  ? "rgba(255,255,255,0.05)"
-                                  : "rgba(0,0,0,0.025)",
+                                  ? "rgba(255,255,255,0.04)"
+                                  : "rgba(255,255,255,0.85)",
+
                               borderColor: t.completed
-                                ? accent + "28"
-                                : cardBorder,
+                                ? accent + "30"
+                                : dark
+                                  ? "rgba(255,255,255,0.06)"
+                                  : "rgba(0,0,0,0.05)",
                               borderLeftColor: toTaskDeadlineMs(t)
                                 ? getTaskDeadlineMeta(t, dark)?.color
                                 : t.completed
@@ -8270,7 +8830,8 @@ export default function Dashboard() {
                                             taskDeadlineDraft?.getTime() ??
                                               null,
                                           );
-                                        if (e.key === "Escape") cancelEditTask();
+                                        if (e.key === "Escape")
+                                          cancelEditTask();
                                       }}
                                       onClick={(e: any) => e.stopPropagation()}
                                       autoFocus
@@ -8372,8 +8933,7 @@ export default function Dashboard() {
                                               ? "rgba(239,68,68,0.18)"
                                               : "rgba(239,68,68,0.1)",
                                             borderWidth: 1,
-                                            borderColor:
-                                              "rgba(239,68,68,0.22)",
+                                            borderColor: "rgba(239,68,68,0.22)",
                                           })}
                                         >
                                           <Text
@@ -8778,43 +9338,31 @@ export default function Dashboard() {
                             }))
                           }
                           style={({ pressed }) => ({
-                            marginTop: 4,
-                            marginBottom: 4,
-                            paddingVertical: 9,
-                            borderRadius: 10,
+                            marginTop: 6,
+                            paddingVertical: 10,
+                            borderRadius: 12,
                             alignItems: "center",
                             flexDirection: "row",
                             justifyContent: "center",
-                            gap: 6,
+                            gap: 8,
+                            borderWidth: 1.5,
+                            borderStyle: "dashed",
+                            borderColor: accent + "40",
                             backgroundColor: pressed
-                              ? dark
-                                ? "rgba(99,102,241,0.14)"
-                                : "rgba(99,102,241,0.08)"
-                              : dark
-                                ? "rgba(99,102,241,0.07)"
-                                : "rgba(99,102,241,0.05)",
-                            borderWidth: 1,
-                            borderColor: dark
-                              ? "rgba(99,102,241,0.2)"
-                              : "rgba(99,102,241,0.14)",
-                            ...(Platform.OS === "web"
-                              ? ({
-                                  cursor: "pointer",
-                                  transition: "background .14s",
-                                } as any)
-                              : {}),
+                              ? accent + "1a"
+                              : "transparent",
                           })}
                         >
                           <Text
                             style={{
                               fontSize: 13,
                               fontWeight: "700",
-                              color: "#6366f1",
+                              color: accent,
                             }}
                           >
                             {isExpanded
-                              ? "⌃  Show fewer tasks"
-                              : `⌄  Show ${hiddenCount} more task${hiddenCount > 1 ? "s" : ""}`}
+                              ? "Show fewer"
+                              : `Show ${hiddenCount} more`}
                           </Text>
                         </Pressable>
                       )}
@@ -8840,7 +9388,7 @@ export default function Dashboard() {
                   ]}
                 >
                   <Text style={[styles.addTaskTx, { color: accent }]}>
-                    👁  View Details
+                    👁 View Details
                   </Text>
                 </Pressable>
 
@@ -9088,11 +9636,23 @@ export default function Dashboard() {
                   style={{ transform: [{ scaleX: 0.78 }, { scaleY: 0.78 }] }}
                 />
               </View>
-             <Pressable
-  onPress={() => router.push("/profile")}
-  style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#6366f1", alignItems: "center", justifyContent: "center" }}>
-  <Text style={{ color: "white", fontWeight: "800", fontSize: 14 }}>{initials}</Text>
-</Pressable>
+              <Pressable
+                onPress={() => router.push("/profile")}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "#6366f1",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{ color: "white", fontWeight: "800", fontSize: 14 }}
+                >
+                  {initials}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={handleLogout}
                 style={[
@@ -9157,8 +9717,6 @@ export default function Dashboard() {
           </ScrollView>
         </View>
       ) : (
-
-        
         /* ══ MOBILE / NARROW LAYOUT ══ */
         <View style={[styles.screen, { backgroundColor: bg }]}>
           {/* ── Mobile Top Bar ── */}
@@ -9234,21 +9792,31 @@ export default function Dashboard() {
                 thumbColor="#fff"
                 style={{ transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] }}
               />
-             <Pressable
-  onPress={() => setShowMobileDrop((s) => !s)}
-  style={({ pressed }) => ({
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: "center", justifyContent: "center",
-    opacity: pressed ? 0.8 : 1,
-    ...(Platform.OS === "web"
-      ? ({ background: "linear-gradient(135deg,#f97316,#ef4444)",
-           boxShadow: showMobileDrop ? "0 0 0 3px #6366f1" : "0 3px 14px rgba(239,68,68,0.35)",
-         } as any)
-      : { backgroundColor: "#6366f1" }),
-  })}
->
-  <Text style={{ color: "white", fontWeight: "800", fontSize: 14 }}>{initials}</Text>
-</Pressable>
+              <Pressable
+                onPress={() => setShowMobileDrop((s) => !s)}
+                style={({ pressed }) => ({
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.8 : 1,
+                  ...(Platform.OS === "web"
+                    ? ({
+                        background: "linear-gradient(135deg,#f97316,#ef4444)",
+                        boxShadow: showMobileDrop
+                          ? "0 0 0 3px #6366f1"
+                          : "0 3px 14px rgba(239,68,68,0.35)",
+                      } as any)
+                    : { backgroundColor: "#6366f1" }),
+                })}
+              >
+                <Text
+                  style={{ color: "white", fontWeight: "800", fontSize: 14 }}
+                >
+                  {initials}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={handleLogout}
                 style={{
@@ -9457,15 +10025,25 @@ export default function Dashboard() {
                     icon: "🎯",
                     val: goals.length,
                     lbl: "Active Goals",
-                    sub: "All on track",
+                    sub: goalsIndicator.message,
+                    subIcon: goalsIndicator.icon,
+                    subColor:
+                      goalsIndicator.color === "textSecondary"
+                        ? textSecondary
+                        : goalsIndicator.color,
                     color: "#6366f1",
                     bg2: "rgba(99,102,241,0.08)",
                   },
                   {
                     icon: "✅",
                     val: completedTasks,
-                    lbl: "Tasks Done",
-                    sub: "+2 today",
+                    lbl: "Tasks Completed",
+                    sub: tasksIndicator.message,
+                    subIcon: tasksIndicator.icon,
+                    subColor:
+                      tasksIndicator.color === "textSecondary"
+                        ? textSecondary
+                        : tasksIndicator.color,
                     color: "#34d399",
                     bg2: "rgba(52,211,153,0.08)",
                   },
@@ -9473,7 +10051,12 @@ export default function Dashboard() {
                     icon: "🔥",
                     val: streak,
                     lbl: "Day Streak",
-                    sub: "Personal best",
+                    sub: streakIndicator.message,
+                    subIcon: streakIndicator.icon,
+                    subColor:
+                      streakIndicator.color === "textSecondary"
+                        ? textSecondary
+                        : streakIndicator.color,
                     color: "#f97316",
                     bg2: "rgba(249,115,22,0.08)",
                   },
@@ -9481,7 +10064,12 @@ export default function Dashboard() {
                     icon: "⭐",
                     val: skillScore,
                     lbl: "Skill Score",
-                    sub: "Based on activity",
+                    sub: skillScoreIndicator.message,
+                    subIcon: skillScoreIndicator.icon,
+                    subColor:
+                      skillScoreIndicator.color === "textSecondary"
+                        ? textSecondary
+                        : skillScoreIndicator.color,
                     color: "#fbbf24",
                     bg2: "rgba(251,191,36,0.08)",
                   },
@@ -9540,25 +10128,175 @@ export default function Dashboard() {
                       style={{
                         fontSize: 10,
                         fontWeight: "700",
-                        color: s.color,
+                        color: s.subColor,
                       }}
                     >
-                      ↑ {s.sub}
+                      {s.subIcon ? `${s.subIcon} ` : ""}
+                      {s.sub}
                     </Text>
                   </View>
                 ))}
               </View>
             </View>
 
-        {/* Activity Heatmap — mobile */}
-<View style={{ paddingHorizontal: 14, marginBottom: 18 }}>
-  <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-    <HeatMap activityLog={activityLog} dark={dark} mobile />
-  </Animated.View>
-</View>
+            {/* Activity Heatmap — mobile */}
+            <View style={{ paddingHorizontal: 14, marginBottom: 18 }}>
+              <Animated.View
+                style={{
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }}
+              >
+                <HeatMap activityLog={activityLog} dark={dark} mobile />
+              </Animated.View>
+            </View>
 
             {/* Goals */}
             <View style={{ paddingHorizontal: 14 }}>
+              {/* Search Bar */}
+              <Animated.View
+                style={{
+                  marginBottom: 16,
+                  opacity: searchFadeAnim,
+                  transform: [{ scale: searchScaleAnim }],
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: dark
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(99,102,241,0.04)",
+                    borderRadius: 16,
+                    borderWidth: isSearchFocused ? 2 : 1.5,
+                    borderColor: isSearchFocused
+                      ? "#6366f1"
+                      : dark
+                        ? "rgba(255,255,255,0.1)"
+                        : "rgba(99,102,241,0.15)",
+                    paddingHorizontal: 16,
+                    paddingVertical: Platform.OS === "web" ? 14 : 12,
+                    ...(Platform.OS === "web"
+                      ? ({
+                          boxShadow: isSearchFocused
+                            ? "0 0 0 4px rgba(99,102,241,0.1), 0 8px 24px rgba(0,0,0,0.08)"
+                            : "0 4px 12px rgba(0,0,0,0.04)",
+                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        } as any)
+                      : {}),
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      marginRight: 12,
+                      opacity: 0.6,
+                    }}
+                  >
+                    🔍
+                  </Text>
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    placeholder="Search goals & tasks..."
+                    placeholderTextColor={
+                      dark ? "rgba(238,242,255,0.35)" : "rgba(15,23,42,0.35)"
+                    }
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: "500",
+                      color: textPrimary,
+                      fontFamily:
+                        Platform.OS === "web"
+                          ? "Plus Jakarta Sans, sans-serif"
+                          : undefined,
+                    }}
+                    clearButtonMode="while-editing"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchQuery.trim() !== "" && (
+                    <Pressable
+                      onPress={() => setSearchQuery("")}
+                      style={({ pressed }) => ({
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        backgroundColor: pressed
+                          ? dark
+                            ? "rgba(239,68,68,0.2)"
+                            : "rgba(239,68,68,0.1)"
+                          : "transparent",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 8,
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: "#ef4444",
+                          fontWeight: "700",
+                        }}
+                      >
+                        ✕
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                {searchQuery.trim() !== "" && (
+                  <View
+                    style={{
+                      marginTop: 8,
+                      paddingHorizontal: 4,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        color: dark
+                          ? "rgba(238,242,255,0.5)"
+                          : "rgba(15,23,42,0.5)",
+                      }}
+                    >
+                      {filteredGoals.length} goal
+                      {filteredGoals.length !== 1 ? "s" : ""} found
+                    </Text>
+                    <Pressable
+                      onPress={() => setSearchQuery("")}
+                      style={({ pressed }) => ({
+                        paddingVertical: 4,
+                        paddingHorizontal: 8,
+                        borderRadius: 6,
+                        backgroundColor: pressed
+                          ? dark
+                            ? "rgba(99,102,241,0.15)"
+                            : "rgba(99,102,241,0.08)"
+                          : "transparent",
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: "#6366f1",
+                        }}
+                      >
+                        Clear
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </Animated.View>
+
               <Animated.View
                 style={[
                   styles.goalsHdr,
@@ -9589,7 +10327,7 @@ export default function Dashboard() {
             </View>
           </ScrollView>
 
-       <View
+          <View
             style={{
               flexDirection: "row",
               paddingTop: 8,
@@ -9678,40 +10416,48 @@ export default function Dashboard() {
           </View>
 
           {/* ProfileDrop overlay — rendered at root to avoid z-index clipping */}
-{showMobileDrop && (
-  <View
-    style={[StyleSheet.absoluteFill, { zIndex: 9999 }] as any}
-    pointerEvents="box-none"
-  >
-    <Pressable
-      style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.3)" }]}
-      onPress={() => setShowMobileDrop(false)}
-    />
-    <View
-      style={{
-        position: "absolute",
-        top: Platform.OS === "ios" ? 100 : 72,
-        right: 60,
-        zIndex: 10000,
-      } as any}
-    >
-      <ProfileDrop
-        dark={dark}
-        displayName={displayName}
-        email={userEmail}
-        overallPct={overallPct}
-        streak={streak}
-        userRole={userRole}
-        skillScore={skillScore}
-        onClose={() => setShowMobileDrop(false)}
-        onToggleDark={async () => { setDarkMode(!dark); await saveTheme(!dark); }}
-        onShowV2={() => showComingSoon()}
-        router={router}
-        onLogoutReset={() => {}}
-      />
-    </View>
-  </View>
-)}
+          {showMobileDrop && (
+            <View
+              style={[StyleSheet.absoluteFill, { zIndex: 9999 }] as any}
+              pointerEvents="box-none"
+            >
+              <Pressable
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: "rgba(0,0,0,0.3)" },
+                ]}
+                onPress={() => setShowMobileDrop(false)}
+              />
+              <View
+                style={
+                  {
+                    position: "absolute",
+                    top: Platform.OS === "ios" ? 100 : 72,
+                    right: 60,
+                    zIndex: 10000,
+                  } as any
+                }
+              >
+                <ProfileDrop
+                  dark={dark}
+                  displayName={displayName}
+                  email={userEmail}
+                  overallPct={overallPct}
+                  streak={streak}
+                  userRole={userRole}
+                  skillScore={skillScore}
+                  onClose={() => setShowMobileDrop(false)}
+                  onToggleDark={async () => {
+                    setDarkMode(!dark);
+                    await saveTheme(!dark);
+                  }}
+                  onShowV2={() => showComingSoon()}
+                  router={router}
+                  onLogoutReset={() => {}}
+                />
+              </View>
+            </View>
+          )}
         </View>
       )}
 
@@ -9739,9 +10485,18 @@ export default function Dashboard() {
               accentColor={GOAL_COLORS[vIdx % GOAL_COLORS.length]}
               goalIndex={vIdx}
               onClose={() => setViewGoalId(null)}
-              onDeleteTask={(gId: string, tId: string) => {
-                taskCtx.deleteTask(gId, tId);
-                showDelete("Task removed");
+              onRequestDeleteTask={(
+                gId: string,
+                tId: string,
+                taskTitle: string,
+                goalName: string,
+              ) => {
+                setConfirmDeleteTask({
+                  goalId: gId,
+                  taskId: tId,
+                  taskTitle,
+                  goalName,
+                });
               }}
               onEditTask={(goalId, taskId, title) =>
                 taskCtx.updateTask(goalId, taskId, title)
@@ -9844,42 +10599,49 @@ export default function Dashboard() {
         />
       )}
 
-
       {/* ProfileDrop overlay — mobile root level to avoid z-index clipping */}
-{showMobileDrop && Platform.OS !== "web" && (
-  <View
-    style={[StyleSheet.absoluteFill, { zIndex: 9999 }] as any}
-    pointerEvents="box-none"
-  >
-    <Pressable
-      style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.3)" }]}
-      onPress={() => setShowMobileDrop(false)}
-    />
-    <View
-      style={{
-        position: "absolute",
-        top: Platform.OS === "ios" ? 100 : 72,
-        right: 16,
-        zIndex: 10000,
-      } as any}
-    >
-      <ProfileDrop
-        dark={dark}
-        displayName={displayName}
-        email={userEmail}
-        overallPct={overallPct}
-        streak={streak}
-        userRole={userRole}
-        skillScore={skillScore}
-        onClose={() => setShowMobileDrop(false)}
-        onToggleDark={async () => { setDarkMode(!dark); await saveTheme(!dark); }}
-        onShowV2={() => showComingSoon()}
-        router={router}
-        onLogoutReset={() => {}}
-      />
-    </View>
-  </View>
-)}
+      {showMobileDrop && Platform.OS !== "web" && (
+        <View
+          style={[StyleSheet.absoluteFill, { zIndex: 9999 }] as any}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: "rgba(0,0,0,0.3)" },
+            ]}
+            onPress={() => setShowMobileDrop(false)}
+          />
+          <View
+            style={
+              {
+                position: "absolute",
+                top: Platform.OS === "ios" ? 100 : 72,
+                right: 16,
+                zIndex: 10000,
+              } as any
+            }
+          >
+            <ProfileDrop
+              dark={dark}
+              displayName={displayName}
+              email={userEmail}
+              overallPct={overallPct}
+              streak={streak}
+              userRole={userRole}
+              skillScore={skillScore}
+              onClose={() => setShowMobileDrop(false)}
+              onToggleDark={async () => {
+                setDarkMode(!dark);
+                await saveTheme(!dark);
+              }}
+              onShowV2={() => showComingSoon()}
+              router={router}
+              onLogoutReset={() => {}}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
