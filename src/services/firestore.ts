@@ -2,16 +2,13 @@ import {
   collection,
   addDoc,
   getDocs,
-  query,
-  where,
   deleteDoc,
   doc,
-  updateDoc
 } from "firebase/firestore";
 
 import { db } from "./firebase";
 
-/* Add Goal */
+// Add Goal
 export const addGoal = async (userId: string, title: string) => {
   return await addDoc(collection(db, "users", userId, "goals"), {
     title,
@@ -19,18 +16,21 @@ export const addGoal = async (userId: string, title: string) => {
   });
 };
 
-/* Get Goals */
+// Get Goals
 export const getGoals = async (userId: string) => {
-  const q = query(collection(db, "users", userId, "goals"));
-  const snapshot = await getDocs(q);
+  const snapshot = await getDocs(
+    collection(db, "users", userId, "goals")
+  );
 
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
+  return snapshot.docs.map((document) => ({
+    id: document.id,
+    ...document.data(),
   }));
 };
 
-/* Delete Goal */
+// Delete Goal
 export const deleteGoal = async (userId: string, goalId: string) => {
-  await deleteDoc(doc(db, "users", userId, "goals", goalId));
+  await deleteDoc(
+    doc(db, "users", userId, "goals", goalId)
+  );
 };
