@@ -911,6 +911,7 @@ function ProfileDrop({
   router,
   onLogoutReset,
   skillScore,
+  compact = false,
 }: any) {
   const t = {
     bg: dark ? "#111827" : "#ffffff",
@@ -1017,15 +1018,15 @@ function ProfileDrop({
     Platform.OS === "web"
       ? {
           position: "absolute" as any,
-          top: "calc(100% + 10px)",
+          top: compact ? "calc(100% + 8px)" : "calc(100% + 10px)",
           right: 0,
-          width: 280,
-          maxWidth: "calc(100vw - 24px)",
+          width: compact ? 236 : 280,
+          maxWidth: "calc(100vw - 20px)",
           zIndex: 9999,
           background: t.bg,
           border: `1px solid ${t.bdr}`,
-          borderRadius: 22,
-          padding: 8,
+          borderRadius: compact ? 16 : 22,
+          padding: compact ? 6 : 8,
           boxShadow: t.sh,
           animation: "sk-fadeUp .2s ease both",
         }
@@ -1040,11 +1041,13 @@ function ProfileDrop({
           : {
               position: "absolute",
               right: 0,
-              top: 50,
-              width: 280,
+              top: compact ? 44 : 50,
+              width: compact
+                ? Math.min(236, Dimensions.get("window").width - 20)
+                : Math.min(280, Dimensions.get("window").width - 24),
               backgroundColor: dark ? "#111827" : "#fff",
-              borderRadius: 22,
-              padding: 8,
+              borderRadius: compact ? 16 : 22,
+              padding: compact ? 6 : 8,
               zIndex: 9999,
             }
       }
@@ -1052,46 +1055,55 @@ function ProfileDrop({
       {/* User card */}
       <View
         style={{
-          padding: 14,
-          borderRadius: 16,
+          padding: compact ? 9 : 14,
+          borderRadius: compact ? 12 : 16,
           backgroundColor: "rgba(99,102,241,0.07)",
           borderWidth: 1,
           borderColor: "rgba(99,102,241,0.14)",
-          marginBottom: 6,
+          marginBottom: compact ? 4 : 6,
         }}
       >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
-            marginBottom: 12,
+            gap: compact ? 9 : 12,
+            marginBottom: compact ? 8 : 12,
           }}
         >
           <View
             style={{
-              width: 50,
-              height: 50,
-              borderRadius: 16,
+              width: compact ? 36 : 50,
+              height: compact ? 36 : 50,
+              borderRadius: compact ? 11 : 16,
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
               ...(Platform.OS === "web"
                 ? ({
                     background: "linear-gradient(135deg,#f97316,#ef4444)",
-                    boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
+                    boxShadow: compact
+                      ? "0 3px 10px rgba(239,68,68,0.3)"
+                      : "0 4px 16px rgba(239,68,68,0.35)",
                   } as any)
                 : { backgroundColor: "#f97316" }),
             }}
           >
-            <Text style={{ color: "white", fontWeight: "900", fontSize: 20 }}>
+            <Text
+              style={{
+                color: "white",
+                fontWeight: "900",
+                fontSize: compact ? 15 : 20,
+              }}
+            >
               {initials}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text
+              numberOfLines={1}
               style={{
-                fontSize: 16,
+                fontSize: compact ? 13.5 : 16,
                 fontWeight: "800",
                 color: t.text,
                 ...(Platform.OS === "web"
@@ -1101,21 +1113,24 @@ function ProfileDrop({
             >
               {displayName}
             </Text>
-            <Text style={{ fontSize: 12, color: t.sub, marginTop: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: compact ? 10.5 : 12, color: t.sub, marginTop: 1 }}
+            >
               {email || "richard@intern.dev"}
             </Text>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 5,
-                marginTop: 4,
+                gap: 4,
+                marginTop: compact ? 2 : 4,
               }}
             >
               <View
                 style={{
-                  width: 6,
-                  height: 6,
+                  width: compact ? 5 : 6,
+                  height: compact ? 5 : 6,
                   borderRadius: 3,
                   backgroundColor: "#34d399",
                   ...(Platform.OS === "web"
@@ -1124,7 +1139,11 @@ function ProfileDrop({
                 }}
               />
               <Text
-                style={{ fontSize: 11, color: "#34d399", fontWeight: "700" }}
+                style={{
+                  fontSize: compact ? 9.5 : 11,
+                  color: "#34d399",
+                  fontWeight: "700",
+                }}
               >
                 Active learner
               </Text>
@@ -1132,7 +1151,7 @@ function ProfileDrop({
           </View>
         </View>
         {/* Stats row */}
-        <View style={{ flexDirection: "row", gap: 6 }}>
+        <View style={{ flexDirection: "row", gap: compact ? 4 : 6 }}>
           {[
             { v: `${streak}🔥`, l: "Streak" },
             { v: `${overallPct}%`, l: "Progress" },
@@ -1145,8 +1164,9 @@ function ProfileDrop({
                 backgroundColor: dark
                   ? "rgba(255,255,255,0.06)"
                   : "rgba(0,0,0,0.04)",
-                borderRadius: 10,
-                padding: 8,
+                borderRadius: compact ? 7 : 10,
+                paddingVertical: compact ? 4 : 8,
+                paddingHorizontal: compact ? 2 : 6,
                 alignItems: "center",
                 borderWidth: 1,
                 borderColor: dark
@@ -1156,7 +1176,7 @@ function ProfileDrop({
             >
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: compact ? 11 : 12,
                   fontWeight: "800",
                   color: t.text,
                   ...(Platform.OS === "web"
@@ -1168,7 +1188,7 @@ function ProfileDrop({
               </Text>
               <Text
                 style={{
-                  fontSize: 10,
+                  fontSize: compact ? 8.5 : 10,
                   color: t.sub,
                   marginTop: 1,
                   fontWeight: "500",
@@ -1190,10 +1210,10 @@ function ProfileDrop({
             {
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
-              padding: 10,
-              paddingHorizontal: 12,
-              borderRadius: 12,
+              gap: compact ? 8 : 10,
+              paddingVertical: compact ? 6.5 : 10,
+              paddingHorizontal: compact ? 9 : 12,
+              borderRadius: compact ? 8 : 12,
               backgroundColor: pressed
                 ? item.danger
                   ? "rgba(239,68,68,0.09)"
@@ -1203,20 +1223,27 @@ function ProfileDrop({
                 : "transparent",
               borderTopWidth: i === items.length - 1 ? 1 : 0,
               borderTopColor: t.bdr,
-              marginTop: i === items.length - 1 ? 4 : 0,
+              marginTop: i === items.length - 1 ? (compact ? 2 : 4) : 0,
             },
           ]}
         >
-          <Text style={{ fontSize: 16, width: 24, textAlign: "center" }}>
+          <Text
+            style={{
+              fontSize: compact ? 14 : 16,
+              width: compact ? 18 : 24,
+              textAlign: "center",
+            }}
+          >
             {item.icon}
           </Text>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
             >
               <Text
+                numberOfLines={1}
                 style={{
-                  fontSize: 13,
+                  fontSize: compact ? 12 : 13,
                   fontWeight: "700",
                   color: item.danger ? "#ef4444" : item.v2 ? t.sub : t.text,
                 }}
@@ -1228,43 +1255,55 @@ function ProfileDrop({
                   style={{
                     backgroundColor: "rgba(99,102,241,0.12)",
                     borderRadius: 99,
-                    paddingHorizontal: 5,
+                    paddingHorizontal: compact ? 4 : 5,
                     paddingVertical: 1,
                   }}
                 >
                   <Text
-                    style={{ fontSize: 9, fontWeight: "800", color: "#6366f1" }}
+                    style={{
+                      fontSize: compact ? 8 : 9,
+                      fontWeight: "800",
+                      color: "#6366f1",
+                    }}
                   >
                     v2
                   </Text>
                 </View>
               )}
             </View>
-            <Text
-              style={{
-                fontSize: 11,
-                color: item.v2
-                  ? "#a78bfa"
-                  : item.danger
-                    ? "rgba(239,68,68,0.5)"
-                    : t.sub,
-                marginTop: 1,
-                fontWeight: "500",
-              }}
-            >
-              {item.sub}
-            </Text>
+            {!compact && (
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: item.v2
+                    ? "#a78bfa"
+                    : item.danger
+                      ? "rgba(239,68,68,0.5)"
+                      : t.sub,
+                  marginTop: 1,
+                  fontWeight: "500",
+                }}
+              >
+                {item.sub}
+              </Text>
+            )}
           </View>
           {item.badge && (
             <View
               style={{
                 backgroundColor: "#ef4444",
                 borderRadius: 20,
-                paddingHorizontal: 7,
-                paddingVertical: 2,
+                paddingHorizontal: compact ? 5 : 7,
+                paddingVertical: 1,
               }}
             >
-              <Text style={{ fontSize: 10, fontWeight: "800", color: "white" }}>
+              <Text
+                style={{
+                  fontSize: compact ? 9 : 10,
+                  fontWeight: "800",
+                  color: "white",
+                }}
+              >
                 {item.badge}
               </Text>
             </View>
@@ -1272,8 +1311,8 @@ function ProfileDrop({
           {item.toggle && (
             <View
               style={{
-                width: 36,
-                height: 20,
+                width: compact ? 28 : 36,
+                height: compact ? 16 : 20,
                 borderRadius: 99,
                 backgroundColor: dark ? "#6366f1" : "#cbd5e1",
                 position: "relative",
@@ -1282,11 +1321,11 @@ function ProfileDrop({
               <View
                 style={{
                   position: "absolute",
-                  top: 3,
-                  left: dark ? 17 : 3,
-                  width: 14,
-                  height: 14,
-                  borderRadius: 7,
+                  top: 2,
+                  left: dark ? (compact ? 14 : 17) : 2,
+                  width: compact ? 12 : 14,
+                  height: compact ? 12 : 14,
+                  borderRadius: 6,
                   backgroundColor: "white",
                   ...(Platform.OS === "web"
                     ? ({
@@ -1299,7 +1338,9 @@ function ProfileDrop({
             </View>
           )}
           {!item.toggle && !item.badge && (
-            <Text style={{ fontSize: 14, color: t.muted }}>›</Text>
+            <Text style={{ fontSize: compact ? 12 : 14, color: t.muted }}>
+              ›
+            </Text>
           )}
         </Pressable>
       ))}
@@ -10631,6 +10672,7 @@ export default function Dashboard() {
                     onShowV2={showComingSoon}
                     router={router}
                     onLogoutReset={handleLogout}
+                    compact={true}
                   />
                 )}
               </View>
@@ -11039,6 +11081,7 @@ export default function Dashboard() {
                     onShowV2={showComingSoon}
                     router={router}
                     onLogoutReset={handleLogout}
+                    compact={true}
                   />
                 )}
               </View>
