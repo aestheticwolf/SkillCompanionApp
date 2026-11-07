@@ -2152,9 +2152,13 @@ function HeroBanner({
           style={[
             StyleSheet.absoluteFill,
             {
-              borderRadius: 18,
-              background:
-                "linear-gradient(135deg,#3730a3 0%,#6d28d9 55%,#9333ea 100%)",
+              borderRadius: 14,
+              background: dark
+                ? "linear-gradient(135deg,#0a0f1d 0%,#131a30 50%,#1b2444 100%)"
+                : "linear-gradient(135deg,#1e1b4b 0%,#282464 50%,#3730a3 100%)",
+              border: dark
+                ? "1px solid rgba(255,255,255,0.08)"
+                : "1px solid rgba(255,255,255,0.14)",
             } as any,
           ]}
         />
@@ -2543,6 +2547,52 @@ function HeatMap({
   ).length;
   const currentStreak = streak || 0;
 
+  // Current week (Monday to Sunday) calculations for the Weekly Focus card
+  const currentWeekInfo = useMemo(() => {
+    const now = new Date();
+    // Monday as start of week: 0 for Mon, ..., 6 for Sun
+    const dayOfWeek = (now.getDay() + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek);
+
+    const days: Array<{
+      label: string;
+      key: string;
+      count: number;
+      isToday: boolean;
+      dateFormatted: string;
+    }> = [];
+    const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
+    let weekTasks = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const key = d.toLocaleDateString("en-CA");
+      const count = Number(activityLog?.[key] || 0);
+      weekTasks += count;
+      const isToday = key === now.toLocaleDateString("en-CA");
+      days.push({
+        label: dayLabels[i],
+        key,
+        count,
+        isToday,
+        dateFormatted: d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+      });
+    }
+
+    const weeklyGoalTarget = 5;
+    const weeklyPct = Math.min(
+      100,
+      Math.round((weekTasks / weeklyGoalTarget) * 100),
+    );
+
+    return { days, weekTasks, weeklyGoalTarget, weeklyPct };
+  }, [activityLog]);
+
   const renderColumn = (w: number) => (
     <View
       key={w}
@@ -2603,8 +2653,8 @@ function HeatMap({
     <View
       style={{
         flexDirection: isDesktop ? "row" : "column",
-        justifyContent: isDesktop ? "space-between" : "flex-start",
-        gap: 14,
+        justifyContent: "flex-start",
+        gap: 12,
         alignItems: isDesktop ? "stretch" : "flex-start",
         marginBottom: mobile ? 10 : 16,
         width: "100%",
@@ -2949,7 +2999,230 @@ function HeatMap({
         </View>
       </View>
 
-      {/* ── CARD 2 (RIGHT): Activity Overview (Complete Right) ── */}
+      {/* ── CARD 2 (MIDDLE): Weekly Focus & Activity Pulse (Fills Blank Space Seamlessly) ── */}
+      <View
+        style={{
+          flex: isDesktop ? 1 : undefined,
+          width: isDesktop ? undefined : "100%",
+          minWidth: isDesktop ? 220 : undefined,
+          borderRadius: 14,
+          padding: CONTAINER_PADDING,
+          borderWidth: 1,
+          borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          backgroundColor: dark ? "#0d1424" : "#ffffff",
+          justifyContent: "space-between",
+          gap: 8,
+          marginTop: isDesktop ? 0 : 10,
+          ...(Platform.OS === "web" && !mobile
+            ? ({
+                animation: "sk-fadeUp .4s ease both",
+                boxShadow: dark
+                  ? "0 2px 14px rgba(0,0,0,0.35)"
+                  : "0 2px 10px rgba(0,0,0,0.04)",
+              } as any)
+            : { elevation: 2 }),
+        }}
+      >
+        {/* Header */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+            <View
+              style={{
+                width: mobile ? 24 : 26,
+                height: mobile ? 24 : 26,
+                borderRadius: 7,
+                backgroundColor: "rgba(99,102,241,0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: mobile ? 12 : 13 }}>⚡</Text>
+            </View>
+            <View>
+              <Text
+                style={{
+                  fontSize: HEADER_FONT,
+                  fontWeight: "800",
+                  color: dark ? "#ffffff" : "#0f172a",
+                  ...(Platform.OS === "web" && !mobile
+                    ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                    : {}),
+                }}
+              >
+                Weekly Focus
+              </Text>
+              <Text
+                style={{
+                  fontSize: SUB_FONT,
+                  fontWeight: "500",
+                  color: dark
+                    ? "rgba(255,255,255,0.55)"
+                    : "rgba(15,23,42,0.45)",
+                  marginTop: 0.5,
+                }}
+              >
+                7-Day Activity Pulse
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={{
+              backgroundColor:
+                currentWeekInfo.weekTasks > 0
+                  ? "rgba(52,211,153,0.14)"
+                  : "rgba(99,102,241,0.10)",
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: 6,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 9.5,
+                fontWeight: "700",
+                color: currentWeekInfo.weekTasks > 0 ? "#10b981" : "#6366f1",
+              }}
+            >
+              {currentWeekInfo.weekTasks > 0
+                ? `${currentWeekInfo.weekTasks} done`
+                : "Active"}
+            </Text>
+          </View>
+        </View>
+
+        {/* 7-Day Pulse Bars */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            paddingTop: 4,
+            paddingBottom: 2,
+            gap: 6,
+          }}
+        >
+          {currentWeekInfo.days.map((d, idx) => {
+            const barHeight = Math.max(5, Math.min(30, d.count * 9 + 5));
+            const barBg = d.isToday
+              ? "#6366f1"
+              : d.count > 0
+                ? dark
+                  ? "#818cf8"
+                  : "#6366f1"
+                : dark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)";
+            return (
+              <View
+                key={idx}
+                style={{ flex: 1, alignItems: "center", gap: 4 }}
+                {...(Platform.OS === "web"
+                  ? ({
+                      title: `${d.dateFormatted}: ${d.count} task${d.count === 1 ? "" : "s"} completed`,
+                    } as any)
+                  : {})}
+              >
+                <View
+                  style={{
+                    height: 32,
+                    width: "100%",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: "80%",
+                      maxWidth: 16,
+                      height: barHeight,
+                      borderRadius: 3,
+                      backgroundColor: barBg,
+                      ...(d.isToday && Platform.OS === "web"
+                        ? {
+                            boxShadow: "0 0 6px rgba(99,102,241,0.5)",
+                          }
+                        : {}),
+                    }}
+                  />
+                </View>
+                <Text
+                  style={{
+                    fontSize: 8.5,
+                    fontWeight: d.isToday ? "800" : "600",
+                    color: d.isToday
+                      ? "#6366f1"
+                      : dark
+                        ? "rgba(255,255,255,0.55)"
+                        : "rgba(15,23,42,0.45)",
+                  }}
+                >
+                  {d.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Weekly Goal Progress Bar & Footer */}
+        <View style={{ gap: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 9,
+                fontWeight: "600",
+                color: dark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.45)",
+              }}
+            >
+              Goal Pace ({currentWeekInfo.weekTasks}/{currentWeekInfo.weeklyGoalTarget})
+            </Text>
+            <Text
+              style={{
+                fontSize: 9,
+                fontWeight: "700",
+                color: dark ? "#ffffff" : "#0f172a",
+              }}
+            >
+              {currentWeekInfo.weeklyPct}%
+            </Text>
+          </View>
+          <View
+            style={{
+              height: 4,
+              width: "100%",
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.06)",
+              borderRadius: 2,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                height: "100%",
+                width: `${currentWeekInfo.weeklyPct}%` as any,
+                borderRadius: 2,
+                backgroundColor:
+                  currentWeekInfo.weeklyPct >= 100 ? "#10b981" : "#6366f1",
+              }}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* ── CARD 3 (RIGHT): Activity Overview (Complete Right) ── */}
       <View
         style={{
           width: isDesktop ? RIGHT_W : "100%",
@@ -3457,12 +3730,12 @@ function StatCards({
           Platform.OS === "web"
             ? {
                 boxShadow: dark
-                  ? "0 4px 20px rgba(0,0,0,0.3)"
-                  : `0 4px 16px ${color}18`,
+                  ? "0 2px 10px rgba(0,0,0,0.25)"
+                  : "0 1px 4px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.03)",
                 borderTopColor: color,
                 borderTopWidth: 2,
               }
-            : { elevation: 3 },
+            : { elevation: 2 },
           {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
@@ -3477,12 +3750,12 @@ function StatCards({
                 position: "absolute",
                 top: -12,
                 right: -12,
-                width: 70,
-                height: 70,
-                borderRadius: 35,
+                width: 60,
+                height: 60,
+                borderRadius: 30,
                 backgroundColor: color,
                 filter: "blur(20px)",
-                opacity: 0.15,
+                opacity: 0.12,
               } as any
             }
           />
@@ -3496,7 +3769,7 @@ function StatCards({
               : {},
           ]}
         >
-          <Text style={{ fontSize: 22 }}>{icon}</Text>
+          <Text style={{ fontSize: 20 }}>{icon}</Text>
         </View>
         <Text
           style={[
@@ -3511,10 +3784,19 @@ function StatCards({
         </Text>
         <Text style={[stSt.lbl, { color: txtSec }]}>{lbl}</Text>
         <View style={stSt.subRow}>
-          <Text style={{ color: subColor, fontSize: 10, fontWeight: "700" }}>
-            {subIcon ? `${subIcon} ` : ""}
-            {sub}
-          </Text>
+          <View
+            style={{
+              backgroundColor: `${subColor}14`,
+              paddingHorizontal: 6,
+              paddingVertical: 1.5,
+              borderRadius: 4,
+            }}
+          >
+            <Text style={{ color: subColor, fontSize: 9.5, fontWeight: "700" }}>
+              {subIcon ? `${subIcon} ` : ""}
+              {sub}
+            </Text>
+          </View>
         </View>
         {/* StreakTimer inside card to avoid overflow clipping */}
         {i === 2 && (
