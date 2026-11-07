@@ -986,8 +986,11 @@ function ProfileDrop({
       icon: "🚪",
       label: "Log Out",
       sub: "Sign out of account",
-      fn: () => {
+      fn: async () => {
         onLogoutReset();
+        try {
+          await signOut(auth);
+        } catch (_) {}
         router.replace("/landing");
         onClose();
       },
@@ -1013,6 +1016,7 @@ function ProfileDrop({
           top: "calc(100% + 10px)",
           right: 0,
           width: 280,
+          maxWidth: "calc(100vw - 24px)",
           zIndex: 9999,
           background: t.bg,
           border: `1px solid ${t.bdr}`,
@@ -7992,6 +7996,7 @@ export default function Dashboard() {
     null,
   );
   const [showMobileDrop, setShowMobileDrop] = useState(false);
+  const [showTabletDrop, setShowTabletDrop] = useState(false);
 
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -10566,23 +10571,6 @@ export default function Dashboard() {
                 />
               </View>
               <Pressable
-                onPress={() => router.push("/profile")}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: "#6366f1",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{ color: "white", fontWeight: "800", fontSize: 14 }}
-                >
-                  {initials}
-                </Text>
-              </Pressable>
-              <Pressable
                 onPress={handleLogout}
                 style={[
                   styles.logoutBtn,
@@ -10598,6 +10586,49 @@ export default function Dashboard() {
                   Logout
                 </Text>
               </Pressable>
+              {/* Tablet Avatar Bubble with ProfileDrop */}
+              <View style={{ position: "relative", zIndex: 9999 }}>
+                <Pressable
+                  onPress={() => setShowTabletDrop((s) => !s)}
+                  style={({ pressed }) => [
+                    topBarSt.avatar,
+                    { backgroundColor: "#f97316" },
+                    pressed && { opacity: 0.85 },
+                    Platform.OS === "web"
+                      ? ({
+                          background: "linear-gradient(135deg,#f97316,#ef4444)",
+                          boxShadow: "0 3px 14px rgba(239,68,68,0.35)",
+                          outline: showTabletDrop
+                            ? "3px solid #6366f1"
+                            : "3px solid transparent",
+                          transform: [{ scale: showTabletDrop ? 1.08 : 1 }],
+                          cursor: "pointer",
+                        } as any)
+                      : {},
+                  ]}
+                >
+                  <Text style={topBarSt.avatarTx}>{initials}</Text>
+                </Pressable>
+                {showTabletDrop && (
+                  <ProfileDrop
+                    dark={dark}
+                    displayName={displayName}
+                    email={userEmail}
+                    overallPct={overallPct}
+                    streak={streak}
+                    userRole={userRole}
+                    skillScore={skillScore}
+                    onClose={() => setShowTabletDrop(false)}
+                    onToggleDark={async () => {
+                      setDarkMode(!dark);
+                      await saveTheme(!dark);
+                    }}
+                    onShowV2={showComingSoon}
+                    router={router}
+                    onLogoutReset={resetNotificationState}
+                  />
+                )}
+              </View>
             </View>
           </View>
 
@@ -10881,6 +10912,8 @@ export default function Dashboard() {
               backgroundColor: dark ? "#0a0f20" : "#ffffff",
               borderBottomWidth: 1,
               borderBottomColor: cardBorder,
+              zIndex: 200,
+              position: "relative",
             }}
           >
             <View
@@ -10943,39 +10976,14 @@ export default function Dashboard() {
                 style={{ transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] }}
               />
               <Pressable
-                onPress={() => setShowMobileDrop((s) => !s)}
-                style={({ pressed }) => ({
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: pressed ? 0.8 : 1,
-                  ...(Platform.OS === "web"
-                    ? ({
-                        background: "linear-gradient(135deg,#f97316,#ef4444)",
-                        boxShadow: showMobileDrop
-                          ? "0 0 0 3px #6366f1"
-                          : "0 3px 14px rgba(239,68,68,0.35)",
-                      } as any)
-                    : { backgroundColor: "#6366f1" }),
-                })}
-              >
-                <Text
-                  style={{ color: "white", fontWeight: "800", fontSize: 14 }}
-                >
-                  {initials}
-                </Text>
-              </Pressable>
-              <Pressable
                 onPress={handleLogout}
                 style={{
                   backgroundColor: dark
                     ? "rgba(239,68,68,0.12)"
                     : "rgba(239,68,68,0.08)",
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 16,
+                  paddingHorizontal: 9,
+                  paddingVertical: 5,
+                  borderRadius: 12,
                   borderWidth: 1,
                   borderColor: "rgba(239,68,68,0.2)",
                 }}
@@ -10986,6 +10994,49 @@ export default function Dashboard() {
                   Logout
                 </Text>
               </Pressable>
+              {/* Mobile Avatar Bubble with ProfileDrop */}
+              <View style={{ position: "relative", zIndex: 9999 }}>
+                <Pressable
+                  onPress={() => setShowMobileDrop((s) => !s)}
+                  style={({ pressed }) => [
+                    topBarSt.avatar,
+                    { backgroundColor: "#f97316" },
+                    pressed && { opacity: 0.85 },
+                    Platform.OS === "web"
+                      ? ({
+                          background: "linear-gradient(135deg,#f97316,#ef4444)",
+                          boxShadow: "0 3px 14px rgba(239,68,68,0.35)",
+                          outline: showMobileDrop
+                            ? "3px solid #6366f1"
+                            : "3px solid transparent",
+                          transform: [{ scale: showMobileDrop ? 1.08 : 1 }],
+                          cursor: "pointer",
+                        } as any)
+                      : {},
+                  ]}
+                >
+                  <Text style={topBarSt.avatarTx}>{initials}</Text>
+                </Pressable>
+                {showMobileDrop && (
+                  <ProfileDrop
+                    dark={dark}
+                    displayName={displayName}
+                    email={userEmail}
+                    overallPct={overallPct}
+                    streak={streak}
+                    userRole={userRole}
+                    skillScore={skillScore}
+                    onClose={() => setShowMobileDrop(false)}
+                    onToggleDark={async () => {
+                      setDarkMode(!dark);
+                      await saveTheme(!dark);
+                    }}
+                    onShowV2={showComingSoon}
+                    router={router}
+                    onLogoutReset={resetNotificationState}
+                  />
+                )}
+              </View>
             </View>
           </View>
 
@@ -11344,50 +11395,6 @@ export default function Dashboard() {
               );
             })}
           </View>
-
-          {/* ProfileDrop overlay — rendered at root to avoid z-index clipping */}
-          {showMobileDrop && (
-            <View
-              style={[StyleSheet.absoluteFill, { zIndex: 9999 }] as any}
-              pointerEvents="box-none"
-            >
-              <Pressable
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: "rgba(0,0,0,0.3)" },
-                ]}
-                onPress={() => setShowMobileDrop(false)}
-              />
-              <View
-                style={
-                  {
-                    position: "absolute",
-                    top: Platform.OS === "ios" ? 100 : 72,
-                    right: 60,
-                    zIndex: 10000,
-                  } as any
-                }
-              >
-                <ProfileDrop
-                  dark={dark}
-                  displayName={displayName}
-                  email={userEmail}
-                  overallPct={overallPct}
-                  streak={streak}
-                  userRole={userRole}
-                  skillScore={skillScore}
-                  onClose={() => setShowMobileDrop(false)}
-                  onToggleDark={async () => {
-                    setDarkMode(!dark);
-                    await saveTheme(!dark);
-                  }}
-                  onShowV2={() => showComingSoon()}
-                  router={router}
-                  onLogoutReset={() => {}}
-                />
-              </View>
-            </View>
-          )}
         </View>
       )}
 
@@ -11604,6 +11611,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+    zIndex: 200,
+    position: "relative",
   },
 
   /* Offline */
