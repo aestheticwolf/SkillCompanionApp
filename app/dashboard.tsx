@@ -2024,8 +2024,8 @@ const topBarSt = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 0,
-    paddingHorizontal: 28,
-    height: 70,
+    paddingHorizontal: 22,
+    height: 58,
     borderBottomWidth: 1,
     flexShrink: 0,
     ...(Platform.OS === "web"
@@ -2033,21 +2033,21 @@ const topBarSt = StyleSheet.create({
       : {}),
   },
   title: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "900",
     letterSpacing: -0.4,
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
       : {}),
   },
-  sub: { fontSize: 12, fontWeight: "500", marginTop: 1 },
-  right: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sub: { fontSize: 11, fontWeight: "500", marginTop: 1 },
+  right: { flexDirection: "row", alignItems: "center", gap: 8 },
   time: {
-    fontSize: 13,
+    fontSize: 11.5,
     fontWeight: "700",
     ...(Platform.OS === "web"
       ? ({
-          padding: "6px 14px",
+          padding: "4px 11px",
           borderRadius: 99,
           border: "1.5px solid rgba(99,102,241,0.18)",
           background:
@@ -2060,9 +2060,9 @@ const topBarSt = StyleSheet.create({
   },
   toggleWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
   notifBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -2070,25 +2070,25 @@ const topBarSt = StyleSheet.create({
   },
   notifDot: {
     position: "absolute",
-    top: 7,
-    right: 7,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 6,
+    right: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
   },
-  avatarTx: { color: "white", fontWeight: "900", fontSize: 15 },
+  avatarTx: { color: "white", fontWeight: "900", fontSize: 13 },
   hambBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -2266,10 +2266,10 @@ function HeroBanner({
 
 const herSt = StyleSheet.create({
   wrap: {
-    borderRadius: 24,
-    padding: 28,
-    paddingVertical: 32,
-    marginBottom: 28,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 14,
     overflow: "hidden",
     position: "relative",
   },
@@ -2282,41 +2282,41 @@ const herSt = StyleSheet.create({
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
+    gap: 6,
+    marginBottom: 6,
   },
-  badgeDot: { width: 8, height: 8, borderRadius: 4 },
+  badgeDot: { width: 6, height: 6, borderRadius: 3 },
   badgeTx: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: "uppercase" as const,
   },
   title: {
     color: "white",
-    fontSize: 28,
+    fontSize: 21,
     fontWeight: "900",
-    letterSpacing: -0.6,
-    marginBottom: 6,
+    letterSpacing: -0.5,
+    marginBottom: 3,
     ...(Platform.OS === "web"
       ? ({
           fontFamily: "Outfit,sans-serif",
-          fontSize: "clamp(22px,3vw,34px)",
+          fontSize: "clamp(18px,2vw,24px)",
         } as any)
       : {}),
   },
   sub: {
     color: "rgba(255,255,255,0.72)",
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "500",
-    lineHeight: 22,
-    maxWidth: 480,
-    marginBottom: 20,
+    lineHeight: 17,
+    maxWidth: 500,
+    marginBottom: 10,
   },
   pctTx: {
     color: "rgba(255,255,255,0.85)",
-    fontSize: 15,
-    fontWeight: "900",
+    fontSize: 12,
+    fontWeight: "800",
     marginTop: 0,
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
@@ -2442,12 +2442,14 @@ function HeatMap({
   activityLog,
   dark,
   mobile = false,
+  streak = 0,
 }: {
   activityLog: Record<string, number>;
   dark: boolean;
   mobile?: boolean;
+  streak?: number;
 }) {
-  const WEEKS = 52;
+  const WEEKS = 53;
   const today = new Date();
   const currentYear = today.getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -2478,12 +2480,19 @@ function HeatMap({
       const todayStr = today.toLocaleDateString("en-CA");
       const isToday = key === todayStr;
       cells.push({ date: key, count: value, month: dt.getMonth(), isToday });
-      if (dt.getMonth() !== lastMonth && d === 0) {
-        months.push({
-          label: dt.toLocaleString("default", { month: "short" }),
-          col: w,
-        });
-        lastMonth = dt.getMonth();
+      if (
+        dt.getFullYear() === selectedYear &&
+        dt.getMonth() !== lastMonth &&
+        d === 0
+      ) {
+        const lastCol = months.length > 0 ? months[months.length - 1].col : -99;
+        if (w - lastCol >= 3) {
+          months.push({
+            label: dt.toLocaleString("default", { month: "short" }),
+            col: w,
+          });
+          lastMonth = dt.getMonth();
+        }
       }
     }
   }
@@ -2507,206 +2516,243 @@ function HeatMap({
     return "#6366f1";
   };
 
-  // ── Responsive Constants ──
-  const CELL = mobile ? 8 : 10;
-  const GAP = mobile ? 2 : 3;
-  // Reduced padding on mobile
-  const CONTAINER_PADDING = mobile ? 12 : 20;
-  const HEADER_FONT = mobile ? 13 : 15;
-  const SUB_FONT = mobile ? 10 : 11;
-  const LEGEND_FONT = mobile ? 8 : 10;
+  const isDesktop = !mobile && Platform.OS === "web";
+  // Compact, high-density cell dimensions (like GitHub)
+  const CELL = mobile ? 8 : 9.5;
+  const GAP = mobile ? 2 : 2.2;
+  const DAY_COL_WIDTH = mobile ? 20 : 22;
+  const COL_STEP = CELL + GAP;
+  const GRID_WIDTH = DAY_COL_WIDTH + WEEKS * COL_STEP - GAP; // ~640px on desktop
+  const CONTAINER_PADDING = mobile ? 10 : 13;
+  const HEATMAP_CARD_WIDTH = isDesktop ? GRID_WIDTH + CONTAINER_PADDING * 2 : "100%";
+
+  const HEADER_FONT = mobile ? 12 : 13;
+  const SUB_FONT = mobile ? 9.5 : 10;
+  const LEGEND_FONT = mobile ? 7.5 : 8.5;
+  const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+
+  const yearEntries = Object.entries(activityLog || {}).filter(
+    ([date]) => new Date(date).getFullYear() === selectedYear,
+  );
+  const totalYearTasks = yearEntries.reduce(
+    (sum, [, val]) => sum + Number(val || 0),
+    0,
+  );
+  const totalActiveDays = yearEntries.filter(
+    ([, val]) => Number(val || 0) > 0,
+  ).length;
+  const currentStreak = streak || 0;
+
+  const renderColumn = (w: number) => (
+    <View
+      key={w}
+      style={{
+        flexDirection: "column",
+        gap: GAP,
+        width: CELL,
+        alignItems: "center",
+      }}
+    >
+      {Array.from({ length: 7 }, (_, d) => {
+        const cell: any = cells[w * 7 + d] || {
+          count: 0,
+          isToday: false,
+        };
+        return (
+          <View
+            key={d}
+            className={Platform.OS === "web" ? "sk-cell" : undefined}
+            title={
+              Platform.OS === "web" && cell.date
+                ? `${cell.date}: ${cell.count} task${cell.count === 1 ? "" : "s"}`
+                : undefined
+            }
+            style={
+              {
+                width: CELL,
+                height: CELL,
+                borderRadius: mobile ? 2 : 2.5,
+                backgroundColor: getColor(cell.count, cell.isToday),
+                transform: cell.isToday ? [{ translateY: -1 }] : [],
+                zIndex: cell.isToday ? 5 : 1,
+                alignItems: "center",
+                overflow: "visible",
+                ...(cell.isToday
+                  ? {
+                      borderRadius: 3.5,
+                      background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
+                      animation:
+                        "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
+                      zIndex: 10,
+                    }
+                  : {}),
+                ...(cell.count > 0 &&
+                  !cell.isToday && {
+                    boxShadow: `0 0 3px ${getColor(cell.count, false)}66`,
+                  }),
+                transition: "transform .12s, box-shadow .12s",
+              } as any
+            }
+          />
+        );
+      })}
+    </View>
+  );
 
   return (
     <View
       style={{
-        borderRadius: mobile ? 16 : 20,
-        padding: CONTAINER_PADDING,
-        overflow: mobile ? "hidden" : "visible",
-        marginBottom: mobile ? 14 : 28,
+        flexDirection: isDesktop ? "row" : "column",
+        justifyContent: isDesktop ? "space-between" : "flex-start",
+        gap: 14,
+        alignItems: isDesktop ? "stretch" : "flex-start",
+        marginBottom: mobile ? 10 : 16,
         width: "100%",
-        maxWidth: mobile ? undefined : 900,
-        alignSelf: "center",
-        borderWidth: 1,
-        borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        backgroundColor: dark ? "#0d1424" : "#ffffff",
-        ...(Platform.OS === "web" && !mobile
-          ? ({ animation: "sk-fadeUp .4s ease both" } as any)
-          : {}),
-        ...(Platform.OS === "web" && !mobile
-          ? ({
-              boxShadow: dark
-                ? "0 2px 16px rgba(0,0,0,0.4)"
-                : "0 2px 12px rgba(0,0,0,0.05)",
-            } as any)
-          : { elevation: 2 }),
       }}
     >
-      {/* ── Header ── */}
+      {/* ── CARD 1 (LEFT): Activity Heatmap (fits grid width perfectly, no dead space) ── */}
       <View
         style={{
-          flexDirection: "row",
-          flexWrap: mobile ? "wrap" : "nowrap", // ← KEY FIX: Allow wrapping
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: mobile ? 8 : 14,
-          gap: mobile ? 6 : 12,
+          width: isDesktop ? HEATMAP_CARD_WIDTH : "100%",
+          borderRadius: 14,
+          padding: CONTAINER_PADDING,
+          borderWidth: 1,
+          borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          backgroundColor: dark ? "#0d1424" : "#ffffff",
+          overflow: mobile ? "hidden" : "visible",
+          ...(Platform.OS === "web" && !mobile
+            ? ({
+                animation: "sk-fadeUp .4s ease both",
+                boxShadow: dark
+                  ? "0 2px 14px rgba(0,0,0,0.35)"
+                  : "0 2px 10px rgba(0,0,0,0.04)",
+              } as any)
+            : { elevation: 2 }),
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View
-            style={{
-              width: mobile ? 26 : 32,
-              height: mobile ? 26 : 32,
-              borderRadius: 8,
-              backgroundColor: "rgba(99,102,241,0.1)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ fontSize: mobile ? 14 : 16 }}>📅</Text>
-          </View>
-          <View>
-            <Text
-              style={{
-                fontSize: HEADER_FONT,
-                fontWeight: "800",
-                color: dark ? "#ffffff" : "#0f172a",
-                ...(Platform.OS === "web" && !mobile
-                  ? ({
-                      fontFamily: "Outfit,sans-serif",
-                      textShadow: dark
-                        ? "0 0 10px rgba(99,102,241,0.3)"
-                        : "none",
-                    } as any)
-                  : {}),
-              }}
-            >
-              Activity Heatmap
-            </Text>
-            <Text
-              style={{
-                fontSize: SUB_FONT,
-                fontWeight: "500",
-                color: dark ? "rgba(255,255,255,0.65)" : "rgba(15,23,42,0.45)",
-                marginTop: 1,
-              }}
-            >
-              {Object.entries(activityLog)
-                .filter(
-                  ([date]) => new Date(date).getFullYear() === selectedYear,
-                )
-                .reduce((sum, [, val]) => sum + val, 0)}{" "}
-              tasks ·{" "}
-              {
-                Object.keys(activityLog).filter(
-                  (date) => new Date(date).getFullYear() === selectedYear,
-                ).length
-              }{" "}
-              active days
-            </Text>
-          </View>
-        </View>
-
-        {/* Year Selector */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Pressable onPress={() => setSelectedYear(currentYear)}>
-            <View
-              style={{
-                backgroundColor:
-                  selectedYear === currentYear ? "#3b82f6" : "rgba(0,0,0,0.1)",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 6,
-                marginBottom: 2,
-              }}
-            >
-              <Text
-                style={{
-                  color:
-                    selectedYear === currentYear
-                      ? "#ffffff"
-                      : dark
-                        ? "rgba(255,255,255,0.6)"
-                        : "#94a3b8",
-                  fontSize: 10,
-                  fontWeight: "700",
-                }}
-              >
-                {currentYear}
-              </Text>
-            </View>
-          </Pressable>
-          <Pressable onPress={() => setSelectedYear(currentYear - 1)}>
-            <Text
-              style={{
-                fontSize: 9,
-                color:
-                  selectedYear === currentYear - 1
-                    ? "#3b82f6"
-                    : dark
-                      ? "rgba(238,242,255,0.4)"
-                      : "rgba(15,23,42,0.4)",
-                fontWeight: "700",
-              }}
-            >
-              {currentYear - 1}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* ── Legend ── */}
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: mobile ? "wrap" : "nowrap", // ← KEY FIX: Allow wrapping
-          alignItems: "center",
-          gap: mobile ? 4 : 12,
-          marginBottom: mobile ? 6 : 12,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: LEGEND_FONT,
-            color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)",
-            fontWeight: "500",
-          }}
-        >
-          Less
-        </Text>
-        {[0, 2, 5, 12, 20].map((v, i) => (
-          <View
-            key={i}
-            style={{
-              width: mobile ? 8 : 12,
-              height: mobile ? 8 : 12,
-              borderRadius: 2,
-              backgroundColor: getColor(v),
-            }}
-          />
-        ))}
-        <Text
-          style={{
-            fontSize: LEGEND_FONT,
-            color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)",
-            fontWeight: "500",
-          }}
-        >
-          More
-        </Text>
-
-        {/* Today Legend (Hidden on very small screens or wrapped) */}
+        {/* Header */}
         <View
           style={{
             flexDirection: "row",
+            flexWrap: mobile ? "wrap" : "nowrap",
+            justifyContent: "space-between",
             alignItems: "center",
-            gap: 4,
-            marginLeft: mobile ? 0 : 14,
-            paddingLeft: mobile ? 0 : 14,
-            borderLeftWidth: mobile ? 0 : 1,
-            borderLeftColor: dark
-              ? "rgba(255,255,255,0.1)"
-              : "rgba(0,0,0,0.08)",
+            marginBottom: mobile ? 6 : 8,
+            gap: mobile ? 4 : 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+            <View
+              style={{
+                width: mobile ? 24 : 26,
+                height: mobile ? 24 : 26,
+                borderRadius: 7,
+                backgroundColor: "rgba(99,102,241,0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ fontSize: mobile ? 12 : 13 }}>📅</Text>
+            </View>
+            <View>
+              <Text
+                style={{
+                  fontSize: HEADER_FONT,
+                  fontWeight: "800",
+                  color: dark ? "#ffffff" : "#0f172a",
+                  ...(Platform.OS === "web" && !mobile
+                    ? ({
+                        fontFamily: "Outfit,sans-serif",
+                      } as any)
+                    : {}),
+                }}
+              >
+                Activity Heatmap
+              </Text>
+              <Text
+                style={{
+                  fontSize: SUB_FONT,
+                  fontWeight: "500",
+                  color: dark
+                    ? "rgba(255,255,255,0.65)"
+                    : "rgba(15,23,42,0.45)",
+                  marginTop: 0.5,
+                }}
+              >
+                {totalYearTasks} tasks · {totalActiveDays} active days
+              </Text>
+            </View>
+          </View>
+
+          {/* Year Selector directly above the end of grid columns */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <Pressable onPress={() => setSelectedYear(currentYear)}>
+              <View
+                style={{
+                  backgroundColor:
+                    selectedYear === currentYear
+                      ? "#3b82f6"
+                      : "rgba(0,0,0,0.08)",
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  borderRadius: 5,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      selectedYear === currentYear
+                        ? "#ffffff"
+                        : dark
+                          ? "rgba(255,255,255,0.6)"
+                          : "#94a3b8",
+                    fontSize: 9.5,
+                    fontWeight: "700",
+                  }}
+                >
+                  {currentYear}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable onPress={() => setSelectedYear(currentYear - 1)}>
+              <View
+                style={{
+                  backgroundColor:
+                    selectedYear === currentYear - 1
+                      ? "#3b82f6"
+                      : "transparent",
+                  paddingHorizontal: 5,
+                  paddingVertical: 2,
+                  borderRadius: 5,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 9.5,
+                    color:
+                      selectedYear === currentYear - 1
+                        ? "#ffffff"
+                        : dark
+                          ? "rgba(238,242,255,0.4)"
+                          : "rgba(15,23,42,0.4)",
+                    fontWeight: "700",
+                  }}
+                >
+                  {currentYear - 1}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Legend */}
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: mobile ? "wrap" : "nowrap",
+            alignItems: "center",
+            gap: mobile ? 4 : 8,
+            marginBottom: mobile ? 5 : 8,
           }}
         >
           <Text
@@ -2716,157 +2762,394 @@ function HeatMap({
               fontWeight: "500",
             }}
           >
-            Today
+            Less
           </Text>
-          {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map(
-            (color, i) => (
-              <View
-                key={i}
-                className={
-                  Platform.OS === "web" && i === 4
-                    ? "sk-legend-today-dot"
-                    : undefined
-                }
-                style={{
-                  width: mobile ? 8 : 12,
-                  height: mobile ? 8 : 12,
-                  borderRadius: 2,
-                  backgroundColor: color,
-                }}
-              />
-            ),
-          )}
-        </View>
-      </View>
+          {[0, 2, 5, 12, 20].map((v, i) => (
+            <View
+              key={i}
+              style={{
+                width: mobile ? 7 : 8.5,
+                height: mobile ? 7 : 8.5,
+                borderRadius: 2,
+                backgroundColor: getColor(v),
+              }}
+            />
+          ))}
+          <Text
+            style={{
+              fontSize: LEGEND_FONT,
+              color: dark ? "rgba(238,242,255,0.4)" : "rgba(15,23,42,0.4)",
+              fontWeight: "500",
+            }}
+          >
+            More
+          </Text>
 
-      {/* ── Month Labels ── */}
-      <View style={{ flexDirection: "row", marginBottom: 6, paddingLeft: 0 }}>
-        {months.map((m, i) => (
           <View
-            key={i}
-            style={
-              {
-                position: "absolute",
-                left: CONTAINER_PADDING + m.col * (CELL + GAP),
-              } as any
-            }
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              marginLeft: mobile ? 0 : 10,
+              paddingLeft: mobile ? 0 : 10,
+              borderLeftWidth: mobile ? 0 : 1,
+              borderLeftColor: dark
+                ? "rgba(255,255,255,0.1)"
+                : "rgba(0,0,0,0.08)",
+            }}
           >
             <Text
               style={{
-                fontSize: 9,
-                color: dark ? "rgba(255,255,255,0.55)" : "rgba(15,23,42,0.4)",
-                fontWeight: "600",
+                fontSize: LEGEND_FONT,
+                color: dark ? "rgba(255,255,255,0.6)" : "rgba(15,23,42,0.4)",
+                fontWeight: "500",
               }}
             >
-              {m.label}
+              Today
             </Text>
+            {["#fee2e2", "#fca5a5", "#ef4444", "#dc2626", "#b91c1c"].map(
+              (color, i) => (
+                <View
+                  key={i}
+                  className={
+                    Platform.OS === "web" && i === 4
+                      ? "sk-legend-today-dot"
+                      : undefined
+                  }
+                  style={{
+                    width: mobile ? 7 : 8.5,
+                    height: mobile ? 7 : 8.5,
+                    borderRadius: 2,
+                    backgroundColor: color,
+                  }}
+                />
+              ),
+            )}
           </View>
-        ))}
-        <View style={{ height: 12 }} />
-      </View>
+        </View>
 
-      {/* ── Grid ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: GAP,
-          width: WEEKS * (CELL + GAP),
-          overflow: "visible" as any,
-        }}
-        contentContainerStyle={{
-          flexDirection: "row",
-          gap: GAP,
-          paddingRight: CONTAINER_PADDING, // Match container padding
-          paddingTop: 4,
-          paddingBottom: 4,
-          overflow: "visible",
-        }}
-      >
-        {Array.from({ length: WEEKS }, (_, w) => (
-          <View
-            key={w}
+        {/* Month Labels */}
+        <View
+          style={{
+            flexDirection: "row",
+            marginBottom: 3,
+            position: "relative",
+            height: 12,
+          }}
+        >
+          {months.map((m, i) => (
+            <View
+              key={i}
+              style={
+                {
+                  position: "absolute",
+                  left: DAY_COL_WIDTH + m.col * COL_STEP,
+                } as any
+              }
+            >
+              <Text
+                style={{
+                  fontSize: 8.5,
+                  color: dark
+                    ? "rgba(255,255,255,0.55)"
+                    : "rgba(15,23,42,0.4)",
+                  fontWeight: "600",
+                }}
+              >
+                {m.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Day Labels + Matrix Grid */}
+        <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+          {/* Day indicator column */}
+          <View style={{ width: DAY_COL_WIDTH, paddingTop: 3 }}>
+            {DAY_LABELS.map((lbl, idx) => (
+              <View
+                key={idx}
+                style={{
+                  height: CELL,
+                  marginBottom: GAP,
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 7.5,
+                    fontWeight: "600",
+                    color: dark
+                      ? "rgba(255,255,255,0.38)"
+                      : "rgba(15,23,42,0.38)",
+                    textAlign: "right",
+                    paddingRight: 4,
+                  }}
+                >
+                  {lbl}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Grid */}
+          {mobile ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                overflow: "visible" as any,
+              }}
+              contentContainerStyle={{
+                flexDirection: "row",
+                gap: GAP,
+                paddingRight: CONTAINER_PADDING,
+                paddingTop: 3,
+                paddingBottom: 3,
+                overflow: "visible",
+              }}
+            >
+              {Array.from({ length: WEEKS }, (_, w) => renderColumn(w))}
+            </ScrollView>
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                gap: GAP,
+                alignItems: "flex-start",
+                paddingTop: 3,
+                paddingBottom: 3,
+              }}
+            >
+              {Array.from({ length: WEEKS }, (_, w) => renderColumn(w))}
+            </View>
+          )}
+        </View>
+
+        <View
+          style={{
+            marginTop: 5,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text
             style={{
-              flexDirection: "column",
-              gap: GAP,
-              width: CELL,
-              minWidth: CELL,
-              alignItems: "center",
-              overflow: "visible" as any,
+              fontSize: 9.5,
+              opacity: dark ? 0.7 : 0.6,
+              color: dark ? "#fff" : undefined,
+              fontWeight: "500",
             }}
           >
-            {Array.from({ length: 7 }, (_, d) => {
-              const cell: any = cells[w * 7 + d] || {
-                count: 0,
-                isToday: false,
-              };
-              if (!cell)
-                return <View key={d} style={{ width: CELL, height: CELL }} />;
-              return (
-                <View
-                  key={d}
-                  className={Platform.OS === "web" ? "sk-cell" : undefined}
-                  style={
-                    {
-                      width: CELL,
-                      height: CELL,
-                      borderRadius: mobile ? 2 : 3,
-                      backgroundColor: getColor(cell.count, cell.isToday),
-                      transform: cell.isToday ? [{ translateY: -1 }] : [],
-                      zIndex: cell.isToday ? 5 : 1,
-                      alignItems: "center",
-                      overflow: "visible",
-                      ...(cell.isToday
-                        ? {
-                            borderRadius: 4,
-                            background: `linear-gradient(145deg, ${getColor(cell.count, true)}ff, ${getColor(cell.count, true)}cc)`,
-                            animation:
-                              "sk-glow-today 1.8s cubic-bezier(0.215,0.61,0.355,1) infinite",
-                            zIndex: 10,
-                          }
-                        : {}),
-                      ...(cell.count > 0 &&
-                        !cell.isToday && {
-                          boxShadow: `0 0 4px ${getColor(cell.count, false)}66`,
-                        }),
-                      transition: "transform .12s, box-shadow .12s",
-                    } as any
-                  }
-                />
-              );
-            })}
-          </View>
-        ))}
-      </ScrollView>
+            Keep it going 🔥
+          </Text>
+        </View>
+      </View>
 
+      {/* ── CARD 2 (RIGHT): Activity Overview (Complete Right) ── */}
       <View
         style={{
-          marginTop: 8,
-          flexDirection: "row",
+          width: isDesktop ? RIGHT_W : "100%",
+          flexShrink: 0,
+          borderRadius: 14,
+          padding: CONTAINER_PADDING,
+          borderWidth: 1,
+          borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          backgroundColor: dark ? "#0d1424" : "#ffffff",
           justifyContent: "space-between",
+          gap: 10,
+          marginTop: isDesktop ? 0 : 10,
+          ...(Platform.OS === "web" && !mobile
+            ? ({
+                animation: "sk-fadeUp .4s ease both",
+                boxShadow: dark
+                  ? "0 2px 14px rgba(0,0,0,0.35)"
+                  : "0 2px 10px rgba(0,0,0,0.04)",
+              } as any)
+            : { elevation: 2 }),
         }}
       >
-        <Text
+        <View
           style={{
-            fontSize: 11,
-            opacity: dark ? 0.7 : 0.6,
-            color: dark ? "#fff" : undefined,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          Keep it going 🔥
-        </Text>
-        <Text
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 13 }}>📊</Text>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "800",
+                color: dark ? "#ffffff" : "#0f172a",
+                ...(Platform.OS === "web" && !mobile
+                  ? ({ fontFamily: "Outfit,sans-serif" } as any)
+                  : {}),
+              }}
+            >
+              Activity Overview
+            </Text>
+          </View>
+          <View
+            style={{
+              backgroundColor: "rgba(99,102,241,0.12)",
+              paddingHorizontal: 7,
+              paddingVertical: 2,
+              borderRadius: 6,
+            }}
+          >
+            <Text
+              style={{ fontSize: 10, fontWeight: "800", color: "#6366f1" }}
+            >
+              {selectedYear}
+            </Text>
+          </View>
+        </View>
+
+        {/* 3 Metric Tiles */}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(99,102,241,0.05)",
+              borderRadius: 10,
+              padding: 9,
+              borderWidth: 1,
+              borderColor: dark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(99,102,241,0.12)",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "900",
+                color: "#6366f1",
+                marginBottom: 2,
+              }}
+            >
+              {totalYearTasks}
+            </Text>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "600",
+                color: dark
+                  ? "rgba(255,255,255,0.6)"
+                  : "rgba(15,23,42,0.5)",
+              }}
+            >
+              Tasks Done
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(52,211,153,0.05)",
+              borderRadius: 10,
+              padding: 9,
+              borderWidth: 1,
+              borderColor: dark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(52,211,153,0.14)",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "900",
+                color: "#34d399",
+                marginBottom: 2,
+              }}
+            >
+              {totalActiveDays}
+            </Text>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "600",
+                color: dark
+                  ? "rgba(255,255,255,0.6)"
+                  : "rgba(15,23,42,0.5)",
+              }}
+            >
+              Active Days
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: dark
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(249,115,22,0.05)",
+              borderRadius: 10,
+              padding: 9,
+              borderWidth: 1,
+              borderColor: dark
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(249,115,22,0.14)",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "900",
+                color: "#f97316",
+                marginBottom: 2,
+              }}
+            >
+              {currentStreak}d
+            </Text>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "600",
+                color: dark
+                  ? "rgba(255,255,255,0.6)"
+                  : "rgba(15,23,42,0.5)",
+              }}
+            >
+              Streak
+            </Text>
+          </View>
+        </View>
+
+        {/* Motivational Insight Pill */}
+        <View
           style={{
-            fontSize: 11,
-            fontWeight: "700",
-            opacity: dark ? 0.7 : 0.6,
-            color: dark ? "#fff" : undefined,
+            paddingVertical: 7,
+            paddingHorizontal: 10,
+            borderRadius: 8,
+            backgroundColor: dark ? "rgba(99,102,241,0.08)" : "#f5f7ff",
+            borderWidth: 1,
+            borderColor: dark
+              ? "rgba(99,102,241,0.15)"
+              : "rgba(99,102,241,0.12)",
           }}
         >
-          {selectedYear}
-        </Text>
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "600",
+              color: dark ? "#a78bfa" : "#4f46e5",
+            }}
+            numberOfLines={2}
+          >
+            {totalYearTasks > 0
+              ? "⚡ Consistency is your superpower! Keep it going."
+              : "🌱 Complete tasks to start growing your streak map."}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -3182,11 +3465,7 @@ function StatCards({
             : { elevation: 3 },
           {
             opacity: fadeAnim,
-            transform: [
-              {
-                translateY: Animated.add(slideAnim, new Animated.Value(i * 6)),
-              },
-            ],
+            transform: [{ translateY: slideAnim }],
           },
         ]}
       >
@@ -3277,33 +3556,34 @@ function StatCards({
 }
 
 const stSt = StyleSheet.create({
-  row: { flexDirection: "row", gap: 14, marginBottom: 28 } as any,
+  row: { flexDirection: "row", gap: 10, marginBottom: 18 } as any,
   card: {
     flex: 1,
-    borderRadius: 20,
-    padding: 22,
+    borderRadius: 13,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
     borderWidth: 1,
     position: "relative",
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 4,
   },
   val: {
-    fontSize: 32,
+    fontSize: 21,
     fontWeight: "900",
-    letterSpacing: -0.6,
-    marginBottom: 3,
-    lineHeight: 36,
+    letterSpacing: -0.4,
+    marginBottom: 1,
+    lineHeight: 25,
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
       : {}),
   },
-  lbl: { fontSize: 13, fontWeight: "500", marginBottom: 4 },
+  lbl: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
   subRow: { flexDirection: "row", alignItems: "center" },
 });
 
@@ -3623,25 +3903,25 @@ function RightPanel({
 }
 
 const rpSt = StyleSheet.create({
-  wrap: { width: RIGHT_W, flexShrink: 0, gap: 14 },
-  card: { borderRadius: 20, padding: 20, borderWidth: 1 },
+  wrap: { width: RIGHT_W, flexShrink: 0, gap: 12 },
+  card: { borderRadius: 16, padding: 16, borderWidth: 1 },
   recHdr: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   recIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: "#6366f1",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   recTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800",
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
@@ -3649,14 +3929,14 @@ const rpSt = StyleSheet.create({
   },
   recSub: { fontSize: 11, fontWeight: "600", color: "#a78bfa" },
   recBody: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
-    lineHeight: 20,
-    marginBottom: 14,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   recBtn: {
-    borderRadius: 12,
-    paddingVertical: 11,
+    borderRadius: 10,
+    paddingVertical: 9,
     alignItems: "center",
     backgroundColor: "#6366f1",
     ...(Platform.OS === "web"
@@ -3666,7 +3946,7 @@ const rpSt = StyleSheet.create({
         } as any)
       : {}),
   },
-  recBtnTx: { color: "white", fontWeight: "700", fontSize: 13 },
+  recBtnTx: { color: "white", fontWeight: "700", fontSize: 12 },
   secTitle: {
     fontSize: 15,
     fontWeight: "800",
@@ -7398,7 +7678,10 @@ export default function Dashboard() {
   };
 
   const displayName =
-    userData?.displayName || authUser?.displayName || authUser?.email || "User";
+    userData?.displayName?.trim() ||
+    authUser?.displayName?.trim() ||
+    (authUser?.email ? authUser.email.split("@")[0] : "") ||
+    "User";
 
   const generateDates = () => {
     const dates = [];
@@ -9642,7 +9925,7 @@ export default function Dashboard() {
                 router={router}
                 isSynced={isSynced}
                 overallPct={overallPct}
-                displayName={userData?.displayName || "User"}
+                displayName={displayName}
                 goals={goals}
                 completedTasks={completedTasks}
                 totalTasks={totalTasks}
@@ -9656,7 +9939,7 @@ export default function Dashboard() {
               router={router}
               isSynced={isSynced}
               overallPct={overallPct}
-              displayName={userData?.displayName || "User"}
+              displayName={displayName}
               goals={goals}
               completedTasks={completedTasks}
               totalTasks={totalTasks}
@@ -9670,7 +9953,7 @@ export default function Dashboard() {
             <TopBar
               dark={dark}
               router={router}
-              displayName={userData?.displayName || "User"}
+              displayName={displayName}
               email={userEmail}
               darkMode={dark}
               setDarkMode={setDarkMode}
@@ -9696,7 +9979,7 @@ export default function Dashboard() {
               {/* Hero */}
               <HeroBanner
                 dark={dark}
-                displayName={userData?.displayName || "User"}
+                displayName={displayName}
                 overallPct={overallPct}
                 isSynced={isSynced}
                 fadeAnim={fadeAnim}
@@ -9721,7 +10004,11 @@ export default function Dashboard() {
                   transform: [{ translateY: slideAnim }],
                 }}
               >
-                <HeatMap activityLog={activityLog} dark={dark} />
+                <HeatMap
+                  activityLog={activityLog}
+                  dark={dark}
+                  streak={userData?.streak || streak || 0}
+                />
               </Animated.View>
 
               {/* Goals + Right panel row */}
@@ -9732,7 +10019,7 @@ export default function Dashboard() {
                   <Animated.View
                     className={Platform.OS === "web" ? "sk-search-in" : undefined}
                     style={{
-                      marginBottom: 16,
+                      marginBottom: 12,
                       opacity: searchFadeAnim,
                       transform: [{ scale: searchScaleAnim }],
                     }}
@@ -9749,13 +10036,13 @@ export default function Dashboard() {
                         backgroundColor: dark
                           ? "rgba(255,255,255,0.055)"
                           : "rgba(255,255,255,0.72)",
-                        borderRadius: 18,
+                        borderRadius: 10,
                         borderWidth: 1,
                         borderColor: dark
                           ? "rgba(255,255,255,0.08)"
                           : "rgba(99,102,241,0.10)",
-                        paddingHorizontal: 16,
-                        paddingVertical: Platform.OS === "web" ? 15 : 12,
+                        paddingHorizontal: 12,
+                        paddingVertical: Platform.OS === "web" ? 8 : 7,
                         ...(Platform.OS === "web"
                           ? ({
                               backdropFilter: "blur(14px)",
@@ -10699,7 +10986,12 @@ export default function Dashboard() {
                   transform: [{ translateY: slideAnim }],
                 }}
               >
-                <HeatMap activityLog={activityLog} dark={dark} mobile />
+                <HeatMap
+                  activityLog={activityLog}
+                  dark={dark}
+                  mobile
+                  streak={userData?.streak || streak || 0}
+                />
               </Animated.View>
             </View>
 
@@ -11248,10 +11540,10 @@ const styles = StyleSheet.create({
   /* Wide layout */
   wideRoot: { flex: 1, flexDirection: "row" } as any,
   wideCenter: { flex: 1, flexDirection: "column", minWidth: 0 } as any,
-  widePadded: { flex: 1, paddingHorizontal: 28, paddingTop: 28 },
+  widePadded: { flex: 1, paddingHorizontal: 20, paddingTop: 14 },
   wideContentRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 14,
     alignItems: "flex-start",
   } as any,
 
@@ -11437,40 +11729,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 10,
     paddingVertical: 0,
   },
   secTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "800",
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
       : {}),
   },
   addGoalBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#6366f1",
     ...(Platform.OS === "web"
       ? ({
           background: "linear-gradient(135deg,#6366f1,#a78bfa)",
-          boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+          boxShadow: "0 3px 12px rgba(99,102,241,0.32)",
         } as any)
-      : { elevation: 5 }),
+      : { elevation: 3 }),
   },
-  addGoalTx: { color: "white", fontWeight: "700", fontSize: 14 },
+  addGoalTx: { color: "white", fontWeight: "700", fontSize: 12 },
 
   gridNarrow: { width: "100%" },
   gridWide: { flexDirection: "row", flexWrap: "wrap" } as any,
 
   goalBox: {
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 14,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderLeftWidth: 4,
     position: "relative",
@@ -11482,13 +11774,13 @@ const styles = StyleSheet.create({
   goalHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
-    gap: 14,
+    marginBottom: 8,
+    gap: 8,
   },
   goalIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -11497,16 +11789,16 @@ const styles = StyleSheet.create({
       : {}),
   },
   goalTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "800",
-    letterSpacing: -0.4,
-    marginBottom: 3,
+    letterSpacing: -0.3,
+    marginBottom: 2,
     ...(Platform.OS === "web"
       ? ({ fontFamily: "Outfit,sans-serif" } as any)
       : {}),
   },
-  goalMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  goalMetaTx: { fontSize: 12, fontWeight: "500" },
+  goalMeta: { flexDirection: "row", alignItems: "center", gap: 7 },
+  goalMetaTx: { fontSize: 11, fontWeight: "500" },
   goalMetaDot: { width: 4, height: 4, borderRadius: 2 },
   miniRing: {
     width: 52,
@@ -11569,20 +11861,20 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     marginTop: 1,
   },
-  tick: { color: "white", fontSize: 11, fontWeight: "800" },
-  taskTx: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
+  tick: { color: "white", fontSize: 10, fontWeight: "800" },
+  taskTx: { fontSize: 13, fontWeight: "500", flexShrink: 1 },
   addTaskBtn: {
-    marginTop: 8,
-    paddingVertical: 11,
+    marginTop: 6,
+    paddingVertical: 8,
     alignItems: "center",
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderRadius: 12,
+    borderRadius: 8,
     ...(Platform.OS === "web"
       ? ({ transition: "all .15s", cursor: "pointer" } as any)
       : {}),
   },
-  addTaskTx: { fontWeight: "700", fontSize: 13 },
+  addTaskTx: { fontWeight: "700", fontSize: 12 },
 
   emptyCard: {
     borderRadius: 20,

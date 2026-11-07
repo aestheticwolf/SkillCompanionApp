@@ -21,18 +21,5 @@ export default function Home() {
   }
 
   //  landing page
-  if (Platform.OS === "web") {
-    return (
-      <iframe
-        src="/landing"
-        style={{
-          width: "100%",
-          height: "100vh",
-          border: "none",
-        }}
-      />
-    );
-  }
-
-  return null;
+  return <Redirect href="/landing" />;
 }

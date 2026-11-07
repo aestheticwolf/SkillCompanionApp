@@ -16,7 +16,7 @@ import { getGoals } from "../services/firestore";
 
 // import { doc, getDoc } from "firebase/firestore";
 
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
 import { db } from "../services/firebase";
 
@@ -85,7 +85,21 @@ export function AuthProvider({
 
       unsubUser = onSnapshot(ref, (snap) => {
         if (snap.exists()) {
-          setUserData(snap.data());
+          const data = snap.data();
+          if (!data.displayName && u.displayName) {
+            data.displayName = u.displayName;
+            setDoc(ref, { displayName: u.displayName }, { merge: true }).catch(() => {});
+          }
+          setUserData(data);
+        } else {
+          const fallbackData = {
+            displayName: u.displayName || (u.email ? u.email.split("@")[0] : "Learner"),
+            role: "Learner",
+            streak: 0,
+            activityLog: {},
+          };
+          setUserData(fallbackData);
+          setDoc(ref, fallbackData, { merge: true }).catch(() => {});
         }
       });
 
