@@ -2653,6 +2653,7 @@ function HeatMap({
     <View
       style={{
         flexDirection: isDesktop ? "row" : "column",
+        flexWrap: isDesktop ? ("wrap" as const) : undefined,
         justifyContent: "flex-start",
         gap: 12,
         alignItems: isDesktop ? "stretch" : "flex-start",
@@ -4049,6 +4050,7 @@ function RightPanel({
   getGoalProgress,
   getRecommendation,
   fadeAnim,
+  style,
 }: any) {
   const bg = dark ? "#0a0f20" : "#ffffff";
   const border = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.07)";
@@ -4057,7 +4059,7 @@ function RightPanel({
   const recBg = dark ? "rgba(99,102,241,0.1)" : "#eff6ff";
 
   return (
-    <Animated.View style={[rpSt.wrap, { opacity: fadeAnim }]}>
+    <Animated.View style={[rpSt.wrap, style, { opacity: fadeAnim }]}>
       {/* AI Recommendation */}
       <View
         style={[
@@ -10613,6 +10615,34 @@ export default function Dashboard() {
               slideAnim={slideAnim}
             />
 
+            {/* Stat Cards (Tablet) */}
+            <StatCards
+              dark={dark}
+              goals={goals}
+              completedTasks={completedTasks}
+              streak={userData?.streak || streak || 0}
+              activityToday={activityToday}
+              fadeAnim={fadeAnim}
+              slideAnim={slideAnim}
+              mobile
+            />
+
+            {/* Analytics: Heatmap + Weekly Focus + Overview (Tablet) */}
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+                marginBottom: 16,
+              }}
+            >
+              <HeatMap
+                activityLog={activityLog}
+                dark={dark}
+                streak={userData?.streak || streak || 0}
+                mobile={false}
+              />
+            </Animated.View>
+
             {/* Search */}
             <View style={{ paddingHorizontal: 2 }}>
               <Animated.View
@@ -10824,6 +10854,16 @@ export default function Dashboard() {
               </Pressable>
             </Animated.View>
             <GoalList />
+
+            {/* Right Panel widgets on tablet (AI Recommendation & Quick Progress) */}
+            <RightPanel
+              dark={dark}
+              goals={goals}
+              getGoalProgress={getGoalProgress}
+              getRecommendation={getInsight}
+              fadeAnim={fadeAnim}
+              style={{ width: "100%", marginTop: 16 }}
+            />
           </ScrollView>
         </View>
       ) : (
@@ -10954,299 +10994,29 @@ export default function Dashboard() {
             contentContainerStyle={{ paddingBottom: 108 }}
           >
             {/* Hero Banner — compact mobile */}
-            <View style={{ paddingHorizontal: 14, paddingTop: 16 }}>
-              <Animated.View
-                style={[
-                  {
-                    borderRadius: 18,
-                    padding: 16,
-                    paddingVertical: 20,
-                    marginBottom: 14,
-                    overflow: "hidden",
-                    position: "relative",
-                    ...(Platform.OS === "web"
-                      ? { boxShadow: "0 6px 24px rgba(99,102,241,0.22)" }
-                      : { elevation: 6 }),
-                  },
-                  { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-                ]}
-              >
-                {/* Background gradient */}
-                {Platform.OS === "web" && (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      StyleSheet.absoluteFill,
-                      {
-                        borderRadius: 18,
-                        background:
-                          "linear-gradient(135deg,#3730a3 0%,#6d28d9 55%,#9333ea 100%)",
-                      } as any,
-                    ]}
-                  />
-                )}
-                {Platform.OS !== "web" && (
-                  <View
-                    style={[
-                      StyleSheet.absoluteFill,
-                      { backgroundColor: "#1e3a8a", borderRadius: 18 },
-                    ]}
-                  />
-                )}
-                {/* Animated orbs */}
-                <View
-                  pointerEvents="none"
-                  style={[
-                    herSt.orb,
-                    { width: 160, height: 160, top: -50, right: -30 },
-                    Platform.OS === "web"
-                      ? ({
-                          animation: "sk-float 4s ease-in-out infinite",
-                        } as any)
-                      : {},
-                  ]}
-                />
-                <View
-                  pointerEvents="none"
-                  style={[
-                    herSt.orb,
-                    { width: 80, height: 80, bottom: -30, right: 110 },
-                    Platform.OS === "web"
-                      ? ({
-                          animation: "sk-float 5s ease-in-out infinite reverse",
-                        } as any)
-                      : {},
-                  ]}
-                />
-                <Particles />
-
-                {/* Synced badge */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    marginBottom: 8,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: isSynced ? "#34d399" : "#f87171",
-                    }}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "700",
-                      letterSpacing: 0.8,
-                      color: isSynced ? "rgba(255,255,255,0.85)" : "#fca5a5",
-                      textTransform: "uppercase" as const,
-                    }}
-                  >
-                    {isSynced ? "SYNCED & ACTIVE" : "OFFLINE"}
-                  </Text>
-                </View>
-
-                {/* Name */}
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 20,
-                    fontWeight: "900",
-                    letterSpacing: -0.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  Welcome back, {displayName}!
-                </Text>
-
-                {/* Subtitle */}
-                <Text
-                  style={{
-                    color: "rgba(255,255,255,0.7)",
-                    fontSize: 12,
-                    fontWeight: "500",
-                    lineHeight: 18,
-                    marginBottom: 14,
-                    maxWidth: 280,
-                  }}
-                >
-                  You’re {overallPct}% through your learning goals.{"\n"}
-                  {overallPct === 100
-                    ? "🏆 All goals completed!"
-                    : overallPct >= 50
-                      ? "🔥 Keep pushing forward."
-                      : "🌱 Start small and build momentum."}
-                </Text>
-
-                {/* Progress bar */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <View
-                    style={{
-                      flex: 1,
-                      height: 6,
-                      backgroundColor: "rgba(255,255,255,0.2)",
-                      borderRadius: 99,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <View
-                      style={{
-                        height: "100%" as any,
-                        width: `${overallPct}%` as any,
-                        backgroundColor: "#34d399",
-                        borderRadius: 99,
-                      }}
-                    />
-                  </View>
-                  <Text
-                    style={{
-                      color: "rgba(255,255,255,0.85)",
-                      fontSize: 12,
-                      fontWeight: "900",
-                    }}
-                  >
-                    {overallPct}%
-                  </Text>
-                </View>
-              </Animated.View>
+            <View style={{ paddingHorizontal: 14, paddingTop: 14 }}>
+              <HeroBanner
+                dark={dark}
+                displayName={displayName}
+                overallPct={overallPct}
+                isSynced={isSynced}
+                fadeAnim={fadeAnim}
+                slideAnim={slideAnim}
+              />
             </View>
 
-            {/* Stat Cards — 2×2 grid, fixed size */}
-            <View style={{ paddingHorizontal: 14, marginBottom: 18 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap" as const,
-                  gap: 10,
-                }}
-              >
-                {[
-                  {
-                    icon: "🎯",
-                    val: goals.length,
-                    lbl: "Active Goals",
-                    sub: goalsIndicator.message,
-                    subIcon: goalsIndicator.icon,
-                    subColor:
-                      goalsIndicator.color === "textSecondary"
-                        ? textSecondary
-                        : goalsIndicator.color,
-                    color: "#6366f1",
-                    bg2: "rgba(99,102,241,0.08)",
-                  },
-                  {
-                    icon: "✅",
-                    val: completedTasks,
-                    lbl: "Tasks Completed",
-                    sub: tasksIndicator.message,
-                    subIcon: tasksIndicator.icon,
-                    subColor:
-                      tasksIndicator.color === "textSecondary"
-                        ? textSecondary
-                        : tasksIndicator.color,
-                    color: "#34d399",
-                    bg2: "rgba(52,211,153,0.08)",
-                  },
-                  {
-                    icon: "🔥",
-                    val: streak,
-                    lbl: "Day Streak",
-                    sub: streakIndicator.message,
-                    subIcon: streakIndicator.icon,
-                    subColor:
-                      streakIndicator.color === "textSecondary"
-                        ? textSecondary
-                        : streakIndicator.color,
-                    color: "#f97316",
-                    bg2: "rgba(249,115,22,0.08)",
-                  },
-                  {
-                    icon: "⭐",
-                    val: skillScore,
-                    lbl: "Skill Score",
-                    sub: skillScoreIndicator.message,
-                    subIcon: skillScoreIndicator.icon,
-                    subColor:
-                      skillScoreIndicator.color === "textSecondary"
-                        ? textSecondary
-                        : skillScoreIndicator.color,
-                    color: "#fbbf24",
-                    bg2: "rgba(251,191,36,0.08)",
-                  },
-                ].map((s, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: "calc(50% - 5px)" as any,
-                      backgroundColor: card,
-                      borderRadius: 14,
-                      padding: 14,
-                      borderWidth: 1,
-                      borderColor: cardBorder,
-                      borderTopWidth: 2,
-                      borderTopColor: s.color,
-                      ...(Platform.OS === "web"
-                        ? ({ boxShadow: `0 2px 10px ${s.color}18` } as any)
-                        : { elevation: 2 }),
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 10,
-                        backgroundColor: s.bg2,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Text style={{ fontSize: 17 }}>{s.icon}</Text>
-                    </View>
-                    <Text
-                      style={{
-                        fontSize: 26,
-                        fontWeight: "900",
-                        color: textPrimary,
-                        marginBottom: 2,
-                        lineHeight: 30,
-                      }}
-                    >
-                      {s.val}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: textSecondary,
-                        fontWeight: "500",
-                        marginBottom: 3,
-                      }}
-                    >
-                      {s.lbl}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: "700",
-                        color: s.subColor,
-                      }}
-                    >
-                      {s.subIcon ? `${s.subIcon} ` : ""}
-                      {s.sub}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+            {/* Stat Cards — mobile */}
+            <View style={{ paddingHorizontal: 14, marginBottom: 14 }}>
+              <StatCards
+                dark={dark}
+                goals={goals}
+                completedTasks={completedTasks}
+                streak={userData?.streak || streak || 0}
+                activityToday={activityToday}
+                fadeAnim={fadeAnim}
+                slideAnim={slideAnim}
+                mobile
+              />
             </View>
 
             {/* Activity Heatmap — mobile */}
@@ -11474,6 +11244,16 @@ export default function Dashboard() {
                 </Pressable>
               </Animated.View>
               <GoalList />
+
+              {/* Right Panel widgets on mobile (AI Recommendation & Quick Progress) */}
+              <RightPanel
+                dark={dark}
+                goals={goals}
+                getGoalProgress={getGoalProgress}
+                getRecommendation={getInsight}
+                fadeAnim={fadeAnim}
+                style={{ width: "100%", marginTop: 16 }}
+              />
             </View>
           </ScrollView>
 
