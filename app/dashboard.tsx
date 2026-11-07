@@ -987,7 +987,11 @@ function ProfileDrop({
       label: "Log Out",
       sub: "Sign out of account",
       fn: async () => {
-        onLogoutReset();
+        if (typeof onLogoutReset === "function") {
+          try {
+            await onLogoutReset();
+          } catch (_) {}
+        }
         try {
           await signOut(auth);
         } catch (_) {}
@@ -8142,6 +8146,7 @@ export default function Dashboard() {
     showSuccess("Logged out successfully");
     router.replace("/landing");
   };
+  const resetNotificationState = () => {};
 
   const handleEditTask = async (
     goalId: string,
@@ -10625,7 +10630,7 @@ export default function Dashboard() {
                     }}
                     onShowV2={showComingSoon}
                     router={router}
-                    onLogoutReset={resetNotificationState}
+                    onLogoutReset={handleLogout}
                   />
                 )}
               </View>
@@ -11033,7 +11038,7 @@ export default function Dashboard() {
                     }}
                     onShowV2={showComingSoon}
                     router={router}
-                    onLogoutReset={resetNotificationState}
+                    onLogoutReset={handleLogout}
                   />
                 )}
               </View>
