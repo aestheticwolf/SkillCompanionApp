@@ -3580,13 +3580,12 @@ function StatCards({
   // Skill score based on actual learning progress (not just streak)
   // Only award points for real accomplishments
   const skillScoreVal =
-    totalGoals === 0 && completedTasks === 0
-      ? 0 // No activity yet
+    completedTasks === 0
+      ? 0 // No completed tasks yet
       : Math.min(
           9999,
           completedTasks * 50 + // Points for completed tasks
             completedGoals * 100 + // Bonus for completed goals
-            totalGoals * 30 + // Points for active goals (engagement)
             (completedTasks > 0 ? Number(streak) * 15 : 0), // Streak bonus only if tasks completed
         );
 
@@ -3649,7 +3648,7 @@ function StatCards({
 
   const skillSub =
     skillScoreVal === 0
-      ? { text: "Complete tasks to grow", color: txtSec, icon: "" }
+      ? { text: "Get started", color: txtSec, icon: "" }
       : skillScoreTrend >= 75
         ? { text: "Excellent progress!", color: "#34d399", icon: "↑" }
         : skillScoreTrend >= 50
@@ -3784,19 +3783,10 @@ function StatCards({
         </Text>
         <Text style={[stSt.lbl, { color: txtSec }]}>{lbl}</Text>
         <View style={stSt.subRow}>
-          <View
-            style={{
-              backgroundColor: `${subColor}14`,
-              paddingHorizontal: 6,
-              paddingVertical: 1.5,
-              borderRadius: 4,
-            }}
-          >
-            <Text style={{ color: subColor, fontSize: 9.5, fontWeight: "700" }}>
-              {subIcon ? `${subIcon} ` : ""}
-              {sub}
-            </Text>
-          </View>
+          <Text style={{ color: subColor, fontSize: 10, fontWeight: "600" }}>
+            {subIcon ? `${subIcon} ` : ""}
+            {sub}
+          </Text>
         </View>
         {/* StreakTimer inside card to avoid overflow clipping */}
         {i === 2 && (
@@ -8358,13 +8348,12 @@ export default function Dashboard() {
   // Skill score based on actual learning progress (not just streak)
   // Only award points for real accomplishments
   const skillScore =
-    totalGoals === 0 && completedTasks === 0
-      ? 0 // No activity yet
+    completedTasks === 0
+      ? 0 // No completed tasks yet
       : Math.min(
           9999,
           completedTasks * 50 + // Points for completed tasks
             completedGoals * 100 + // Bonus for completed goals
-            totalGoals * 30 + // Points for active goals (engagement)
             (completedTasks > 0 ? streak * 15 : 0), // Streak bonus only if tasks completed
         );
 
@@ -8477,7 +8466,7 @@ export default function Dashboard() {
     if (skillScore === 0) {
       return {
         icon: "",
-        message: "Complete tasks to grow",
+        message: "Get started",
         color: "textSecondary",
       };
     }
